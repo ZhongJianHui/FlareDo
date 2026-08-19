@@ -9,4 +9,5 @@ plugins {
     alias(libs.plugins.room) apply false
     alias(libs.plugins.composeMultiplatform) apply false
     alias(libs.plugins.nucleus) apply false
+    alias(libs.plugins.screenshot) apply false
 }

@@ -39,7 +39,7 @@ kotlin {
             api(libs.paging.common)
             api(libs.paging.compose)
             implementation(libs.molecule.runtime)
-            implementation(libs.room.runtime)
+            api(libs.room.runtime)
             implementation(libs.room.paging)
             implementation(libs.sqlite)
             implementation(libs.sqlite.async)

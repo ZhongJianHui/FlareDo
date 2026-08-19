@@ -13,6 +13,10 @@ plugins {
 
 dependencies {
     implementation(projects.composeUi)
+    implementation(projects.shared)
+    implementation(projects.social.discourse)
+    implementation(project.dependencies.platform(libs.koin.bom))
+    implementation(libs.koin.core)
     implementation(compose.desktop.currentOs)
     implementation(compose("org.jetbrains.compose.components:components-resources"))
 }

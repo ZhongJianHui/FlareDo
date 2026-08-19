@@ -1,9 +1,10 @@
 package dev.dimension.flare.ui.model
 
+import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
-import kotlinx.serialization.json.Json
+import kotlin.test.assertTrue
 
 internal class DiscourseMetadataCompatibilityTest {
     private val json: Json = Json { ignoreUnknownKeys = true }
@@ -46,5 +47,37 @@ internal class DiscourseMetadataCompatibilityTest {
 
         assertEquals("post-9", article.itemKey)
         assertNull(article.discourse)
+    }
+
+    @Test
+    fun legacyArticleBlocksDefaultNewStructuredRichTextFields() {
+        val cached =
+            """
+            {
+              "itemKey":"post-10",
+              "title":"Legacy rich text",
+              "author":{"username":"writer","displayName":"Writer"},
+              "createdAtEpochMillis":3000,
+              "blocks":[
+                {
+                  "type":"dev.dimension.flare.ui.model.UiArticleBlock.Paragraph",
+                  "text":"Plain cached paragraph"
+                },
+                {
+                  "type":"dev.dimension.flare.ui.model.UiArticleBlock.Quote",
+                  "text":"Plain cached quote"
+                }
+              ]
+            }
+            """.trimIndent()
+
+        val article = json.decodeFromString<UiArticle>(cached)
+        val paragraph = article.blocks[0] as UiArticleBlock.Paragraph
+        val quote = article.blocks[1] as UiArticleBlock.Quote
+
+        assertTrue(paragraph.inlines.isEmpty())
+        assertTrue(quote.blocks.isEmpty())
+        assertEquals("Plain cached paragraph", paragraph.text)
+        assertEquals("Plain cached quote", quote.text)
     }
 }

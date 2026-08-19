@@ -5,7 +5,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import dev.dimension.flare.ui.ForumShell
+import androidx.activity.viewModels
+import dev.dimension.flare.ui.AndroidForumShell
 import dev.dimension.flare.ui.theme.FlareDoTheme
 
 /**
@@ -15,6 +16,8 @@ import dev.dimension.flare.ui.theme.FlareDoTheme
  * extras, keeping authentication callbacks and other externally supplied input out of the main UI host.
  */
 class MainActivity : ComponentActivity() {
+    private val forumViewModel: ForumPresenterViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -24,9 +27,10 @@ class MainActivity : ComponentActivity() {
             window.isNavigationBarContrastEnforced = false
         }
 
+        val presenter = forumViewModel.presenter
         setContent {
             FlareDoTheme {
-                ForumShell()
+                AndroidForumShell(presenter)
             }
         }
     }

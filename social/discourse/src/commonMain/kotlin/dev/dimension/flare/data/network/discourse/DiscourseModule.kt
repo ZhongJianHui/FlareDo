@@ -1,5 +1,12 @@
 package dev.dimension.flare.data.network.discourse
 
+import dev.dimension.flare.data.network.discourse.content.DiscourseCookedHtmlParser
+import dev.dimension.flare.data.network.discourse.forum.DefaultDiscourseForumRepository
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumCache
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumMapper
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumPresenter
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumRepository
+import dev.dimension.flare.data.network.discourse.forum.MemoryDiscourseForumCache
 import dev.dimension.flare.data.network.discourse.session.DiscourseCookieStorage
 import dev.dimension.flare.data.network.discourse.session.DiscourseCsrfTokenStore
 import dev.dimension.flare.data.network.discourse.session.DiscourseSessionManager
@@ -43,4 +50,17 @@ public val discourseModule: Module =
             )
         }
         single { DiscourseDataSource(api = get()) }
+        single { DiscourseCookedHtmlParser() }
+        single { DiscourseForumMapper(cookedHtmlParser = get()) }
+        // Platform hosts replace this with roomDiscourseForumCache(...) after opening their DB.
+        single<DiscourseForumCache> { MemoryDiscourseForumCache() }
+        single<DiscourseForumRepository> {
+            DefaultDiscourseForumRepository(
+                dataSource = get(),
+                mapper = get(),
+                cache = get(),
+            )
+        }
+        // A presenter has a screen lifecycle and must never be reused after close().
+        factory { DiscourseForumPresenter(repository = get()) }
     }
