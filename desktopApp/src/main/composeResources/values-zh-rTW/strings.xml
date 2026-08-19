@@ -29,8 +29,8 @@
     <string name="service_select_instance_input_placeholder">執行體 URL</string>
     <string name="service_select_next_button">下一步</string>
     <string name="service_select_empty_message">找不到執行體</string>
-    <string name="service_select_welcome_title">歡迎使用 Flare</string>
-    <string name="service_select_welcome_message">Flare 是一款支援 %1$s 的社群媒體用戶端。\n請選擇一個服務進行連線並開始使用。</string>
+    <string name="service_select_welcome_title">歡迎使用 FlareDo</string>
+    <string name="service_select_welcome_message">FlareDo 是一款支援 %1$s 的社群媒體用戶端。\n請選擇一個服務進行連線並開始使用。</string>
     <string name="mastodon_login_verify_message">正在驗證您的憑據…</string>
     <string name="profile_tab_timeline">貼文</string>
     <string name="profile_tab_timeline_with_reply">貼文與回覆</string>
@@ -142,7 +142,7 @@
     <string name="settings_appearance_title">外觀</string>
     <string name="settings_status_appearance_title">貼文外觀</string>
     <string name="settings_status_appearance_subtitle">自訂貼文顯示方式</string>
-    <string name="settings_appearance_subtitle">自訂 Flare 的外觀和感覺</string>
+    <string name="settings_appearance_subtitle">自訂 FlareDo 的外觀和感覺</string>
     <string name="settings_appearance_theme_group_title">主題</string>
     <string name="settings_appearance_theme_group_subtitle">顏色、字體大小和頭像形狀</string>
     <string name="settings_appearance_layout_group_title">佈局</string>
@@ -156,7 +156,7 @@
     <string name="settings_draft_box_description">檢視、編輯和重新發送儲存的草稿</string>
     <string name="settings_storage_subtitle">管理快取檔案、日誌和備份</string>
     <string name="settings_about_title">關於</string>
-    <string name="settings_about_subtitle">進一步了解 Flare</string>
+    <string name="settings_about_subtitle">進一步了解 FlareDo</string>
     <string name="settings_side_panel">側邊欄自訂</string>
     <string name="settings_side_panel_description">自訂側邊欄</string>
     <string name="settings_local_filter_title">本地過濾器</string>
@@ -176,7 +176,7 @@
     <string name="settings_ai_config_server_url_requirement">URL 必須以斜線結尾，並支援相容的 v1/chat/completions API。</string>
     <string name="settings_ai_config_server_self_host_description">使用官方服務或您自己的相容伺服器</string>
     <string name="settings_ai_config_type">AI 類型</string>
-    <string name="settings_ai_config_type_description">選擇 Flare 使用的 AI 後端</string>
+    <string name="settings_ai_config_type_description">選擇 FlareDo 使用的 AI 後端</string>
     <string name="settings_ai_config_type_on_device">裝置端 AI</string>
     <string name="settings_ai_config_type_openai">AI 相容 API</string>
     <string name="settings_ai_config_api_key">API 密鑰</string>
@@ -275,7 +275,7 @@
     <string name="settings_appearance_full_width_post">全寬貼文</string>
     <string name="settings_appearance_full_width_post_description">讓貼文填滿所有可用寬度</string>
     <string name="settings_language_title">語言</string>
-    <string name="settings_language_description">變更 Flare 的語言</string>
+    <string name="settings_language_description">變更 FlareDo 的語言</string>
     <string name="settings_appearance_post_action_style">貼文動作樣式</string>
     <string name="settings_appearance_post_action_style_description">選擇動作按鈕的排列方式</string>
     <string name="settings_appearance_post_action_style_hidden">隱藏</string>
@@ -320,7 +320,7 @@
     <string name="settings_about_telegram_description">加入我們的 Telegram 群組</string>
     <string name="settings_about_discord_description">加入我們的 Discord 伺服器</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">協助我們翻譯 Flare</string>
+    <string name="settings_about_localization_description">協助我們翻譯 FlareDo</string>
     <string name="settings_privacy_policy">隱私權政策</string>
     <string name="users">使用者</string>
     <string name="hashtags">標籤</string>
@@ -484,7 +484,7 @@
     <string name="misskey_channel_tab_featured">精選</string>
     <string name="media_save_success">已儲存至下載目錄</string>
     <string name="media_save_fail">儲存失敗</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="illustrations_title">插畫</string>
     <string name="manga_title">漫畫</string>
     <string name="pixiv_ranking_week_title">週排名</string>
@@ -537,8 +537,8 @@
     <string name="status_insight_trace_agent_failed">分析失敗</string>
     <string name="status_insight_trace_agent_closing">正在關閉分析...</string>
     <string name="ask_ai">問問AI</string>
-    <string name="settings_agent_history_title">Flare AI</string>
-    <string name="settings_agent_history_description">查看本機 Flare AI 聊天記錄</string>
+    <string name="settings_agent_history_title">FlareDo AI</string>
+    <string name="settings_agent_history_description">查看本機 FlareDo AI 聊天記錄</string>
     <string name="agent_history_empty">暫無 AI 聊天記錄。</string>
     <string name="settings_ai_config_title">人工智慧 (AI)</string>
     <string name="settings_ai_config_enable_agent">啟用 AI Agent</string>
@@ -607,7 +607,7 @@
     <string name="settings_behavior_title">行為</string>
     <string name="settings_behavior_description">時間軸重新整理、瀏覽器與連結處理偏好</string>
     <string name="settings_refresh_home_timeline_on_launch">啟動時重新整理首頁時間軸</string>
-    <string name="settings_refresh_home_timeline_on_launch_description">開啟 Flare 時取得新內容</string>
+    <string name="settings_refresh_home_timeline_on_launch_description">開啟 FlareDo 時取得新內容</string>
     <string name="settings_home_timeline_auto_refresh_interval">自動重新整理首頁時間軸</string>
     <string name="settings_home_timeline_auto_refresh_interval_description">首頁開啟時，定時重新整理目前選取的時間軸</string>
     <string name="settings_auto_refresh_disabled">關閉</string>
@@ -630,7 +630,7 @@
     <string name="settings_link_open_defaults_title">連結開啟方式</string>
     <string name="settings_link_open_defaults_description">依主機選擇支援連結的預設開啟方式</string>
     <string name="settings_link_open_default_title">%1$s 連結的預設方式</string>
-    <string name="settings_link_open_default_description">選擇 Flare 可處理的支援連結如何開啟</string>
+    <string name="settings_link_open_default_description">選擇 FlareDo 可處理的支援連結如何開啟</string>
     <string name="settings_link_open_default_ask_every_time">每次詢問</string>
     <string name="media_download_started">已開始下載。</string>
     <string name="fanbox_supported_title">支援中</string>

@@ -30,7 +30,7 @@ import compose.icons.fontawesomeicons.solid.HeartCircleMinus
 import compose.icons.fontawesomeicons.solid.HeartCirclePlus
 import compose.icons.fontawesomeicons.solid.Minus
 import compose.icons.fontawesomeicons.solid.Plus
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.common.isRefreshing
 import dev.dimension.flare.model.AccountType
 import dev.dimension.flare.ui.common.plus

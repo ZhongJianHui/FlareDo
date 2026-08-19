@@ -86,7 +86,7 @@ import compose.icons.fontawesomeicons.Solid
 import compose.icons.fontawesomeicons.solid.CaretDown
 import compose.icons.fontawesomeicons.solid.CaretUp
 import compose.icons.fontawesomeicons.solid.Pen
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.data.model.BottomBarBehavior
 import dev.dimension.flare.data.model.BottomBarStyle
 import dev.dimension.flare.ui.theme.segmentedShapes2

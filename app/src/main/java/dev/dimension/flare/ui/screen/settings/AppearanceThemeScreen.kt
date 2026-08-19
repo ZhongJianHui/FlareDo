@@ -38,7 +38,7 @@ import compose.icons.FontAwesomeIcons
 import compose.icons.fontawesomeicons.Solid
 import compose.icons.fontawesomeicons.solid.Minus
 import compose.icons.fontawesomeicons.solid.Plus
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.data.model.AvatarShape
 import dev.dimension.flare.data.model.Theme
 import dev.dimension.flare.data.model.appearance.AppearanceKeys

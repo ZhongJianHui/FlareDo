@@ -37,8 +37,8 @@ import compose.icons.fontawesomeicons.solid.PhotoFilm
 import compose.icons.fontawesomeicons.solid.Robot
 import compose.icons.fontawesomeicons.solid.Sliders
 import compose.icons.fontawesomeicons.solid.TableList
-import dev.dimension.flare.BuildConfig
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.BuildConfig
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.ui.component.BackButton
 import dev.dimension.flare.ui.component.FAIcon
 import dev.dimension.flare.ui.component.FlareLargeFlexibleTopAppBar

@@ -55,7 +55,7 @@ import compose.icons.fontawesomeicons.solid.FaceSadTear
 import compose.icons.fontawesomeicons.solid.List
 import compose.icons.fontawesomeicons.solid.Plus
 import compose.icons.fontawesomeicons.solid.Trash
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.data.repository.LoginExpiredException
 import dev.dimension.flare.model.MicroBlogKey
 import dev.dimension.flare.model.UnsupportedPlatformException

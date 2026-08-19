@@ -1,4 +1,4 @@
-name: Flare
+name: FlareDo
 
 options:
   minimumXcodeGenVersion: 2.45.4
@@ -21,18 +21,19 @@ settingGroups:
     ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
     ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
     ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS: NO
-    CODE_SIGN_STYLE: Automatic
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGNING_ALLOWED: NO
+    CODE_SIGNING_REQUIRED: NO
     ENABLE_PREVIEWS: YES
     ENABLE_USER_SCRIPT_SANDBOXING: NO
-    PRODUCT_BUNDLE_IDENTIFIER: dev.dimension.flare
-    PRODUCT_NAME: "$(TARGET_NAME)"
+    PRODUCT_BUNDLE_IDENTIFIER: io.github.zhongjianhui.flaredo
+    PRODUCT_NAME: FlareDo
     TARGETED_DEVICE_FAMILY: "1,2"
 
 settings:
   base:
     ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
     CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED: YES
-    DEVELOPMENT_TEAM: 7LFDZ96332
     LOCALIZATION_PREFERS_STRING_CATALOGS: YES
     STRING_CATALOG_GENERATE_SYMBOLS: YES
     SWIFT_APPROACHABLE_CONCURRENCY: YES
@@ -80,7 +81,7 @@ packages:
     exactVersion: 1.2.5
 
 targets:
-  Flare:
+  FlareDo:
     type: application
     platform: iOS
     sources:
@@ -122,10 +123,10 @@ targets:
           - "@executable_path/Frameworks"
 
 schemes:
-  Flare:
+  FlareDo:
     build:
       targets:
-        Flare: all
+        FlareDo: all
     run:
       config: Debug
     test:

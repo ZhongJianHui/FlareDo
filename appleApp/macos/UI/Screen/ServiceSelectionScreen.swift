@@ -825,9 +825,9 @@ private extension URL {
 }
 
 private enum ServiceSelectCopy {
-    static let welcomeTitle = String(localized: "service_select_welcome_title", defaultValue: "Welcome to Flare")
+    static let welcomeTitle = String(localized: "service_select_welcome_title", defaultValue: "Welcome to FlareDo")
     static let welcomeMessage = String(localized: "service_select_welcome_message", defaultValue: "Enter a server to get started.")
-    static let welcomeHint = String(localized: "service_select_welcome_hint", defaultValue: "Flare supports Mastodon, Misskey, Bluesky, Nostr, and X.")
+    static let welcomeHint = String(localized: "service_select_welcome_hint", defaultValue: "FlareDo connects you to Linux.do.")
     static let welcomeListHint = String(localized: "service_select_welcome_list_hint", defaultValue: "Or choose from these servers")
     static let instancePlaceholder = String(localized: "service_select_instance_input_placeholder", defaultValue: "Instance URL")
     static let emptyMessage = String(localized: "service_select_empty_message", defaultValue: "No instances found")
@@ -845,7 +845,7 @@ private enum ServiceSelectCopy {
         String(
             format: String(
                 localized: "service_select_compatibility_warning",
-                defaultValue: "This server uses %@, Flare will run in compatibility mode. Some features may not work properly."
+                defaultValue: "This server uses %@, FlareDo will run in compatibility mode. Some features may not work properly."
             ),
             software
         )

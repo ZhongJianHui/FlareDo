@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.toSize
 import compose.icons.FontAwesomeIcons
 import compose.icons.fontawesomeicons.Solid
 import compose.icons.fontawesomeicons.solid.FileCircleExclamation
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.common.PagingState
 import dev.dimension.flare.data.model.BottomBarBehavior
 import dev.dimension.flare.model.AccountType

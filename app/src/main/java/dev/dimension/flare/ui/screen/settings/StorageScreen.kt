@@ -43,7 +43,7 @@ import compose.icons.fontawesomeicons.solid.Envelope
 import compose.icons.fontawesomeicons.solid.FileExport
 import compose.icons.fontawesomeicons.solid.FileImport
 import compose.icons.fontawesomeicons.solid.Images
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.common.ComposeInAppNotification
 import dev.dimension.flare.ui.component.BackButton
 import dev.dimension.flare.ui.component.FlareLargeFlexibleTopAppBar

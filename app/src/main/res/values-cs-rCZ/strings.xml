@@ -84,7 +84,7 @@
     <string name="status_insight_trace_agent_closing">Uzavírací analýza…</string>
     <string name="ask_ai">Zeptat se na AI</string>
     <string name="agent_chat_title">AI chat</string>
-    <string name="agent_history_title">Flare AI</string>
+    <string name="agent_history_title">FlareDo AI</string>
     <string name="agent_history_empty">Historie konverzace agenta.</string>
     <string name="agent_chat_input_placeholder">Zeptejte se něčeho…</string>
     <string name="agent_chat_send">Odeslat</string>
@@ -99,7 +99,7 @@
     <string name="settings_accounts_title">Účty</string>
     <string name="settings_accounts_subtitle">Spravovat přihlášené účty</string>
     <string name="settings_appearance_title">Vzhled</string>
-    <string name="settings_appearance_subtitle">Přizpůsobit vzhled a chování Flare</string>
+    <string name="settings_appearance_subtitle">Přizpůsobit vzhled a chování FlareDo</string>
     <string name="settings_appearance_theme_group_title">Motiv</string>
     <string name="settings_appearance_theme_group_subtitle">Barvy, velikost písma a tvar avataru</string>
     <string name="settings_appearance_layout_group_title">Rozvržení</string>
@@ -111,7 +111,7 @@
     <string name="settings_storage_title">Úložiště</string>
     <string name="settings_storage_subtitle">Spravovat mezipaměť, protokoly a zálohy</string>
     <string name="settings_about_title">O aplikaci</string>
-    <string name="settings_about_subtitle">Další informace o Flare</string>
+    <string name="settings_about_subtitle">Další informace o FlareDo</string>
     <string name="settings_about_description">Open-source klient poháněný AI pro decentralizované sociální platformy.</string>
     <string name="settings_about_source_code">Zdrojový kód</string>
     <string name="settings_about_telegram">Telegram</string>
@@ -119,7 +119,7 @@
     <string name="settings_about_discord_description">Připojte se k našemu Discord serveru</string>
     <string name="settings_about_line_description">Připojte se k naší skupině na Line</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">Pomozte nám přeložit Flare</string>
+    <string name="settings_about_localization_description">Pomozte nám přeložit FlareDo</string>
     <string name="settings_privacy_policy">Zásady ochrany osobních údajů</string>
     <string name="settings_side_panel">Přizpůsobení bočního panelu</string>
     <string name="settings_side_panel_description">Přizpůsobit boční panel</string>
@@ -140,7 +140,7 @@
     <string name="settings_ai_config_server_url_requirement">URL musí končit lomítkem a podporovat kompatibilní rozhraní API v1/chat/completions.</string>
     <string name="settings_ai_config_server_self_host_description">Použijte oficiální službu nebo vlastní kompatibilní server</string>
     <string name="settings_ai_config_type">Typ AI</string>
-    <string name="settings_ai_config_type_description">Vyberte, který AI backend Flare používá</string>
+    <string name="settings_ai_config_type_description">Vyberte, který AI backend FlareDo používá</string>
     <string name="settings_ai_config_type_select">Vybrat</string>
     <string name="settings_ai_config_type_on_device">AI v zařízení</string>
     <string name="settings_ai_config_type_on_device_description">Spouštět podporované modely AI lokálně na tomto zařízení</string>
@@ -196,7 +196,7 @@
     <string name="settings_translation_ai_test_original">Ukázkový text</string>
     <string name="settings_translation_ai_test_result">Přeložený text</string>
     <string name="settings_language_title">Jazyk</string>
-    <string name="settings_language_description">Změnit jazyk aplikace Flare</string>
+    <string name="settings_language_description">Změnit jazyk aplikace FlareDo</string>
     <string name="settings_rss_management_title">Správa odběrů</string>
     <string name="settings_rss_management_description">Spravovat odběry</string>
     <string name="settings_nostr_relays_manage">Nostr relé</string>
@@ -208,8 +208,8 @@
     <string name="login_expired">Platnost přihlášení vypršela</string>
     <string name="login_expired_message">Klepnutím se znovu přihlaste</string>
     <string name="login_expired_relogin">Znovu se přihlásit</string>
-    <string name="service_select_welcome_title">Vítejte ve Flare</string>
-    <string name="service_select_welcome_message">Flare je sociální klient pro Android.\nVyberte službu, kterou chcete připojit, a začněte.</string>
+    <string name="service_select_welcome_title">Vítejte ve FlareDo</string>
+    <string name="service_select_welcome_message">FlareDo je sociální klient pro Android.\nVyberte službu, kterou chcete připojit, a začněte.</string>
     <string name="mastodon_login_verify_message">Ověřování vašich údajů…</string>
     <string name="status_title">Příspěvek</string>
     <string name="misskey_visibility_public">Veřejný</string>
@@ -347,7 +347,7 @@
     <string name="settings_appearance_deck_mode">Režim Deck</string>
     <string name="settings_appearance_deck_mode_description">Použít rozvržení Deck pro podporované časové osy</string>
     <string name="settings_appearance_in_app_browser">Prohlížeč v aplikaci</string>
-    <string name="settings_appearance_in_app_browser_description">Otevírat externí odkazy uvnitř Flare</string>
+    <string name="settings_appearance_in_app_browser_description">Otevírat externí odkazy uvnitř FlareDo</string>
     <string name="settings_appearance_full_width_post">Příspěvky na celou šířku</string>
     <string name="settings_appearance_full_width_post_description">Umožnit příspěvkům využít celou dostupnou šířku</string>
     <string name="settings_appearance_absolute_timestamp">Absolutní časové razítko</string>
@@ -583,7 +583,7 @@
     <string name="channel_item_unfollow">Zrušit sledování</string>
     <string name="channel_item_favourite">Přidat k oblíbeným</string>
     <string name="channel_item_unfavourite">Odebrat z oblíbených</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="profile_insight_title">Přehled profilu</string>
     <string name="profile_insight_analyzing">Analyzuje se tento profil…</string>
     <string name="profile_insight_error">Tento profil nelze analyzovat.</string>
@@ -673,7 +673,7 @@
     <string name="settings_link_open_defaults_title">Otevírání odkazů</string>
     <string name="settings_link_open_defaults_description">Vyberte výchozí chování podporovaných odkazů podle hostitele</string>
     <string name="settings_link_open_default_title">Výchozí pro odkazy %1$s</string>
-    <string name="settings_link_open_default_description">Vyberte, jak se mají otevírat podporované odkazy, které Flare umí zpracovat</string>
+    <string name="settings_link_open_default_description">Vyberte, jak se mají otevírat podporované odkazy, které FlareDo umí zpracovat</string>
     <string name="settings_link_open_default_ask_every_time">Pokaždé se zeptat</string>
     <string name="fanbox_supported_title">Podporováno</string>
     <string name="fanbox_recommended_creators_title">Doporučení tvůrci</string>

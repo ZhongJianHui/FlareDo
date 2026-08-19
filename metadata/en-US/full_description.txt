@@ -1,18 +1,20 @@
-Flare is a free and open source client for the social web. Browse, post, and
-interact across Mastodon, Bluesky, X, Misskey, and Nostr from a single app.
+FlareDo is an unofficial, free, and open-source client for the Linux.do forum.
 
-Features:
+Planned features include:
 
-- Unified timeline: merge feeds from multiple accounts and platforms into one
-  stream
-- Cross-posting: compose once, publish to multiple platforms
-- Adaptive layout: multi-column grid and split-view panels on tablets
-- Built-in RSS/Atom reader with OPML import
-- Customizable tab bar with any timeline, list, or feed as a tab
-- Full compose: polls, content warnings, media alt text, visibility controls
-- Guest mode: browse Mastodon without an account
-- Local keyword filters
-- Dynamic theming, custom colors, adjustable fonts
-- No ads, no tracking, no telemetry
+- Browse latest and popular topics as a guest
+- Explore categories and tags
+- Search topics and posts
+- Read topic streams with safe rich-text rendering
+- Sign in, create topics, reply, edit, and upload attachments
+- Like and bookmark posts
+- Read notifications and view member profiles
+- Adaptive layouts for phones, tablets, foldables, and desktops
+
+FlareDo targets Android, iOS, macOS, Windows, and Linux. Release builds will
+contain no ads, tracking, telemetry, or third-party analytics.
+
+This independent community project is not affiliated with, sponsored by, or
+endorsed by Linux.do or Discourse.
 
 Licensed under AGPL-3.0.

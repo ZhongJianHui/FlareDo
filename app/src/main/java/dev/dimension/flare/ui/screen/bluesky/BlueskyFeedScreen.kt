@@ -34,7 +34,7 @@ import compose.icons.fontawesomeicons.Solid
 import compose.icons.fontawesomeicons.regular.Heart
 import compose.icons.fontawesomeicons.solid.Heart
 import compose.icons.fontawesomeicons.solid.Rss
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.model.AccountType
 import dev.dimension.flare.ui.component.AvatarComponentDefaults
 import dev.dimension.flare.ui.component.BackButton

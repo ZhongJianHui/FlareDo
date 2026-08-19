@@ -49,7 +49,7 @@
 </script>
 
 <svelte:head>
-	<title>{m.settingsAccountsTitle()} | Flare</title>
+	<title>{m.settingsAccountsTitle()} | FlareDo</title>
 </svelte:head>
 
 <div class="accounts-page bg-base-200">

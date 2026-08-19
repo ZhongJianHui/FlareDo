@@ -54,7 +54,7 @@
     <string name="settings_accounts_title">Налози</string>
     <string name="settings_accounts_subtitle">Управљајте пријављеним налозима</string>
     <string name="settings_appearance_title">Изглед</string>
-    <string name="settings_appearance_subtitle">Прилагодите изглед и осећај Flare-а</string>
+    <string name="settings_appearance_subtitle">Прилагодите изглед и осећај FlareDo-а</string>
     <string name="settings_appearance_theme_group_title">Тема</string>
     <string name="settings_appearance_theme_group_subtitle">Боје, величина фонта и облик аватара</string>
     <string name="settings_appearance_layout_group_title">Распоред</string>
@@ -66,7 +66,7 @@
     <string name="settings_storage_title">Складиште</string>
     <string name="settings_storage_subtitle">Управљајте кешираним датотекама, дневницима и резервним копијама</string>
     <string name="settings_about_title">О апликацији</string>
-    <string name="settings_about_subtitle">Сазнајте више о Flare-у</string>
+    <string name="settings_about_subtitle">Сазнајте више о FlareDo-у</string>
     <string name="settings_about_description">Klijent otvorenog koda za decentralizovane društvene platforme, pokretan veštačkom inteligencijom.</string>
     <string name="settings_about_source_code">Izvorni kod</string>
     <string name="settings_about_telegram">Телеграм</string>
@@ -74,7 +74,7 @@
     <string name="settings_about_discord_description">Pridružite se našem Discord serveru</string>
     <string name="settings_about_line_description">Pridružite se našoj Line grupi</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">Pomozite nam u prevođenju Flare-a</string>
+    <string name="settings_about_localization_description">Pomozite nam u prevođenju FlareDo-a</string>
     <string name="settings_privacy_policy">Politika privatnosti</string>
     <string name="settings_side_panel">Прилагођавање бочне плоче</string>
     <string name="settings_side_panel_description">Прилагодите бочну плочу</string>
@@ -95,7 +95,7 @@
     <string name="settings_ai_config_server_url_requirement">URL се мора завршавати косом цртом и подржавати компатибилан v1/chat/completions API.</string>
     <string name="settings_ai_config_server_self_host_description">Користите званичну услугу или сопствени компатибилан сервер</string>
     <string name="settings_ai_config_type">Тип ВИ</string>
-    <string name="settings_ai_config_type_description">Одаберите који ВИ позадински систем Flare користи</string>
+    <string name="settings_ai_config_type_description">Одаберите који ВИ позадински систем FlareDo користи</string>
     <string name="settings_ai_config_type_select">Одабери</string>
     <string name="settings_ai_config_type_on_device">ВИ на уређају</string>
     <string name="settings_ai_config_type_on_device_description">Покрените подржане ВИ моделе локално на овом уређају</string>
@@ -147,7 +147,7 @@
     <string name="settings_translation_ai_test_original">Узорак текста</string>
     <string name="settings_translation_ai_test_result">Преведени текст</string>
     <string name="settings_language_title">Језик</string>
-    <string name="settings_language_description">Промените језик апликације Flare</string>
+    <string name="settings_language_description">Промените језик апликације FlareDo</string>
     <string name="settings_rss_management_title">Управљање претплатама</string>
     <string name="settings_rss_management_description">Управљајте претплатама</string>
     <string name="settings_nostr_relays_manage">Nostr релеји</string>
@@ -159,8 +159,8 @@
     <string name="login_expired">Сесија пријаве је истекла</string>
     <string name="login_expired_message">Додирните да се поново пријавите</string>
     <string name="login_expired_relogin">Пријави се поново</string>
-    <string name="service_select_welcome_title">Добро дошли у Flare</string>
-    <string name="service_select_welcome_message">Flare је клијент друштвених медија за Android.\nОдаберите услугу за повезивање да бисте започели.</string>
+    <string name="service_select_welcome_title">Добро дошли у FlareDo</string>
+    <string name="service_select_welcome_message">FlareDo је клијент друштвених медија за Android.\nОдаберите услугу за повезивање да бисте започели.</string>
     <string name="mastodon_login_verify_message">Провера ваших акредитива…</string>
     <string name="status_title">Објава</string>
     <string name="misskey_visibility_public">Јавно</string>
@@ -296,7 +296,7 @@
     <string name="settings_appearance_deck_mode">Deck режим</string>
     <string name="settings_appearance_deck_mode_description">Користите распоред шпила за подржане временске линије</string>
     <string name="settings_appearance_in_app_browser">Прегледач у апликацији</string>
-    <string name="settings_appearance_in_app_browser_description">Отворите спољне линкове унутар Flare-а</string>
+    <string name="settings_appearance_in_app_browser_description">Отворите спољне линкове унутар FlareDo-а</string>
     <string name="settings_appearance_full_width_post">Објаве пуне ширине</string>
     <string name="settings_appearance_full_width_post_description">Дозволите објавама да заузму целу доступну ширину</string>
     <string name="settings_appearance_absolute_timestamp">Апсолутна временска ознака</string>
@@ -523,7 +523,7 @@
     <string name="channel_item_unfollow">Престани да пратиш</string>
     <string name="channel_item_favourite">Омиљено</string>
     <string name="channel_item_unfavourite">Уклони из омиљених</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="status_insight_title">Увид у објаву</string>
     <string name="profile_insight_title">Увид у профил</string>
     <string name="status_insight_input_placeholder">Поставите додатно питање…</string>
@@ -567,7 +567,7 @@
     <string name="status_insight_trace_agent_closing">Затварање анализе...</string>
     <string name="ask_ai">Питај AI</string>
     <string name="agent_chat_title">AI ћаскање</string>
-    <string name="agent_history_title">Flare AI</string>
+    <string name="agent_history_title">FlareDo AI</string>
     <string name="agent_history_empty">Још увек нема историје AI ћаскања.</string>
     <string name="agent_chat_input_placeholder">Питајте било шта...</string>
     <string name="agent_chat_thinking">Размишљање...</string>
@@ -672,7 +672,7 @@
     <string name="settings_link_open_defaults_title">Отварање веза</string>
     <string name="settings_link_open_defaults_description">Изаберите подразумевано за подржане везе по хосту</string>
     <string name="settings_link_open_default_title">Подразумевано за %1$s везе</string>
-    <string name="settings_link_open_default_description">Изаберите како се подржане везе отварају када Flare може да их обради</string>
+    <string name="settings_link_open_default_description">Изаберите како се подржане везе отварају када FlareDo може да их обради</string>
     <string name="settings_link_open_default_ask_every_time">Питај сваки пут</string>
     <string name="fanbox_supported_title">Подржавам</string>
     <string name="fanbox_recommended_creators_title">Препоручени аутори</string>

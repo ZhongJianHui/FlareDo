@@ -62,7 +62,7 @@ private struct AboutHeader: View {
                 .shadow(color: .black.opacity(0.12), radius: 16, y: 8)
 
             VStack(spacing: 6) {
-                Text("Flare")
+                Text("FlareDo")
                     .font(.largeTitle.weight(.semibold))
 
                 Text("settings_about_description")
@@ -128,37 +128,9 @@ private extension AboutLink {
         AboutLink(
             id: "source-code",
             titleKey: "settings_about_source_code",
-            subtitleKey: "https://github.com/DimensionDev/Flare",
+            subtitleKey: "https://github.com/ZhongJianHui/FlareDo",
             icon: .github,
-            url: URL(string: "https://github.com/DimensionDev/Flare")!
-        ),
-        AboutLink(
-            id: "telegram",
-            titleKey: "settings_about_telegram",
-            subtitleKey: "settings_about_telegram_description",
-            icon: .telegram,
-            url: URL(string: "https://t.me/+VZ63fqNQXIA0MzVl")!
-        ),
-        AboutLink(
-            id: "discord",
-            titleKey: "settings_about_discord",
-            subtitleKey: "settings_about_discord_description",
-            icon: .discord,
-            url: URL(string: "https://discord.gg/De9NhXBryT")!
-        ),
-        AboutLink(
-            id: "localization",
-            titleKey: "settings_about_localization",
-            subtitleKey: "settings_about_localization_description",
-            icon: .language,
-            url: URL(string: "https://crowdin.com/project/flareapp")!
-        ),
-        AboutLink(
-            id: "privacy-policy",
-            titleKey: "settings_privacy_policy",
-            subtitleKey: "https://legal.mask.io/maskbook",
-            icon: .lock,
-            url: URL(string: "https://legal.mask.io/maskbook/")!
+            url: URL(string: "https://github.com/ZhongJianHui/FlareDo")!
         )
     ]
 }

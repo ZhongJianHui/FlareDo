@@ -1,4 +1,4 @@
-name: Flare
+name: FlareDo
 
 options:
   minimumXcodeGenVersion: 2.45.4
@@ -20,21 +20,21 @@ settingGroups:
   appleApp:
     ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
     ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
-    CODE_SIGN_STYLE: Automatic
     ENABLE_PREVIEWS: YES
     ENABLE_USER_SCRIPT_SANDBOXING: NO
     # FRAMEWORK_SEARCH_PATHS:
     #   - "$(inherited)"
     #   - "$(SRCROOT)/../apple-shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)"
-    PRODUCT_BUNDLE_IDENTIFIER: dev.dimension.flare
-    PRODUCT_NAME: Flare
+    PRODUCT_BUNDLE_IDENTIFIER: io.github.zhongjianhui.flaredo
+    PRODUCT_NAME: FlareDo
 
 settings:
   base:
     ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
     CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED: YES
+    CODE_SIGNING_ALLOWED: NO
+    CODE_SIGNING_REQUIRED: NO
     DEAD_CODE_STRIPPING: YES
-    DEVELOPMENT_TEAM: 7LFDZ96332
     "EXCLUDED_ARCHS[sdk=macosx*]": x86_64
     "EXCLUDED_ARCHS[sdk=iphonesimulator*]": x86_64
     LOCALIZATION_PREFERS_STRING_CATALOGS: YES
@@ -221,11 +221,10 @@ targets:
     settings:
       base:
         APPLICATION_EXTENSION_API_ONLY: YES
-        CODE_SIGN_STYLE: Automatic
         ENABLE_USER_SCRIPT_SANDBOXING: NO
         INFOPLIST_FILE: ios/SafariOpenInFlare/Info.plist
-        PRODUCT_BUNDLE_IDENTIFIER: dev.dimension.flare.OpenInFlare
-        PRODUCT_NAME: Open in Flare
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.zhongjianhui.flaredo.openin
+        PRODUCT_NAME: Open in FlareDo
         SKIP_INSTALL: YES
         SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated
         SWIFT_STRICT_CONCURRENCY: targeted
@@ -283,9 +282,6 @@ targets:
         ENABLE_USER_SELECTED_FILES: readwrite
         INFOPLIST_FILE: macos/Info.plist
         OTHER_LDFLAGS: "$(inherited) -lsqlite3 -ObjC"
-        PROVISIONING_PROFILE: "$(NATIVE_MACOS_PROVISIONING_PROFILE)"
-        PROVISIONING_PROFILE_SPECIFIER: "$(NATIVE_MACOS_PROVISIONING_PROFILE_SPECIFIER)"
-        REGISTER_APP_GROUPS: YES
 
   FlareAppleResource:
     type: bundle
@@ -299,7 +295,7 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: Shared/FlareAppleResource/Info.plist
-        PRODUCT_BUNDLE_IDENTIFIER: dev.dimension.flare.appleresource
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.zhongjianhui.flaredo.appleresource
         PRODUCT_NAME: FlareAppleResource
         SKIP_INSTALL: YES
 
@@ -331,7 +327,7 @@ targets:
         #   - "$(SRCROOT)/../apple-shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)"
         GENERATE_INFOPLIST_FILE: YES
         OTHER_LDFLAGS: "$(inherited) -lsqlite3"
-        PRODUCT_BUNDLE_IDENTIFIER: dev.dimension.flare.applecore
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.zhongjianhui.flaredo.applecore
 
   FlareAppleUI:
     type: framework.static
@@ -376,7 +372,7 @@ targets:
         #   - "$(SRCROOT)/../apple-shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)"
         GENERATE_INFOPLIST_FILE: YES
         OTHER_LDFLAGS: "$(inherited) -lsqlite3"
-        PRODUCT_BUNDLE_IDENTIFIER: dev.dimension.flare.appleui
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.zhongjianhui.flaredo.appleui
 
 schemes:
   iOS:

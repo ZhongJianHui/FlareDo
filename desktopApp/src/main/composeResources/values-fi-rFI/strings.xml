@@ -28,8 +28,8 @@
     <string name="service_select_instance_input_placeholder">Palvelimen osoite</string>
     <string name="service_select_next_button">Seuraava</string>
     <string name="service_select_empty_message">Palvelimia ei löytynyt</string>
-    <string name="service_select_welcome_title">Tervetuloa Flareen</string>
-    <string name="service_select_welcome_message">Flare on sosiaalisen median asiakasohjelma %1$s-palvelulle.\nValitse palvelu kirjautuaksesi ja aloittaaksesi.</string>
+    <string name="service_select_welcome_title">Tervetuloa FlareDoen</string>
+    <string name="service_select_welcome_message">FlareDo on sosiaalisen median asiakasohjelma %1$s-palvelulle.\nValitse palvelu kirjautuaksesi ja aloittaaksesi.</string>
     <string name="mastodon_login_verify_message">Varmistetaan kirjautumistietoja…</string>
     <string name="profile_tab_timeline">Postaukset</string>
     <string name="profile_tab_timeline_with_reply">Postaukset ja vastaukset</string>
@@ -178,7 +178,7 @@
     <string name="settings_appearance_title">Ulkoasu</string>
     <string name="settings_status_appearance_title">Postauksen ulkoasu</string>
     <string name="settings_status_appearance_subtitle">Muokkaa postauksen ulkoasua</string>
-    <string name="settings_appearance_subtitle">Muokkaa Flaren ulkoasua ja tuntumaa</string>
+    <string name="settings_appearance_subtitle">Muokkaa FlareDon ulkoasua ja tuntumaa</string>
     <string name="settings_appearance_theme_group_title">Teema</string>
     <string name="settings_appearance_theme_group_subtitle">Värit, fonttikoko ja profiilikuvan muoto</string>
     <string name="settings_appearance_layout_group_title">Asettelu</string>
@@ -192,7 +192,7 @@
     <string name="settings_draft_box_description">Tarkastele, muokkaa ja lähetä tallennettuja luonnoksia</string>
     <string name="settings_storage_subtitle">Hallitse välimuistia, lokeja ja varmuuskopioita</string>
     <string name="settings_about_title">Tietoja</string>
-    <string name="settings_about_subtitle">Lue lisää Flaresta</string>
+    <string name="settings_about_subtitle">Lue lisää FlareDosta</string>
     <string name="settings_side_panel">Sivupaneelin muokkaus</string>
     <string name="settings_side_panel_description">Muokkaa sivupaneelia</string>
     <string name="settings_local_filter_title">Paikalliset suodattimet</string>
@@ -201,8 +201,8 @@
     <string name="settings_guest_setting_description">Valitse, mihin palvelimeen vierastila yhdistää</string>
     <string name="settings_local_history_title">Paikallinen historia</string>
     <string name="settings_local_history_description">Hae laitteeseen välimuistiin tallennettuja postauksia ja profiileja</string>
-    <string name="settings_agent_history_title">Flare AI</string>
-    <string name="settings_agent_history_description">Näytä paikallinen Flare AI chat historia</string>
+    <string name="settings_agent_history_title">FlareDo AI</string>
+    <string name="settings_agent_history_description">Näytä paikallinen FlareDo AI chat historia</string>
     <string name="agent_history_empty">Ei agenttikeskusteluhistoriaa vielä.</string>
     <string name="settings_app_logging_title">Sovelluksen lokit</string>
     <string name="settings_app_logging_save">Tallenna lokit</string>
@@ -216,7 +216,7 @@
     <string name="settings_ai_config_server_url_requirement">Osoitteen on päätyttävä vinoviivaan (/) ja sen on tuettava yhteensopivaa v1/chat/completions API:a.</string>
     <string name="settings_ai_config_server_self_host_description">Käytä virallista palvelua tai omaa yhteensopivaa palvelintasi</string>
     <string name="settings_ai_config_type">Tekoälyn tyyppi</string>
-    <string name="settings_ai_config_type_description">Valitse, mitä tekoälyalustaa Flare käyttää</string>
+    <string name="settings_ai_config_type_description">Valitse, mitä tekoälyalustaa FlareDo käyttää</string>
     <string name="settings_ai_config_type_on_device">Laitteen oma tekoäly</string>
     <string name="settings_ai_config_type_openai">AI-yhteensopiva API</string>
     <string name="settings_ai_config_api_key">API-avain</string>
@@ -318,7 +318,7 @@
     <string name="settings_appearance_full_width_post">Koko leveyden postaukset</string>
     <string name="settings_appearance_full_width_post_description">Anna postausten viedä koko käytettävissä oleva leveys</string>
     <string name="settings_language_title">Kieli</string>
-    <string name="settings_language_description">Vaihda Flaren sovelluskieli</string>
+    <string name="settings_language_description">Vaihda FlareDon sovelluskieli</string>
     <string name="settings_appearance_post_action_style">Toimintojen tyyli</string>
     <string name="settings_appearance_post_action_style_description">Valitse toimintopainikkeiden asettelu</string>
     <string name="settings_appearance_post_action_style_hidden">Piilotettu</string>
@@ -363,7 +363,7 @@
     <string name="settings_about_telegram_description">Liity Telegram-ryhmäämme</string>
     <string name="settings_about_discord_description">Liity Discord-palvelimellemme</string>
     <string name="settings_about_localization">Crowdiini</string>
-    <string name="settings_about_localization_description">Auta meitä kääntämään Flare</string>
+    <string name="settings_about_localization_description">Auta meitä kääntämään FlareDo</string>
     <string name="settings_privacy_policy">Tietosuojaseloste</string>
     <string name="users">Käyttäjät</string>
     <string name="hashtags">Aihetunnisteet</string>
@@ -526,7 +526,7 @@
     <string name="misskey_channel_tab_featured">Suositellut</string>
     <string name="media_save_success">Tallennettu ladattuihin tiedostoihin</string>
     <string name="media_save_fail">Tallentaminen epäonnistui</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="profile_insight_title">Profiilinäkymä</string>
     <string name="agent_chat_input_placeholder">Kysy mitään...</string>
     <string name="agent_chat_thinking">Ajatellaan...</string>
@@ -603,7 +603,7 @@
     <string name="settings_link_open_defaults_title">Linkkien avaaminen</string>
     <string name="settings_link_open_defaults_description">Valitse oletukset tuetuille linkeille isännän mukaan</string>
     <string name="settings_link_open_default_title">Oletus %1$s-linkeille</string>
-    <string name="settings_link_open_default_description">Valitse, miten tuetut linkit avataan, kun Flare voi käsitellä ne</string>
+    <string name="settings_link_open_default_description">Valitse, miten tuetut linkit avataan, kun FlareDo voi käsitellä ne</string>
     <string name="settings_link_open_default_ask_every_time">Kysy joka kerta</string>
     <string name="media_download_started">Lataus alkoi</string>
     <string name="fanbox_supported_title">Tuetaan</string>

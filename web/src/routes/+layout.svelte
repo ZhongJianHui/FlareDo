@@ -245,7 +245,7 @@
 		<main class="app-shell bg-base-300 text-base-content">
 			<nav class="app-sidebar bg-base-300" aria-label={m.navigationMainAriaLabel()}>
 				<div class="sidebar-brand">
-					<img class="brand-mark" src={logo} alt="Flare" />
+					<img class="brand-mark" src={logo} alt="FlareDo" />
 				</div>
 
 				<ul class="menu menu-lg w-full items-center gap-2 p-2">

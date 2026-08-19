@@ -9,7 +9,7 @@ import kotlinx.serialization.decodeFromHexString
 import kotlinx.serialization.encodeToHexString
 import kotlinx.serialization.protobuf.ProtoBuf
 
-public const val APPSCHEMA: String = "flare"
+public const val APPSCHEMA: String = "flaredo"
 
 @Serializable
 public sealed class DeeplinkRoute {

@@ -30,7 +30,7 @@ import compose.icons.FontAwesomeIcons
 import compose.icons.fontawesomeicons.Solid
 import compose.icons.fontawesomeicons.solid.CaretDown
 import compose.icons.fontawesomeicons.solid.CaretUp
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.model.AccountType
 import dev.dimension.flare.ui.model.UiEmoji
 import dev.dimension.flare.ui.model.onSuccess

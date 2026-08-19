@@ -20,8 +20,8 @@ plugins {
 }
 
 flare {
-    namespace = "dev.dimension.flare"
-    applicationId = "dev.dimension.flare"
+    namespace = "io.github.zhongjianhui.flaredo"
+    applicationId = "io.github.zhongjianhui.flaredo"
 }
 
 // START Non-FOSS component
@@ -245,4 +245,3 @@ kotlin {
         }
     }
 }
-

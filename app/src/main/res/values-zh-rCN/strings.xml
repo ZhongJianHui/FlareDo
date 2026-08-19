@@ -76,7 +76,7 @@
     <string name="status_insight_trace_agent_closing">结束分析…</string>
     <string name="ask_ai">问问AI</string>
     <string name="agent_chat_title">AI 聊天</string>
-    <string name="agent_history_title">Flare AI</string>
+    <string name="agent_history_title">FlareDo AI</string>
     <string name="agent_history_empty">暂无 AI 聊天历史记录。</string>
     <string name="agent_chat_input_placeholder">想问什么都可以…</string>
     <string name="agent_chat_send">发送</string>
@@ -91,7 +91,7 @@
     <string name="settings_accounts_title">账户</string>
     <string name="settings_accounts_subtitle">管理已登录的账户</string>
     <string name="settings_appearance_title">外观</string>
-    <string name="settings_appearance_subtitle">自定义 Flare 的外观和体验</string>
+    <string name="settings_appearance_subtitle">自定义 FlareDo 的外观和体验</string>
     <string name="settings_appearance_theme_group_title">主题</string>
     <string name="settings_appearance_theme_group_subtitle">颜色、字体大小和头像形状</string>
     <string name="settings_appearance_layout_group_title">布局</string>
@@ -103,7 +103,7 @@
     <string name="settings_storage_title">存储</string>
     <string name="settings_storage_subtitle">管理缓存文件、日志和备份</string>
     <string name="settings_about_title">关于</string>
-    <string name="settings_about_subtitle">了解更多关于 Flare 的信息</string>
+    <string name="settings_about_subtitle">了解更多关于 FlareDo 的信息</string>
     <string name="settings_about_description">一款开源、AI 驱动的去中心化社交平台客户端。</string>
     <string name="settings_about_source_code">源代码</string>
     <string name="settings_about_telegram">Telegram</string>
@@ -111,7 +111,7 @@
     <string name="settings_about_discord_description">加入我们的 Discord 服务器</string>
     <string name="settings_about_line_description">加入我们的 Line 群组</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">帮助我们翻译 Flare</string>
+    <string name="settings_about_localization_description">帮助我们翻译 FlareDo</string>
     <string name="settings_privacy_policy">隐私政策</string>
     <string name="settings_side_panel">侧边栏自定义</string>
     <string name="settings_side_panel_description">自定义侧边栏</string>
@@ -132,7 +132,7 @@
     <string name="settings_ai_config_server_url_requirement">URL 必须以斜杠结尾，并支持兼容的 v1/chat/completions API。</string>
     <string name="settings_ai_config_server_self_host_description">使用官方服务或您自己的兼容服务器</string>
     <string name="settings_ai_config_type">AI 类型</string>
-    <string name="settings_ai_config_type_description">选择 Flare 使用的 AI 后端</string>
+    <string name="settings_ai_config_type_description">选择 FlareDo 使用的 AI 后端</string>
     <string name="settings_ai_config_type_select">选择</string>
     <string name="settings_ai_config_type_on_device">端侧 AI</string>
     <string name="settings_ai_config_type_on_device_description">在此设备上本地运行支持的 AI 模型</string>
@@ -192,7 +192,7 @@
     <string name="settings_translation_ai_test_original">原文示例</string>
     <string name="settings_translation_ai_test_result">翻译结果</string>
     <string name="settings_language_title">语言</string>
-    <string name="settings_language_description">更改 Flare 应用语言</string>
+    <string name="settings_language_description">更改 FlareDo 应用语言</string>
     <string name="settings_rss_management_title">订阅管理</string>
     <string name="settings_rss_management_description">管理订阅</string>
     <string name="settings_nostr_relays_manage">Nostr 中继器</string>
@@ -204,8 +204,8 @@
     <string name="login_expired">登录会话已过期</string>
     <string name="login_expired_message">点击重新登录</string>
     <string name="login_expired_relogin">重新登录</string>
-    <string name="service_select_welcome_title">欢迎使用 Flare</string>
-    <string name="service_select_welcome_message">Flare 是一款适用于 Android 的社交媒体客户端。\n选择一个服务进行连接并开始使用。</string>
+    <string name="service_select_welcome_title">欢迎使用 FlareDo</string>
+    <string name="service_select_welcome_message">FlareDo 是一款适用于 Android 的社交媒体客户端。\n选择一个服务进行连接并开始使用。</string>
     <string name="mastodon_login_verify_message">正在验证您的凭据…</string>
     <string name="status_title">动态</string>
     <string name="misskey_visibility_public">公开</string>
@@ -352,7 +352,7 @@
     <string name="settings_appearance_deck_mode">分栏模式 (Deck)</string>
     <string name="settings_appearance_deck_mode_description">在支持的时间轴上使用分栏布局</string>
     <string name="settings_appearance_in_app_browser">应用内浏览器</string>
-    <string name="settings_appearance_in_app_browser_description">在 Flare 内部打开外部链接</string>
+    <string name="settings_appearance_in_app_browser_description">在 FlareDo 内部打开外部链接</string>
     <string name="settings_appearance_full_width_post">全宽动态</string>
     <string name="settings_appearance_full_width_post_description">让动态占据全部可用宽度</string>
     <string name="settings_appearance_absolute_timestamp">绝对时间戳</string>
@@ -600,7 +600,7 @@
     <string name="channel_item_unfollow">取消关注</string>
     <string name="channel_item_favourite">收藏</string>
     <string name="channel_item_unfavourite">取消收藏</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="profile_insight_title">个人资料洞察</string>
     <string name="status_insight_input_placeholder">继续提问…</string>
     <string name="status_insight_analyzing">正在分析此帖子...</string>
@@ -668,7 +668,7 @@
     <string name="settings_behavior_title">行为</string>
     <string name="settings_behavior_description">时间线刷新、浏览器和链接处理偏好</string>
     <string name="settings_refresh_home_timeline_on_launch">启动时刷新首页时间线</string>
-    <string name="settings_refresh_home_timeline_on_launch_description">打开 Flare 时获取新内容</string>
+    <string name="settings_refresh_home_timeline_on_launch_description">打开 FlareDo 时获取新内容</string>
     <string name="settings_home_timeline_auto_refresh_interval">自动刷新首页时间线</string>
     <string name="settings_home_timeline_auto_refresh_interval_description">首页打开时，定时刷新当前选中的时间线</string>
     <string name="settings_auto_refresh_disabled">关闭</string>
@@ -706,7 +706,7 @@
     <string name="settings_mxga_never_refreshed">尚未刷新</string>
     <string name="settings_mxga_learn_more">什么是 MXGA？</string>
     <string name="settings_link_open_default_title">%1$s 链接的默认方式</string>
-    <string name="settings_link_open_default_description">选择 Flare 可处理的支持链接如何打开</string>
+    <string name="settings_link_open_default_description">选择 FlareDo 可处理的支持链接如何打开</string>
     <string name="settings_link_open_default_ask_every_time">每次询问</string>
     <string name="fanbox_supported_title">支持中</string>
     <string name="fanbox_recommended_creators_title">推荐创作者</string>

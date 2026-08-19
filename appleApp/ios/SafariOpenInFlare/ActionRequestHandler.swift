@@ -3,7 +3,7 @@ import UniformTypeIdentifiers
 
 /// A non-UI Safari Action extension that returns a custom URL to the page's
 /// JavaScript `finalize` hook. Safari then opens that URL as a user-initiated
-/// navigation, allowing the containing Flare app to receive the webpage URL.
+/// navigation, allowing the containing FlareDo app to receive the webpage URL.
 final class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
     func beginRequest(with context: NSExtensionContext) {
         guard let provider = context.inputItems
@@ -50,7 +50,7 @@ final class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
 
     private static func flareURL(for source: String) -> URL? {
         var components = URLComponents()
-        components.scheme = "flare"
+        components.scheme = "flaredo"
         components.host = "open"
         components.queryItems = [URLQueryItem(name: "url", value: source)]
         return components.url
@@ -59,7 +59,7 @@ final class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
     private static func cancel(_ context: NSExtensionContext, reason: String) {
         context.cancelRequest(
             withError: NSError(
-                domain: "dev.dimension.flare.open-in-flare",
+                domain: "io.github.zhongjianhui.flaredo.open-in-flaredo",
                 code: 1,
                 userInfo: [NSLocalizedDescriptionKey: reason]
             )

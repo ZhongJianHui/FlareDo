@@ -40,7 +40,7 @@ import compose.icons.FontAwesomeIcons
 import compose.icons.fontawesomeicons.Solid
 import compose.icons.fontawesomeicons.solid.MagnifyingGlass
 import compose.icons.fontawesomeicons.solid.Xmark
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.common.ImmutableListWrapper
 import dev.dimension.flare.common.PagingState
 import dev.dimension.flare.common.onLoading

@@ -133,7 +133,7 @@ nucleus.application {
         cleanupNativeLibs = true
         enableAotCache = true
         modules("jdk.localedata")
-        homepage = "https://github.com/DimensionDev/Flare"
+        homepage = "https://github.com/ZhongJianHui/FlareDo"
         // Higher compression level can cause laggy for linux AppImage
         compressionLevel = CompressionLevel.Store
         targetFormats(
@@ -141,16 +141,15 @@ nucleus.application {
             io.github.kdroidfilter.nucleus.desktop.application.dsl.TargetFormat.AppImage,
             io.github.kdroidfilter.nucleus.desktop.application.dsl.TargetFormat.AppX,
         )
-        packageName = "Flare"
+        packageName = "FlareDo"
         packageVersion = desktopVersionName
-        artifactName = $$"Flare-$${desktopVersionName}.${ext}"
+        artifactName = $$"FlareDo-$${desktopVersionName}.${ext}"
 
-        protocol("Flare", "flare")
+        protocol("FlareDo", "flaredo")
         protocol("Pixiv", "pixiv")
 
         macOS {
-            val hasSigningProps = project.file("embedded.provisionprofile").exists() && project.file("runtime.provisionprofile").exists()
-            bundleID = "dev.dimension.flare"
+            bundleID = "io.github.zhongjianhui.flaredo"
             minimumSystemVersion = "14.0"
             appCategory = "public.app-category.social-networking"
             packageBuildVersion = desktopVersionCode.toString()
@@ -191,29 +190,17 @@ $localizationsXml
     """
             }
 
-            if (hasSigningProps) {
-                signing {
-                    sign.set(true)
-                    identity.set("SUJITEKU LIMITED LIABILITY CO. (7LFDZ96332)")
-                }
-
-                entitlementsFile.set(project.file("entitlements.plist"))
-                runtimeEntitlementsFile.set(project.file("runtime-entitlements.plist"))
-                provisioningProfile.set(project.file("embedded.provisionprofile"))
-                runtimeProvisioningProfile.set(project.file("runtime.provisionprofile"))
-            }
-
             iconFile.set(project.file("resources/ic_launcher.icns"))
             layeredIconDir.set(rootProject.file("appleApp/ios/AppIcon.icon"))
         }
         windows {
             iconFile.set(project.file("resources/ic_launcher.ico"))
             appx {
-                applicationId = "FlareApp"
-                publisherDisplayName = "Tlaster"
-                displayName = "FlareApp"
-                publisher = "CN=F82B0EE7-EF8D-4515-BEAB-DD968D07D67F"
-                identityName = "51945Tlaster.FlareApp"
+                applicationId = "FlareDo"
+                publisherDisplayName = "FlareDo Contributors"
+                displayName = "FlareDo"
+                publisher = "CN=FlareDo"
+                identityName = "io.github.zhongjianhui.flaredo"
 
                 val resRoot = project.file("src/main/composeResources")
 
@@ -241,7 +228,7 @@ $localizationsXml
             appCategory = "Network"
             appImage {
                 category = AppImageCategory.Network
-                genericName = "Flare"
+                genericName = "FlareDo"
             }
         }
     }

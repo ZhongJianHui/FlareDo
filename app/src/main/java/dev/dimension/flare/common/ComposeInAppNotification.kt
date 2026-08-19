@@ -1,7 +1,7 @@
 package dev.dimension.flare.common
 
 import androidx.annotation.StringRes
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.data.repository.LoginExpiredException
 import dev.dimension.flare.ui.presenter.login.ReloginTarget
 import kotlinx.coroutines.flow.MutableStateFlow

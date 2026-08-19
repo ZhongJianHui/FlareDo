@@ -21,39 +21,15 @@
 	const links = $derived<AboutLink[]>([
 		{
 			title: m.settingsAboutSourceCode(),
-			subtitle: 'https://github.com/DimensionDev/Flare',
+			subtitle: 'https://github.com/ZhongJianHui/FlareDo',
 			icon: 'Github',
-			href: 'https://github.com/DimensionDev/Flare',
-		},
-		{
-			title: m.settingsAboutTelegram(),
-			subtitle: m.settingsAboutTelegramDescription(),
-			icon: 'Telegram',
-			href: 'https://t.me/+VZ63fqNQXIA0MzVl',
-		},
-		{
-			title: m.settingsAboutDiscord(),
-			subtitle: m.settingsAboutDiscordDescription(),
-			icon: 'Discord',
-			href: 'https://discord.gg/De9NhXBryT',
-		},
-		{
-			title: m.settingsAboutLocalization(),
-			subtitle: m.settingsAboutLocalizationDescription(),
-			icon: 'Translate',
-			href: 'https://crowdin.com/project/flareapp',
-		},
-		{
-			title: m.settingsPrivacyPolicy(),
-			subtitle: 'https://legal.mask.io/maskbook',
-			icon: 'Lock',
-			href: 'https://legal.mask.io/maskbook/',
+			href: 'https://github.com/ZhongJianHui/FlareDo',
 		},
 	]);
 </script>
 
 <svelte:head>
-	<title>{m.settingsAboutTitle()} | Flare</title>
+	<title>{m.settingsAboutTitle()} | FlareDo</title>
 </svelte:head>
 
 <div class="about-page bg-base-200">
@@ -65,9 +41,9 @@
 
 	<div class="about-content">
 		<section class="about-header" aria-label={m.settingsAboutTitle()}>
-			<img class="app-logo" src={logoUrl} alt="Flare" />
+			<img class="app-logo" src={logoUrl} alt="FlareDo" />
 			<div class="about-copy">
-				<h1>Flare</h1>
+				<h1>FlareDo</h1>
 				<p>{m.settingsAboutDescription()}</p>
 				{#if appVersion}
 					<span class="version-badge">{appVersion}</span>

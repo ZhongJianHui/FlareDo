@@ -359,15 +359,15 @@ class DeeplinkRouteTest {
 
     @Test
     fun testCallbackConstants() {
-        assertEquals("flare://Callback/SignIn/Mastodon", DeeplinkRoute.Companion.Callback.MASTODON)
-        assertEquals("flare://Callback/SignIn/Misskey", DeeplinkRoute.Companion.Callback.MISSKEY)
-        assertEquals("flare://Callback/SignIn/Bluesky", DeeplinkRoute.Companion.Callback.BLUESKY)
+        assertEquals("flaredo://Callback/SignIn/Mastodon", DeeplinkRoute.Companion.Callback.MASTODON)
+        assertEquals("flaredo://Callback/SignIn/Misskey", DeeplinkRoute.Companion.Callback.MISSKEY)
+        assertEquals("flaredo://Callback/SignIn/Bluesky", DeeplinkRoute.Companion.Callback.BLUESKY)
     }
 
     @Test
     fun testInvalidUri() {
         assertNull(DeeplinkRoute.parse("invalid://uri"))
-        assertNull(DeeplinkRoute.parse("flare://invalid_hex"))
+        assertNull(DeeplinkRoute.parse("flaredo://invalid_hex"))
     }
 
     @Test

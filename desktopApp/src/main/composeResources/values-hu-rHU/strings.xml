@@ -28,8 +28,8 @@
     <string name="service_select_instance_input_placeholder">Példány URL</string>
     <string name="service_select_next_button">Tovább</string>
     <string name="service_select_empty_message">Nem található példány</string>
-    <string name="service_select_welcome_title">Üdvözöl a Flare</string>
-    <string name="service_select_welcome_message">A Flare egy közösségi média kliens a következőhöz: %1$s.\nVálassz egy szolgáltatást a csatlakozáshoz és a kezdéshez.</string>
+    <string name="service_select_welcome_title">Üdvözöl a FlareDo</string>
+    <string name="service_select_welcome_message">A FlareDo egy közösségi média kliens a következőhöz: %1$s.\nVálassz egy szolgáltatást a csatlakozáshoz és a kezdéshez.</string>
     <string name="mastodon_login_verify_message">Hitelesítő adatok ellenőrzése…</string>
     <string name="profile_tab_timeline">Bejegyzések</string>
     <string name="profile_tab_timeline_with_reply">Bejegyzések és válaszok</string>
@@ -135,7 +135,7 @@
     <string name="settings_appearance_title">Megjelenés</string>
     <string name="settings_status_appearance_title">Bejegyzés megjelenése</string>
     <string name="settings_status_appearance_subtitle">Bejegyzés megjelenésének testreszabása</string>
-    <string name="settings_appearance_subtitle">A Flare kinézetének és működésének testreszabása</string>
+    <string name="settings_appearance_subtitle">A FlareDo kinézetének és működésének testreszabása</string>
     <string name="settings_appearance_theme_group_title">Téma</string>
     <string name="settings_appearance_theme_group_subtitle">Színek, betűméret és profilkép alakja</string>
     <string name="settings_appearance_layout_group_title">Elrendezés</string>
@@ -149,7 +149,7 @@
     <string name="settings_draft_box_description">Mentett piszkozatok megtekintése, szerkesztése és újraküldése</string>
     <string name="settings_storage_subtitle">Gyorsítótárazott fájlok, naplók és biztonsági mentések kezelése</string>
     <string name="settings_about_title">Névjegy</string>
-    <string name="settings_about_subtitle">Tudj meg többet a Flare-ről</string>
+    <string name="settings_about_subtitle">Tudj meg többet a FlareDo-ről</string>
     <string name="settings_side_panel">Oldalpanel testreszabása</string>
     <string name="settings_side_panel_description">Az oldalpanel testreszabása</string>
     <string name="settings_local_filter_title">Helyi szűrők</string>
@@ -170,7 +170,7 @@
     <string name="settings_ai_config_server_url_requirement">Az URL-nek perrjellel kell végződnie, és támogatnia kell egy kompatibilis v1/chat/completions API-t.</string>
     <string name="settings_ai_config_server_self_host_description">Használd a hivatalos szolgáltatást vagy saját kompatibilis szerveredet</string>
     <string name="settings_ai_config_type">MI típusa</string>
-    <string name="settings_ai_config_type_description">Válaszd ki, melyik MI hátteret használja a Flare</string>
+    <string name="settings_ai_config_type_description">Válaszd ki, melyik MI hátteret használja a FlareDo</string>
     <string name="settings_ai_config_type_on_device">Eszközön lévő MI</string>
     <string name="settings_ai_config_type_openai">MI-kompatibilis API</string>
     <string name="settings_ai_config_api_key">API kulcs</string>
@@ -266,7 +266,7 @@
     <string name="settings_appearance_full_width_post">Teljes szélességű bejegyzések</string>
     <string name="settings_appearance_full_width_post_description">A bejegyzések kitölthetik a teljes rendelkezésre álló szélességet</string>
     <string name="settings_language_title">Nyelv</string>
-    <string name="settings_language_description">A Flare alkalmazás nyelvének megváltoztatása</string>
+    <string name="settings_language_description">A FlareDo alkalmazás nyelvének megváltoztatása</string>
     <string name="settings_appearance_post_action_style">Műveletek stílusa</string>
     <string name="settings_appearance_post_action_style_description">Válaszd ki, hogyan helyezkedjenek el a műveleti gombok</string>
     <string name="settings_appearance_post_action_style_hidden">Rejtett</string>
@@ -311,7 +311,7 @@
     <string name="settings_about_telegram_description">Csatlakozz Telegram csoportunkhoz</string>
     <string name="settings_about_discord_description">Csatlakozz Discord szerverünkhöz</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">Segíts lefordítani a Flare-t</string>
+    <string name="settings_about_localization_description">Segíts lefordítani a FlareDo-t</string>
     <string name="settings_privacy_policy">Adatvédelmi irányelvek</string>
     <string name="users">Felhasználók</string>
     <string name="hashtags">Hashtagek</string>
@@ -474,7 +474,7 @@
     <string name="misskey_channel_tab_featured">Kiemelt</string>
     <string name="media_save_success">Mentve a Letöltések közé</string>
     <string name="media_save_fail">A mentés nem sikerült</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="illustrations_title">Illusztrációk</string>
     <string name="manga_title">Manga</string>
     <string name="pixiv_ranking_week_title">Heti rangsor</string>
@@ -527,8 +527,8 @@
     <string name="status_insight_trace_agent_failed">Az elemzés sikertelen</string>
     <string name="status_insight_trace_agent_closing">Elemzés lezárása...</string>
     <string name="ask_ai">AI megkérdezése</string>
-    <string name="settings_agent_history_title">Flare AI</string>
-    <string name="settings_agent_history_description">Helyi Flare AI-csevegési előzmények megtekintése</string>
+    <string name="settings_agent_history_title">FlareDo AI</string>
+    <string name="settings_agent_history_description">Helyi FlareDo AI-csevegési előzmények megtekintése</string>
     <string name="agent_history_empty">Még nincs AI-csevegési előzmény.</string>
     <string name="settings_ai_config_enable_agent">AI Agent engedélyezése</string>
     <string name="settings_ai_config_agent_description">Engedélyezés után az AI Agent funkció megjelenik az alkalmazás megfelelő helyein, ha OpenAI-kompatibilis modell van beállítva.</string>
@@ -603,7 +603,7 @@
     <string name="settings_link_open_defaults_title">Linkek megnyitása</string>
     <string name="settings_link_open_defaults_description">Válaszd ki a támogatott linkek alapértelmezéseit gazdagép szerint</string>
     <string name="settings_link_open_default_title">Alapértelmezett a(z) %1$s linkekhez</string>
-    <string name="settings_link_open_default_description">Válaszd ki, hogyan nyíljanak meg a támogatott linkek, amikor a Flare tudja kezelni őket</string>
+    <string name="settings_link_open_default_description">Válaszd ki, hogyan nyíljanak meg a támogatott linkek, amikor a FlareDo tudja kezelni őket</string>
     <string name="settings_link_open_default_ask_every_time">Kérdezzen rá minden alkalommal</string>
     <string name="media_download_started">A letöltés elindult</string>
     <string name="fanbox_supported_title">Támogatva</string>

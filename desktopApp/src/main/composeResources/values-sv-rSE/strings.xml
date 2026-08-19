@@ -28,8 +28,8 @@
     <string name="service_select_instance_input_placeholder">Instansens URL</string>
     <string name="service_select_next_button">Nästa</string>
     <string name="service_select_empty_message">Inga instanser hittades</string>
-    <string name="service_select_welcome_title">Välkommen till Flare</string>
-    <string name="service_select_welcome_message">Flare är en sociala medier-klient för %1$s.\nVälj en tjänst för att ansluta och komma igång.</string>
+    <string name="service_select_welcome_title">Välkommen till FlareDo</string>
+    <string name="service_select_welcome_message">FlareDo är en sociala medier-klient för %1$s.\nVälj en tjänst för att ansluta och komma igång.</string>
     <string name="mastodon_login_verify_message">Verifierar dina inloggningsuppgifter…</string>
     <string name="profile_tab_timeline">Inlägg</string>
     <string name="profile_tab_timeline_with_reply">Inlägg och svar</string>
@@ -185,7 +185,7 @@
     <string name="settings_appearance_title">Utseende</string>
     <string name="settings_status_appearance_title">Inläggsutseende</string>
     <string name="settings_status_appearance_subtitle">Anpassa inläggens utseende</string>
-    <string name="settings_appearance_subtitle">Anpassa utseendet och känslan i Flare</string>
+    <string name="settings_appearance_subtitle">Anpassa utseendet och känslan i FlareDo</string>
     <string name="settings_appearance_theme_group_title">Tema</string>
     <string name="settings_appearance_theme_group_subtitle">Färger, typsnittsstorlek och avatarform</string>
     <string name="settings_appearance_layout_group_title">Layout</string>
@@ -199,7 +199,7 @@
     <string name="settings_draft_box_description">Visa, redigera och skicka sparade utkast igen</string>
     <string name="settings_storage_subtitle">Hantera cachade filer, loggar och säkerhetskopior</string>
     <string name="settings_about_title">Om</string>
-    <string name="settings_about_subtitle">Lär dig mer om Flare</string>
+    <string name="settings_about_subtitle">Lär dig mer om FlareDo</string>
     <string name="settings_side_panel">Anpassning av sidopanel</string>
     <string name="settings_side_panel_description">Anpassa sidopanelen</string>
     <string name="settings_local_filter_title">Lokala filter</string>
@@ -208,8 +208,8 @@
     <string name="settings_guest_setting_description">Välj vilken server gästläget ansluter till</string>
     <string name="settings_local_history_title">Lokal historik</string>
     <string name="settings_local_history_description">Sök efter inlägg och profiler cachade på denna enhet</string>
-    <string name="settings_agent_history_title">Flare AI</string>
-    <string name="settings_agent_history_description">Visa lokal Flare AI chatthistorik</string>
+    <string name="settings_agent_history_title">FlareDo AI</string>
+    <string name="settings_agent_history_description">Visa lokal FlareDo AI chatthistorik</string>
     <string name="agent_history_empty">Ingen agent chatthistorik än.</string>
     <string name="settings_app_logging_title">Apploggar</string>
     <string name="settings_app_logging_save">Spara loggar</string>
@@ -223,7 +223,7 @@
     <string name="settings_ai_config_server_url_requirement">URL:en måste sluta med ett snedstreck och stödja ett kompatibelt v1/chat/completions API.</string>
     <string name="settings_ai_config_server_self_host_description">Använd den officiella tjänsten eller din egen kompatibla server</string>
     <string name="settings_ai_config_type">AI-typ</string>
-    <string name="settings_ai_config_type_description">Välj vilken AI-backend Flare ska använda</string>
+    <string name="settings_ai_config_type_description">Välj vilken AI-backend FlareDo ska använda</string>
     <string name="settings_ai_config_type_on_device">AI på enheten</string>
     <string name="settings_ai_config_type_openai">AI-kompatibelt API</string>
     <string name="settings_ai_config_api_key">API-nyckel</string>
@@ -325,7 +325,7 @@
     <string name="settings_appearance_full_width_post">Inlägg med full bredd</string>
     <string name="settings_appearance_full_width_post_description">Låt inlägg spänna över hela den tillgängliga bredden</string>
     <string name="settings_language_title">Språk</string>
-    <string name="settings_language_description">Ändra Flares appspråk</string>
+    <string name="settings_language_description">Ändra FlareDos appspråk</string>
     <string name="settings_appearance_post_action_style">Stil för inläggsåtgärder</string>
     <string name="settings_appearance_post_action_style_description">Välj hur åtgärdsknapparna ska placeras</string>
     <string name="settings_appearance_post_action_style_hidden">Dold</string>
@@ -370,7 +370,7 @@
     <string name="settings_about_telegram_description">Gå med i vår Telegram-grupp</string>
     <string name="settings_about_discord_description">Gå med i vår Discord-server</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">Hjälp oss översätta Flare</string>
+    <string name="settings_about_localization_description">Hjälp oss översätta FlareDo</string>
     <string name="settings_privacy_policy">Integritetspolicy</string>
     <string name="users">Användare</string>
     <string name="hashtags">Hashtaggar</string>
@@ -533,7 +533,7 @@
     <string name="misskey_channel_tab_featured">Utvalda</string>
     <string name="media_save_success">Sparad till Hämtade filer</string>
     <string name="media_save_fail">Misslyckades med att spara</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="profile_insight_title">Profilinsikt</string>
     <string name="profile_insight_analyzing">Analyserar den här profilen…</string>
     <string name="settings_about_discord" translatable="false">Discord</string>
@@ -603,7 +603,7 @@
     <string name="settings_link_open_defaults_title">Länköppning</string>
     <string name="settings_link_open_defaults_description">Välj standarder för länkar som stöds per värd</string>
     <string name="settings_link_open_default_title">Standard för %1$s-länkar</string>
-    <string name="settings_link_open_default_description">Välj hur länkar som stöds öppnas när Flare kan hantera dem</string>
+    <string name="settings_link_open_default_description">Välj hur länkar som stöds öppnas när FlareDo kan hantera dem</string>
     <string name="settings_link_open_default_ask_every_time">Fråga varje gång</string>
     <string name="media_download_started">Nedladdningen startade</string>
     <string name="fanbox_supported_title">Stöder</string>

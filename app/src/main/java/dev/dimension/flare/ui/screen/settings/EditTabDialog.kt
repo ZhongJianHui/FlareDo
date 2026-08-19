@@ -21,7 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.data.model.appearance.AppearancePatch
 import dev.dimension.flare.data.model.appearance.TimelineAppearance
 import dev.dimension.flare.data.model.appearance.withPatch

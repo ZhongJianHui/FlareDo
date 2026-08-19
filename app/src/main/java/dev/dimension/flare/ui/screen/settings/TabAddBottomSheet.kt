@@ -67,7 +67,7 @@ import compose.icons.fontawesomeicons.solid.CirclePlus
 import compose.icons.fontawesomeicons.solid.Pen
 import compose.icons.fontawesomeicons.solid.Plus
 import compose.icons.fontawesomeicons.solid.Trash
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.data.model.tab.UiTimelineTabItem
 import dev.dimension.flare.ui.common.itemsIndexed
 import dev.dimension.flare.ui.component.AvatarComponent

@@ -1,5 +1,5 @@
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
 
     <string name="login_button">Log in</string>
     <string name="navigate_back">Go back</string>
@@ -93,7 +93,7 @@
     <string name="status_insight_trace_agent_closing">Closing analysis…</string>
     <string name="ask_ai">Ask AI</string>
     <string name="agent_chat_title">AI Chat</string>
-    <string name="agent_history_title">Flare AI</string>
+    <string name="agent_history_title">FlareDo AI</string>
     <string name="agent_history_empty">No AI chat history yet.</string>
     <string name="agent_chat_input_placeholder">Ask anything…</string>
     <string name="agent_chat_send">Send</string>
@@ -111,7 +111,7 @@
     <string name="settings_accounts_title">Accounts</string>
     <string name="settings_accounts_subtitle">Manage signed-in accounts</string>
     <string name="settings_appearance_title">Appearance</string>
-    <string name="settings_appearance_subtitle">Customize the look and feel of Flare</string>
+    <string name="settings_appearance_subtitle">Customize the look and feel of FlareDo</string>
     <string name="settings_appearance_theme_group_title">Theme</string>
     <string name="settings_appearance_theme_group_subtitle">Colors, font size, and avatar shape</string>
     <string name="settings_appearance_layout_group_title">Layout</string>
@@ -121,7 +121,7 @@
     <string name="settings_behavior_title">Behavior</string>
     <string name="settings_behavior_description">Timeline refresh, browser, and link handling preferences</string>
     <string name="settings_refresh_home_timeline_on_launch">Refresh home timeline on launch</string>
-    <string name="settings_refresh_home_timeline_on_launch_description">Fetch new posts when Flare opens</string>
+    <string name="settings_refresh_home_timeline_on_launch_description">Fetch new posts when FlareDo opens</string>
     <string name="settings_home_timeline_auto_refresh_interval">Auto-refresh home timeline</string>
     <string name="settings_home_timeline_auto_refresh_interval_description">Refresh the currently selected timeline while the home screen is open</string>
     <string name="settings_auto_refresh_disabled">Off</string>
@@ -135,7 +135,7 @@
     <string name="settings_storage_title">Storage</string>
     <string name="settings_storage_subtitle">Manage cached files, logs, and backups</string>
     <string name="settings_about_title">About</string>
-    <string name="settings_about_subtitle">Learn more about Flare</string>
+    <string name="settings_about_subtitle">Learn more about FlareDo</string>
     <string name="settings_about_description">An open-source, AI-powered client for decentralized social platforms.</string>
     <string name="settings_about_source_code">Source code</string>
     <string name="settings_about_telegram">Telegram</string>
@@ -145,7 +145,7 @@
     <string name="settings_about_line" translatable="false">Line</string>
     <string name="settings_about_line_description">Join our Line group</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">Help us translate Flare</string>
+    <string name="settings_about_localization_description">Help us translate FlareDo</string>
     <string name="settings_privacy_policy">Privacy Policy</string>
     <string name="settings_side_panel">Side Panel customization</string>
     <string name="settings_side_panel_description">Customize the side panel</string>
@@ -166,7 +166,7 @@
     <string name="settings_ai_config_server_url_requirement">The URL must end with a trailing slash and support a compatible v1/chat/completions API.</string>
     <string name="settings_ai_config_server_self_host_description">Use the official service or your own compatible server</string>
     <string name="settings_ai_config_type">AI Type</string>
-    <string name="settings_ai_config_type_description">Choose which AI backend Flare uses</string>
+    <string name="settings_ai_config_type_description">Choose which AI backend FlareDo uses</string>
     <string name="settings_ai_config_type_select">Select</string>
     <string name="settings_ai_config_type_on_device">On-device AI</string>
     <string name="settings_ai_config_type_on_device_description">Run supported AI models locally on this device</string>
@@ -226,7 +226,7 @@
     <string name="settings_translation_ai_test_original">Sample text</string>
     <string name="settings_translation_ai_test_result">Translated text</string>
     <string name="settings_language_title">Language</string>
-    <string name="settings_language_description">Change Flare\'s app language</string>
+    <string name="settings_language_description">Change FlareDo\'s app language</string>
     <string name="settings_rss_management_title">Subscription Management</string>
     <string name="settings_rss_management_description">Manage subscriptions</string>
     <string name="settings_nostr_relays_manage">Nostr relays</string>
@@ -240,8 +240,8 @@
     <string name="login_expired_message">Tap to log in again</string>
     <string name="login_expired_relogin">Log in again</string>
 
-    <string name="service_select_welcome_title">Welcome to Flare</string>
-    <string name="service_select_welcome_message">Flare is a social media client for Android.\nChoose a service to connect and get started.</string>
+    <string name="service_select_welcome_title">Welcome to FlareDo</string>
+    <string name="service_select_welcome_message">FlareDo is a social media client for Android.\nChoose a service to connect and get started.</string>
 
     <string name="mastodon_login_verify_message">Verifying your credentials…</string>
 
@@ -411,7 +411,7 @@
     <string name="settings_appearance_deck_mode">Deck mode</string>
     <string name="settings_appearance_deck_mode_description">Use a deck layout for supported timelines</string>
     <string name="settings_appearance_in_app_browser">In-app browser</string>
-    <string name="settings_appearance_in_app_browser_description">Open external links inside Flare</string>
+    <string name="settings_appearance_in_app_browser_description">Open external links inside FlareDo</string>
     <string name="settings_appearance_full_width_post">Full-width posts</string>
     <string name="settings_appearance_full_width_post_description">Let posts span the full available width</string>
     <string name="settings_appearance_absolute_timestamp">Absolute timestamp</string>
@@ -662,7 +662,7 @@
     <string name="settings_mxga_never_refreshed">Not refreshed yet</string>
     <string name="settings_mxga_learn_more">What is MXGA?</string>
     <string name="settings_link_open_default_title">Default for %1$s links</string>
-    <string name="settings_link_open_default_description">Choose how supported links open when Flare can handle them</string>
+    <string name="settings_link_open_default_description">Choose how supported links open when FlareDo can handle them</string>
     <string name="settings_link_open_default_ask_every_time">Ask every time</string>
 
     <string name="block_user_title">Block user</string>

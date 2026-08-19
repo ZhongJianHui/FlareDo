@@ -31,7 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.common.AndroidMediaSaveLocationRepository
 import dev.dimension.flare.common.MediaSaveLocationMode
 import dev.dimension.flare.data.model.TimelineMediaLayout

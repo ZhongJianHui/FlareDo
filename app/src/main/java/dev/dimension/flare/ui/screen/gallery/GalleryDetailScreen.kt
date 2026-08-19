@@ -61,7 +61,7 @@ import compose.icons.fontawesomeicons.Solid
 import compose.icons.fontawesomeicons.solid.CaretUp
 import compose.icons.fontawesomeicons.solid.EllipsisVertical
 import compose.icons.fontawesomeicons.solid.ShareNodes
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.common.PagingState
 import dev.dimension.flare.common.onEmpty
 import dev.dimension.flare.common.onError

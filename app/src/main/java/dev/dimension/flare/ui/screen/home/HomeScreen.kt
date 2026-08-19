@@ -57,7 +57,7 @@ import compose.icons.fontawesomeicons.solid.Pen
 import compose.icons.fontawesomeicons.solid.PenToSquare
 import compose.icons.fontawesomeicons.solid.Robot
 import compose.icons.fontawesomeicons.solid.SquareRss
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.model.AccountType
 import dev.dimension.flare.ui.common.OnNewIntent
 import dev.dimension.flare.ui.common.isLoginCallbackDeepLink

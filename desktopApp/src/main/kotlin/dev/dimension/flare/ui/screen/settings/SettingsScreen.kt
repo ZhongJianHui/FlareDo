@@ -37,15 +37,11 @@ import coil3.SingletonImageLoader
 import compose.icons.FontAwesomeIcons
 import compose.icons.fontawesomeicons.Brands
 import compose.icons.fontawesomeicons.Solid
-import compose.icons.fontawesomeicons.brands.Discord
 import compose.icons.fontawesomeicons.brands.Github
-import compose.icons.fontawesomeicons.brands.Telegram
 import compose.icons.fontawesomeicons.solid.AngleRight
 import compose.icons.fontawesomeicons.solid.Bars
 import compose.icons.fontawesomeicons.solid.EllipsisVertical
-import compose.icons.fontawesomeicons.solid.Language
 import compose.icons.fontawesomeicons.solid.List
-import compose.icons.fontawesomeicons.solid.Lock
 import compose.icons.fontawesomeicons.solid.Plus
 import compose.icons.fontawesomeicons.solid.Robot
 import compose.icons.fontawesomeicons.solid.Trash
@@ -77,18 +73,11 @@ import dev.dimension.flare.import_confirmation_message
 import dev.dimension.flare.import_confirmation_title
 import dev.dimension.flare.import_error
 import dev.dimension.flare.model.MicroBlogKey
-import dev.dimension.flare.model.ilink
 import dev.dimension.flare.ok
 import dev.dimension.flare.remove_account
 import dev.dimension.flare.save_completed
 import dev.dimension.flare.save_error
-import dev.dimension.flare.settings_about_discord
-import dev.dimension.flare.settings_about_discord_description
-import dev.dimension.flare.settings_about_localization
-import dev.dimension.flare.settings_about_localization_description
 import dev.dimension.flare.settings_about_source_code
-import dev.dimension.flare.settings_about_telegram
-import dev.dimension.flare.settings_about_telegram_description
 import dev.dimension.flare.settings_about_title
 import dev.dimension.flare.settings_accounts_remove_confirm
 import dev.dimension.flare.settings_accounts_title
@@ -232,7 +221,6 @@ import dev.dimension.flare.settings_mxga_refreshing
 import dev.dimension.flare.settings_nostr_relays_manage
 import dev.dimension.flare.settings_post_action_fixed_width
 import dev.dimension.flare.settings_post_action_fixed_width_description
-import dev.dimension.flare.settings_privacy_policy
 import dev.dimension.flare.settings_refresh_home_timeline_on_launch
 import dev.dimension.flare.settings_refresh_home_timeline_on_launch_description
 import dev.dimension.flare.settings_rss_management_description
@@ -2459,10 +2447,10 @@ internal fun SettingsScreen(
                     },
                     trailing = {
                         HyperlinkButton(
-                            "https://github.com/DimensionDev/Flare",
+                            "https://github.com/ZhongJianHui/FlareDo",
                         ) {
                             Text(
-                                text = "https://github.com/DimensionDev/Flare",
+                                text = "https://github.com/ZhongJianHui/FlareDo",
                                 maxLines = 1,
                             )
                         }
@@ -2471,107 +2459,6 @@ internal fun SettingsScreen(
                         FAIcon(
                             imageVector = FontAwesomeIcons.Brands.Github,
                             contentDescription = "GitHub",
-                            modifier = Modifier.size(24.dp),
-                        )
-                    },
-                )
-                ExpanderItemSeparator()
-                ExpanderItem(
-                    heading = {
-                        Text(text = stringResource(resource = Res.string.settings_about_telegram))
-                    },
-                    caption = {
-                        Text(text = stringResource(resource = Res.string.settings_about_telegram_description))
-                    },
-                    trailing = {
-                        HyperlinkButton(
-                            ilink,
-                        ) {
-                            Text(
-                                text = ilink,
-                                maxLines = 1,
-                            )
-                        }
-                    },
-                    icon = {
-                        FAIcon(
-                            imageVector = FontAwesomeIcons.Brands.Telegram,
-                            contentDescription = stringResource(resource = Res.string.settings_about_telegram),
-                            modifier = Modifier.size(24.dp),
-                        )
-                    },
-                )
-                ExpanderItemSeparator()
-                ExpanderItem(
-                    heading = {
-                        Text(text = stringResource(resource = Res.string.settings_about_discord))
-                    },
-                    caption = {
-                        Text(text = stringResource(resource = Res.string.settings_about_discord_description))
-                    },
-                    trailing = {
-                        HyperlinkButton(
-                            "https://discord.gg/De9NhXBryT",
-                        ) {
-                            Text(
-                                text = "https://discord.gg/De9NhXBryT",
-                                maxLines = 1,
-                            )
-                        }
-                    },
-                    icon = {
-                        FAIcon(
-                            imageVector = FontAwesomeIcons.Brands.Discord,
-                            contentDescription = stringResource(resource = Res.string.settings_about_discord),
-                            modifier = Modifier.size(24.dp),
-                        )
-                    },
-                )
-                ExpanderItemSeparator()
-                ExpanderItem(
-                    heading = {
-                        Text(text = stringResource(resource = Res.string.settings_about_localization))
-                    },
-                    caption = {
-                        Text(text = stringResource(resource = Res.string.settings_about_localization_description))
-                    },
-                    trailing = {
-                        HyperlinkButton(
-                            "https://crowdin.com/project/flareapp",
-                        ) {
-                            Text(
-                                text = "https://crowdin.com/project/flareapp",
-                                maxLines = 1,
-                            )
-                        }
-                    },
-                    icon = {
-                        FAIcon(
-                            imageVector = FontAwesomeIcons.Solid.Language,
-                            contentDescription = stringResource(resource = Res.string.settings_about_localization),
-                            modifier = Modifier.size(24.dp),
-                        )
-                    },
-                )
-                ExpanderItemSeparator()
-                ExpanderItem(
-                    heading = {
-                        Text(text = stringResource(resource = Res.string.settings_privacy_policy))
-                    },
-                    trailing = {
-                        HyperlinkButton(
-                            "https://legal.mask.io/maskbook",
-                        ) {
-                            Text(
-                                text = "https://legal.mask.io/maskbook",
-                                maxLines = 1,
-                            )
-                        }
-                    },
-                    icon = {
-                        FAIcon(
-                            imageVector = FontAwesomeIcons.Solid.Lock,
-                            contentDescription = stringResource(resource = Res.string.settings_privacy_policy),
                             modifier = Modifier.size(24.dp),
                         )
                     },

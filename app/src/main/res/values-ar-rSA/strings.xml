@@ -86,7 +86,7 @@
     <string name="status_insight_trace_agent_closing">إغلاق التحليل…</string>
     <string name="ask_ai">اسأل AI</string>
     <string name="agent_chat_title">دردشة AI</string>
-    <string name="agent_history_title">Flare AI</string>
+    <string name="agent_history_title">FlareDo AI</string>
     <string name="agent_history_empty">لا يوجد وكيل سجل الدردشة حتى الآن.</string>
     <string name="agent_chat_input_placeholder">اسأل عن أي شيء…</string>
     <string name="agent_chat_send">إرسال</string>
@@ -101,7 +101,7 @@
     <string name="settings_accounts_title">الحسابات</string>
     <string name="settings_accounts_subtitle">إدارة الحسابات المسجلة</string>
     <string name="settings_appearance_title">المظهر</string>
-    <string name="settings_appearance_subtitle">تخصيص شكل وأسلوب Flare</string>
+    <string name="settings_appearance_subtitle">تخصيص شكل وأسلوب FlareDo</string>
     <string name="settings_appearance_theme_group_title">السمة</string>
     <string name="settings_appearance_theme_group_subtitle">الألوان، حجم الخط، وشكل الصورة الرمزية</string>
     <string name="settings_appearance_layout_group_title">التخطيط</string>
@@ -113,7 +113,7 @@
     <string name="settings_storage_title">التخزين</string>
     <string name="settings_storage_subtitle">إدارة الملفات المؤقتة والسجلات والنسخ الاحتياطي</string>
     <string name="settings_about_title">حول</string>
-    <string name="settings_about_subtitle">تعرف على المزيد حول Flare</string>
+    <string name="settings_about_subtitle">تعرف على المزيد حول FlareDo</string>
     <string name="settings_about_description">عميل مفتوح المصدر مدعوم بالذكاء الاصطناعي لمنصات التواصل الاجتماعي اللامركزية.</string>
     <string name="settings_about_source_code">كود المصدر</string>
     <string name="settings_about_telegram">تيليجرام</string>
@@ -121,7 +121,7 @@
     <string name="settings_about_discord_description">انضم إلى خادم Discord الخاص بنا</string>
     <string name="settings_about_line_description">انضم إلى مجموعة Line الخاصة بنا</string>
     <string name="settings_about_localization">كرودن</string>
-    <string name="settings_about_localization_description">ساعدنا في ترجمة Flare</string>
+    <string name="settings_about_localization_description">ساعدنا في ترجمة FlareDo</string>
     <string name="settings_privacy_policy">سياسة الخصوصية</string>
     <string name="settings_side_panel">تخصيص اللوحة الجانبية</string>
     <string name="settings_side_panel_description">تخصيص اللوحة الجانبية</string>
@@ -142,7 +142,7 @@
     <string name="settings_ai_config_server_url_requirement">يجب أن ينتهي الرابط بشرطة مائلة وأن يدعم واجهة برمجة تطبيقات متوافقة مع v1/chat/completions.</string>
     <string name="settings_ai_config_server_self_host_description">استخدم الخدمة الرسمية أو خادمك المتوافق الخاص</string>
     <string name="settings_ai_config_type">نوع الذكاء الاصطناعي</string>
-    <string name="settings_ai_config_type_description">اختر محرك الذكاء الاصطناعي الذي يستخدمه Flare</string>
+    <string name="settings_ai_config_type_description">اختر محرك الذكاء الاصطناعي الذي يستخدمه FlareDo</string>
     <string name="settings_ai_config_type_select">اختر</string>
     <string name="settings_ai_config_type_on_device">ذكاء اصطناعي على الجهاز</string>
     <string name="settings_ai_config_type_on_device_description">تشغيل نماذج الذكاء الاصطناعي المدعومة محليًا على هذا الجهاز</string>
@@ -198,7 +198,7 @@
     <string name="settings_translation_ai_test_original">النص الأصلي</string>
     <string name="settings_translation_ai_test_result">النص المترجم</string>
     <string name="settings_language_title">اللغة</string>
-    <string name="settings_language_description">تغيير لغة تطبيق Flare</string>
+    <string name="settings_language_description">تغيير لغة تطبيق FlareDo</string>
     <string name="settings_rss_management_title">إدارة الاشتراكات</string>
     <string name="settings_rss_management_description">إدارة الاشتراكات</string>
     <string name="settings_nostr_relays_manage">مرحلات Nostr</string>
@@ -210,8 +210,8 @@
     <string name="login_expired">انتهت جلسة تسجيل الدخول</string>
     <string name="login_expired_message">انقر لتسجيل الدخول مرة أخرى</string>
     <string name="login_expired_relogin">تسجيل الدخول مرة أخرى</string>
-    <string name="service_select_welcome_title">مرحبًا بك في Flare</string>
-    <string name="service_select_welcome_message">Flare هو تطبيق تواصل اجتماعي لأندرويد.\nاختر خدمة للاتصال والبدء.</string>
+    <string name="service_select_welcome_title">مرحبًا بك في FlareDo</string>
+    <string name="service_select_welcome_message">FlareDo هو تطبيق تواصل اجتماعي لأندرويد.\nاختر خدمة للاتصال والبدء.</string>
     <string name="mastodon_login_verify_message">جاري التحقق من بيانات الاعتماد…</string>
     <string name="status_title">منشور</string>
     <string name="misskey_visibility_public">عام</string>
@@ -349,7 +349,7 @@
     <string name="settings_appearance_deck_mode">وضع المنصة (Deck)</string>
     <string name="settings_appearance_deck_mode_description">استخدام تخطيط المنصة للجداول الزمنية المدعومة</string>
     <string name="settings_appearance_in_app_browser">متصفح داخل التطبيق</string>
-    <string name="settings_appearance_in_app_browser_description">فتح الروابط الخارجية داخل Flare</string>
+    <string name="settings_appearance_in_app_browser_description">فتح الروابط الخارجية داخل FlareDo</string>
     <string name="settings_appearance_full_width_post">منشورات بعرض كامل</string>
     <string name="settings_appearance_full_width_post_description">السماح للمنشورات بشغل كامل العرض المتاح</string>
     <string name="settings_appearance_absolute_timestamp">طابع زمني مطلق</string>
@@ -585,7 +585,7 @@
     <string name="channel_item_unfollow">إلغاء المتابعة</string>
     <string name="channel_item_favourite">تفضيل</string>
     <string name="channel_item_unfavourite">إلغاء التفضيل</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="profile_insight_title">رؤى الملف الشخصي</string>
     <string name="profile_insight_analyzing">جارٍ تحليل هذا الملف الشخصي…</string>
     <string name="profile_insight_error">تعذّر تحليل هذا الملف الشخصي.</string>
@@ -675,7 +675,7 @@
     <string name="settings_link_open_defaults_title">فتح الروابط</string>
     <string name="settings_link_open_defaults_description">اختر الإعدادات الافتراضية للروابط المدعومة حسب المضيف</string>
     <string name="settings_link_open_default_title">الإعداد الافتراضي لروابط %1$s</string>
-    <string name="settings_link_open_default_description">اختر كيف تُفتح الروابط المدعومة عندما يستطيع Flare التعامل معها</string>
+    <string name="settings_link_open_default_description">اختر كيف تُفتح الروابط المدعومة عندما يستطيع FlareDo التعامل معها</string>
     <string name="settings_link_open_default_ask_every_time">السؤال في كل مرة</string>
     <string name="fanbox_supported_title">قيد الدعم</string>
     <string name="fanbox_recommended_creators_title">منشئون موصى بهم</string>

@@ -29,8 +29,8 @@
     <string name="service_select_instance_input_placeholder">URL Instanță</string>
     <string name="service_select_next_button">Înainte</string>
     <string name="service_select_empty_message">Nu s-au găsit instanțe</string>
-    <string name="service_select_welcome_title">Bun venit la Flare</string>
-    <string name="service_select_welcome_message">Flare este un client de social media pentru %1$s.\nAlege un serviciu pentru a te conecta și a începe.</string>
+    <string name="service_select_welcome_title">Bun venit la FlareDo</string>
+    <string name="service_select_welcome_message">FlareDo este un client de social media pentru %1$s.\nAlege un serviciu pentru a te conecta și a începe.</string>
     <string name="mastodon_login_verify_message">Se verifică datele de autentificare…</string>
     <string name="profile_tab_timeline">Postări</string>
     <string name="profile_tab_timeline_with_reply">Postări și răspunsuri</string>
@@ -186,7 +186,7 @@
     <string name="settings_appearance_title">Aspect</string>
     <string name="settings_status_appearance_title">Aspect postare</string>
     <string name="settings_status_appearance_subtitle">Personalizează aspectul postărilor</string>
-    <string name="settings_appearance_subtitle">Personalizează aspectul Flare</string>
+    <string name="settings_appearance_subtitle">Personalizează aspectul FlareDo</string>
     <string name="settings_appearance_theme_group_title">Temă</string>
     <string name="settings_appearance_theme_group_subtitle">Culori, dimensiune font și formă avatar</string>
     <string name="settings_appearance_layout_group_title">Aranjament</string>
@@ -200,7 +200,7 @@
     <string name="settings_draft_box_description">Vezi, editează și retrimite ciornele salvate</string>
     <string name="settings_storage_subtitle">Gestionați fișierele din cache, logurile și backup-urile</string>
     <string name="settings_about_title">Despre</string>
-    <string name="settings_about_subtitle">Află mai multe despre Flare</string>
+    <string name="settings_about_subtitle">Află mai multe despre FlareDo</string>
     <string name="settings_side_panel">Personalizare panou lateral</string>
     <string name="settings_side_panel_description">Personalizează panoul lateral</string>
     <string name="settings_local_filter_title">Filtre locale</string>
@@ -209,8 +209,8 @@
     <string name="settings_guest_setting_description">Alege serverul la care se conectează modul invitat</string>
     <string name="settings_local_history_title">Istoric local</string>
     <string name="settings_local_history_description">Caută postări și profiluri stocate în cache pe acest dispozitiv</string>
-    <string name="settings_agent_history_title">Flare AI</string>
-    <string name="settings_agent_history_description">Vezi istoricul local de chat Flare AI</string>
+    <string name="settings_agent_history_title">FlareDo AI</string>
+    <string name="settings_agent_history_description">Vezi istoricul local de chat FlareDo AI</string>
     <string name="agent_history_empty">Nici un agent de chat istoric.</string>
     <string name="settings_app_logging_title">Loguri aplicație</string>
     <string name="settings_app_logging_save">Salvează logurile</string>
@@ -224,7 +224,7 @@
     <string name="settings_ai_config_server_url_requirement">URL-ul trebuie să se termine cu o bară oblică și să suporte un API v1/chat/completions compatibil.</string>
     <string name="settings_ai_config_server_self_host_description">Folosește serviciul oficial sau propriul server compatibil</string>
     <string name="settings_ai_config_type">Tip IA</string>
-    <string name="settings_ai_config_type_description">Alege ce backend de IA folosește Flare</string>
+    <string name="settings_ai_config_type_description">Alege ce backend de IA folosește FlareDo</string>
     <string name="settings_ai_config_type_on_device">IA pe dispozitiv</string>
     <string name="settings_ai_config_type_openai">API compatibil cu AI</string>
     <string name="settings_ai_config_api_key">Cheie API</string>
@@ -326,7 +326,7 @@
     <string name="settings_appearance_full_width_post">Postări pe toată lățimea</string>
     <string name="settings_appearance_full_width_post_description">Permite postărilor să ocupe întreaga lățime disponibilă</string>
     <string name="settings_language_title">Limbă</string>
-    <string name="settings_language_description">Schimbă limba aplicației Flare</string>
+    <string name="settings_language_description">Schimbă limba aplicației FlareDo</string>
     <string name="settings_appearance_post_action_style">Stil acțiuni postare</string>
     <string name="settings_appearance_post_action_style_description">Alege cum sunt aranjate butoanele de acțiune</string>
     <string name="settings_appearance_post_action_style_hidden">Ascunse</string>
@@ -371,7 +371,7 @@
     <string name="settings_about_telegram_description">Alătură-te grupului nostru de Telegram</string>
     <string name="settings_about_discord_description">Alătură-te serverului nostru de Discord</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">Ajută-ne să traducem Flare</string>
+    <string name="settings_about_localization_description">Ajută-ne să traducem FlareDo</string>
     <string name="settings_privacy_policy">Politica de confidențialitate</string>
     <string name="users">Utilizatori</string>
     <string name="hashtags">Hashtag-uri</string>
@@ -534,7 +534,7 @@
     <string name="misskey_channel_tab_featured">Recomandate</string>
     <string name="media_save_success">Salvat în Descărcări</string>
     <string name="media_save_fail">Eșec la salvare</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="profile_insight_title">Informații despre profil</string>
     <string name="profile_insight_analyzing">Se analizează acest profil…</string>
     <string name="settings_about_discord" translatable="false">Discord</string>
@@ -604,7 +604,7 @@
     <string name="settings_link_open_defaults_title">Deschiderea linkurilor</string>
     <string name="settings_link_open_defaults_description">Alege valorile implicite pentru linkurile acceptate după gazdă</string>
     <string name="settings_link_open_default_title">Implicit pentru linkurile %1$s</string>
-    <string name="settings_link_open_default_description">Alege cum se deschid linkurile acceptate când Flare le poate gestiona</string>
+    <string name="settings_link_open_default_description">Alege cum se deschid linkurile acceptate când FlareDo le poate gestiona</string>
     <string name="settings_link_open_default_ask_every_time">Întreabă de fiecare dată</string>
     <string name="media_download_started">Descărcarea a început</string>
     <string name="fanbox_supported_title">Susținut</string>

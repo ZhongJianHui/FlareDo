@@ -33,7 +33,7 @@ import compose.icons.FontAwesomeIcons
 import compose.icons.fontawesomeicons.Solid
 import compose.icons.fontawesomeicons.solid.CircleCheck
 import compose.icons.fontawesomeicons.solid.CircleExclamation
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.common.ComposeInAppNotification
 import dev.dimension.flare.common.Notification
 import dev.dimension.flare.ui.presenter.login.ReloginTarget

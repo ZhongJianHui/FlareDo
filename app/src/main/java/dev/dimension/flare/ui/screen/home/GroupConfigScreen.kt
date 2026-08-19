@@ -37,7 +37,7 @@ import compose.icons.FontAwesomeIcons
 import compose.icons.fontawesomeicons.Solid
 import compose.icons.fontawesomeicons.solid.Plus
 import compose.icons.fontawesomeicons.solid.TableList
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.data.model.IconType
 import dev.dimension.flare.data.model.appearance.AppearancePatch
 import dev.dimension.flare.data.model.appearance.TimelineAppearance

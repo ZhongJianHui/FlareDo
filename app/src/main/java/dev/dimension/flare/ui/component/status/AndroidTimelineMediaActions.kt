@@ -11,7 +11,7 @@ import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.common.AndroidDownloadManager
 import dev.dimension.flare.common.MediaFileNamePolicy
 import dev.dimension.flare.common.shareImageMedia

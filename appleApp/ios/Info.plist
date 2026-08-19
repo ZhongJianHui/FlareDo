@@ -7,18 +7,17 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Flare</string>
+	<string>FlareDo</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>CFBundleURLName</key>
-			<string>dev.dimension.flare</string>
+			<string>io.github.zhongjianhui.flaredo</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>flare</string>
-				<string>pixiv</string>
+				<string>flaredo</string>
 			</array>
 		</dict>
 	</array>
@@ -45,7 +44,7 @@
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Flare requesting the ability to add to the photo library</string>
+	<string>FlareDo needs permission to add media to your photo library.</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
@@ -57,7 +56,7 @@
 			<string>Default</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>dev.dimension.flare.opml</string>
+				<string>io.github.zhongjianhui.flaredo.opml</string>
 			</array>
 		</dict>
 	</array>
@@ -72,7 +71,7 @@
 			<key>UTTypeDescription</key>
 			<string>OPML Document</string>
 			<key>UTTypeIdentifier</key>
-			<string>dev.dimension.flare.opml</string>
+			<string>io.github.zhongjianhui.flaredo.opml</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>

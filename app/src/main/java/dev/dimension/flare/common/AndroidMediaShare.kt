@@ -6,7 +6,7 @@ import android.widget.Toast
 import androidx.core.content.FileProvider
 import coil3.annotation.ExperimentalCoilApi
 import coil3.imageLoader
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.ui.model.UiMedia
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

@@ -30,8 +30,8 @@
     <string name="service_select_instance_input_placeholder">URL-адреса інстансу</string>
     <string name="service_select_next_button">Далі</string>
     <string name="service_select_empty_message">Інстансів не знайдено</string>
-    <string name="service_select_welcome_title">Ласкаво просимо до Flare</string>
-    <string name="service_select_welcome_message">Flare — це клієнт соціальних мереж для %1$s.\nВиберіть сервіс, щоб підключитися та почати роботу.</string>
+    <string name="service_select_welcome_title">Ласкаво просимо до FlareDo</string>
+    <string name="service_select_welcome_message">FlareDo — це клієнт соціальних мереж для %1$s.\nВиберіть сервіс, щоб підключитися та почати роботу.</string>
     <string name="mastodon_login_verify_message">Перевірка ваших облікових даних…</string>
     <string name="profile_tab_timeline">Дописи</string>
     <string name="profile_tab_timeline_with_reply">Дописи та відповіді</string>
@@ -177,7 +177,7 @@
     <string name="settings_appearance_title">Зовнішній вигляд</string>
     <string name="settings_status_appearance_title">Вигляд допису</string>
     <string name="settings_status_appearance_subtitle">Налаштування вигляду дописів</string>
-    <string name="settings_appearance_subtitle">Налаштування інтерфейсу Flare</string>
+    <string name="settings_appearance_subtitle">Налаштування інтерфейсу FlareDo</string>
     <string name="settings_appearance_theme_group_title">Тема</string>
     <string name="settings_appearance_theme_group_subtitle">Кольори, розмір шрифту та форма аватара</string>
     <string name="settings_appearance_layout_group_title">Макет</string>
@@ -191,7 +191,7 @@
     <string name="settings_draft_box_description">Перегляд, редагування та повторне надсилання збережених чернеток</string>
     <string name="settings_storage_subtitle">Керування кешованими файлами, журналами та резервними копіями</string>
     <string name="settings_about_title">Про додаток</string>
-    <string name="settings_about_subtitle">Дізнайтеся більше про Flare</string>
+    <string name="settings_about_subtitle">Дізнайтеся більше про FlareDo</string>
     <string name="settings_side_panel">Налаштування бічної панелі</string>
     <string name="settings_side_panel_description">Налаштування бічної панелі</string>
     <string name="settings_local_filter_title">Локальні фільтри</string>
@@ -200,8 +200,8 @@
     <string name="settings_guest_setting_description">Виберіть сервер, до якого підключається гостьовий режим</string>
     <string name="settings_local_history_title">Локальна історія</string>
     <string name="settings_local_history_description">Пошук дописів та профілів, кешованих на цьому пристрої</string>
-    <string name="settings_agent_history_title">Flare AI</string>
-    <string name="settings_agent_history_description">Переглянути локальну історію чату Flare AI</string>
+    <string name="settings_agent_history_title">FlareDo AI</string>
+    <string name="settings_agent_history_description">Переглянути локальну історію чату FlareDo AI</string>
     <string name="agent_history_empty">Ще немає історії чатів.</string>
     <string name="settings_app_logging_title">Журнали додатка</string>
     <string name="settings_app_logging_save">Зберегти журнали</string>
@@ -215,7 +215,7 @@
     <string name="settings_ai_config_server_url_requirement">URL-адреса має закінчуватися косою рискою та підтримувати сумісний API v1/chat/completions.</string>
     <string name="settings_ai_config_server_self_host_description">Використовуйте офіційний сервіс або власний сумісний сервер</string>
     <string name="settings_ai_config_type">Тип ШІ</string>
-    <string name="settings_ai_config_type_description">Виберіть, який ШІ-бекенд використовує Flare</string>
+    <string name="settings_ai_config_type_description">Виберіть, який ШІ-бекенд використовує FlareDo</string>
     <string name="settings_ai_config_type_on_device">ШІ на пристрої</string>
     <string name="settings_ai_config_type_openai">AI-сумісний API</string>
     <string name="settings_ai_config_api_key">Ключ API</string>
@@ -317,7 +317,7 @@
     <string name="settings_appearance_full_width_post">Дописи на всю ширину</string>
     <string name="settings_appearance_full_width_post_description">Дозволити дописам займати всю доступну ширину</string>
     <string name="settings_language_title">Мова</string>
-    <string name="settings_language_description">Змінити мову додатка Flare</string>
+    <string name="settings_language_description">Змінити мову додатка FlareDo</string>
     <string name="settings_appearance_post_action_style">Стиль дій допису</string>
     <string name="settings_appearance_post_action_style_description">Виберіть макет кнопок дій</string>
     <string name="settings_appearance_post_action_style_hidden">Приховано</string>
@@ -362,7 +362,7 @@
     <string name="settings_about_telegram_description">Приєднуйтесь до нашої групи в Telegram</string>
     <string name="settings_about_discord_description">Приєднуйтесь до нашого сервера в Discord</string>
     <string name="settings_about_localization">Кравдін</string>
-    <string name="settings_about_localization_description">Допоможіть нам перекласти Flare</string>
+    <string name="settings_about_localization_description">Допоможіть нам перекласти FlareDo</string>
     <string name="settings_privacy_policy">Політика конфіденційності</string>
     <string name="users">Користувачі</string>
     <string name="hashtags">Хештеги</string>
@@ -525,7 +525,7 @@
     <string name="misskey_channel_tab_featured">Рекомендоване</string>
     <string name="media_save_success">Збережено в Завантаження</string>
     <string name="media_save_fail">Не вдалося зберегти</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="profile_insight_title">Аналітика профілю</string>
     <string name="status_insight_analyzing">Аналіз цього допису...</string>
     <string name="profile_insight_analyzing">Аналіз цього профілю…</string>
@@ -605,7 +605,7 @@
     <string name="settings_link_open_defaults_title">Відкриття посилань</string>
     <string name="settings_link_open_defaults_description">Виберіть типові дії для підтримуваних посилань за хостом</string>
     <string name="settings_link_open_default_title">Типово для посилань %1$s</string>
-    <string name="settings_link_open_default_description">Виберіть, як відкривати підтримувані посилання, коли Flare може їх обробити</string>
+    <string name="settings_link_open_default_description">Виберіть, як відкривати підтримувані посилання, коли FlareDo може їх обробити</string>
     <string name="settings_link_open_default_ask_every_time">Запитувати щоразу</string>
     <string name="media_download_started">Завантаження почалося</string>
     <string name="fanbox_supported_title">Підтримую</string>

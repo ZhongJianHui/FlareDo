@@ -64,7 +64,7 @@
     <string name="status_insight_trace_agent_failed">分析失敗</string>
     <string name="ask_ai">AIに聞く</string>
     <string name="agent_chat_title">AIチャット</string>
-    <string name="agent_history_title">Flare AI</string>
+    <string name="agent_history_title">FlareDo AI</string>
     <string name="agent_history_empty">AI チャット履歴はまだありません。</string>
     <string name="agent_chat_send">送信</string>
     <string name="draft_box_title">下書き</string>
@@ -77,7 +77,7 @@
     <string name="settings_accounts_title">アカウント</string>
     <string name="settings_accounts_subtitle">ログイン済みのアカウントを管理</string>
     <string name="settings_appearance_title">外観</string>
-    <string name="settings_appearance_subtitle">Flare の見た目をカスタマイズ</string>
+    <string name="settings_appearance_subtitle">FlareDo の見た目をカスタマイズ</string>
     <string name="settings_appearance_theme_group_title">テーマ</string>
     <string name="settings_appearance_theme_group_subtitle">色、フォントサイズ、アイコンの形</string>
     <string name="settings_appearance_layout_group_title">レイアウト</string>
@@ -89,7 +89,7 @@
     <string name="settings_storage_title">ストレージ</string>
     <string name="settings_storage_subtitle">キャッシュ、ログ、バックアップの管理</string>
     <string name="settings_about_title">このアプリについて</string>
-    <string name="settings_about_subtitle">Flare について詳しく知る</string>
+    <string name="settings_about_subtitle">FlareDo について詳しく知る</string>
     <string name="settings_about_description">分散型SNSプラットフォーム向けのオープンソースAI搭載クライアントです。</string>
     <string name="settings_about_source_code">ソースコード</string>
     <string name="settings_about_telegram">Telegram</string>
@@ -97,7 +97,7 @@
     <string name="settings_about_discord_description">Discordサーバーに参加する</string>
     <string name="settings_about_line_description">Lineグループに参加する</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">Flareの翻訳に協力する</string>
+    <string name="settings_about_localization_description">FlareDoの翻訳に協力する</string>
     <string name="settings_privacy_policy">プライバシーポリシー</string>
     <string name="settings_side_panel">サイドパネルのカスタマイズ</string>
     <string name="settings_side_panel_description">サイドパネルをカスタマイズする</string>
@@ -118,7 +118,7 @@
     <string name="settings_ai_config_server_url_requirement">URL は末尾をスラッシュにし、互換性のある v1/chat/completions API をサポートしている必要があります。</string>
     <string name="settings_ai_config_server_self_host_description">公式サービスまたは互換性のある独自のサーバーを使用する</string>
     <string name="settings_ai_config_type">AI の種類</string>
-    <string name="settings_ai_config_type_description">Flare が使用する AI バックエンドを選択</string>
+    <string name="settings_ai_config_type_description">FlareDo が使用する AI バックエンドを選択</string>
     <string name="settings_ai_config_type_select">選択</string>
     <string name="settings_ai_config_type_on_device">デバイス上の AI</string>
     <string name="settings_ai_config_type_on_device_description">このデバイス上でサポートされている AI モデルをローカルで実行する</string>
@@ -174,7 +174,7 @@
     <string name="settings_translation_ai_test_original">サンプルテキスト</string>
     <string name="settings_translation_ai_test_result">翻訳後のテキスト</string>
     <string name="settings_language_title">言語</string>
-    <string name="settings_language_description">Flare のアプリ言語を変更</string>
+    <string name="settings_language_description">FlareDo のアプリ言語を変更</string>
     <string name="settings_rss_management_title">購読管理</string>
     <string name="settings_rss_management_description">購読を管理する</string>
     <string name="settings_nostr_relays_manage">Nostr リレー</string>
@@ -186,8 +186,8 @@
     <string name="login_expired">ログインセッションの期限切れ</string>
     <string name="login_expired_message">タップして再度ログイン</string>
     <string name="login_expired_relogin">再度ログイン</string>
-    <string name="service_select_welcome_title">Flare へようこそ</string>
-    <string name="service_select_welcome_message">Flare は Android 用のソーシャルメディアクライアントです。\n接続するサービスを選択して始めましょう。</string>
+    <string name="service_select_welcome_title">FlareDo へようこそ</string>
+    <string name="service_select_welcome_message">FlareDo は Android 用のソーシャルメディアクライアントです。\n接続するサービスを選択して始めましょう。</string>
     <string name="mastodon_login_verify_message">認証情報を確認中…</string>
     <string name="status_title">投稿</string>
     <string name="misskey_visibility_public">公開</string>
@@ -325,7 +325,7 @@
     <string name="settings_appearance_deck_mode">デッキモード</string>
     <string name="settings_appearance_deck_mode_description">サポートされているタイムラインでデッキレイアウトを使用する</string>
     <string name="settings_appearance_in_app_browser">アプリ内ブラウザ</string>
-    <string name="settings_appearance_in_app_browser_description">Flare 内で外部リンクを開く</string>
+    <string name="settings_appearance_in_app_browser_description">FlareDo 内で外部リンクを開く</string>
     <string name="settings_appearance_full_width_post">全幅投稿</string>
     <string name="settings_appearance_full_width_post_description">投稿を全幅で表示できるようにする</string>
     <string name="settings_appearance_absolute_timestamp">絶対タイムスタンプ</string>
@@ -561,7 +561,7 @@
     <string name="channel_item_unfollow">フォロー解除</string>
     <string name="channel_item_favourite">お気に入りに追加</string>
     <string name="channel_item_unfavourite">お気に入りから削除</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="profile_insight_title">プロフィールインサイト</string>
     <string name="status_insight_input_placeholder">追加で質問…</string>
     <string name="status_insight_analyzing">この投稿を分析しています...</string>
@@ -671,7 +671,7 @@
     <string name="settings_link_open_defaults_title">リンクの開き方</string>
     <string name="settings_link_open_defaults_description">対応リンクの既定動作をホストごとに選択</string>
     <string name="settings_link_open_default_title">%1$s リンクの既定</string>
-    <string name="settings_link_open_default_description">Flare が処理できる対応リンクをどのように開くかを選択</string>
+    <string name="settings_link_open_default_description">FlareDo が処理できる対応リンクをどのように開くかを選択</string>
     <string name="settings_link_open_default_ask_every_time">毎回確認</string>
     <string name="fanbox_supported_title">支援中</string>
     <string name="fanbox_recommended_creators_title">おすすめクリエイター</string>

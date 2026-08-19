@@ -5,7 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.feature.agent.presenter.profile.ProfileInsightPresenter
 import dev.dimension.flare.model.AccountType
 import dev.dimension.flare.model.MicroBlogKey

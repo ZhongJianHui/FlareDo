@@ -101,7 +101,7 @@
 </script>
 
 <svelte:head>
-	<title>{m.settingsStorageTitle()} | Flare</title>
+	<title>{m.settingsStorageTitle()} | FlareDo</title>
 </svelte:head>
 
 <div class="storage-page bg-base-200">

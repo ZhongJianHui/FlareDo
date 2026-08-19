@@ -4,7 +4,7 @@ import androidx.compose.material3.ListItemShapes
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.data.model.tab.TimelineMergePolicy
 import dev.dimension.flare.ui.screen.settings.SingleChoiceSettingsItem
 import kotlinx.collections.immutable.persistentMapOf

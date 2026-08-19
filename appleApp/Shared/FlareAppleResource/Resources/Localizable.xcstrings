@@ -1896,7 +1896,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Learn more about Flare"
+            "value" : "Learn more about FlareDo"
           }
         },
         "fi" : {
@@ -2016,7 +2016,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "了解更多关于 Flare 的信息"
+            "value" : "了解更多关于 FlareDo 的信息"
           }
         },
         "zh-Hant" : {
@@ -11655,7 +11655,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Customize the look and feel of Flare"
+            "value" : "Customize the look and feel of FlareDo"
           }
         },
         "fi" : {
@@ -11775,7 +11775,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "自定义 Flare 的外观"
+            "value" : "自定义 FlareDo 的外观"
           }
         },
         "zh-Hant" : {
@@ -13679,7 +13679,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Open external links inside Flare"
+            "value" : "Open external links inside FlareDo"
           }
         },
         "fi" : {
@@ -13799,7 +13799,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在 Flare 内打开外部链接"
+            "value" : "在 FlareDo 内打开外部链接"
           }
         },
         "zh-Hant" : {
@@ -129543,7 +129543,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This server uses %@, Flare will run in compatibility mode. Some features may not work properly."
+            "value" : "This server uses %@, FlareDo will run in compatibility mode. Some features may not work properly."
           }
         },
         "fi" : {
@@ -129663,7 +129663,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此服务器使用 %@，Flare 将在兼容模式下运行。某些功能可能无法正常工作。"
+            "value" : "此服务器使用 %@，FlareDo 将在兼容模式下运行。某些功能可能无法正常工作。"
           }
         },
         "zh-Hant" : {
@@ -130280,7 +130280,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flare supports Mastodon, Misskey, Bluesky, Nostr, and X."
+            "value" : "FlareDo connects you to Linux.do."
           }
         },
         "fi" : {
@@ -130400,7 +130400,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flare 支持 Mastodon, Misskey, Bluesky, Nostr 和 X。"
+            "value" : "FlareDo 是专为 Linux.do 设计的客户端。"
           }
         },
         "zh-Hant" : {
@@ -130832,7 +130832,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Welcome to Flare"
+            "value" : "Welcome to FlareDo"
           }
         },
         "fi" : {
@@ -130952,7 +130952,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "欢迎来到 Flare"
+            "value" : "欢迎使用 FlareDo"
           }
         },
         "zh-Hant" : {
@@ -131016,7 +131016,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "An open-source, AI-powered client for decentralized social platforms."
+            "value" : "An open-source client for Linux.do."
           }
         },
         "fi" : {
@@ -131136,7 +131136,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "一款开源、AI 驱动的去中心化社交平台客户端。"
+            "value" : "一款面向 Linux.do 的开源客户端。"
           }
         },
         "zh-Hant" : {
@@ -133402,7 +133402,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choose how supported links open when Flare can handle them"
+            "value" : "Choose how supported links open when FlareDo can handle them"
           }
         },
         "fi" : {
@@ -133522,7 +133522,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "选择 Flare 可处理的支持链接如何打开"
+            "value" : "选择 FlareDo 可处理的链接如何打开"
           }
         },
         "zh-Hant" : {
@@ -134451,13 +134451,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Fetch new posts when Flare opens"
+            "value" : "Fetch new posts when FlareDo opens"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打开 Flare 时获取新内容"
+            "value" : "打开 FlareDo 时获取新内容"
           }
         },
         "zh-Hant" : {
@@ -149901,7 +149901,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Update Flare’s permission or language"
+            "value" : "Update FlareDo permissions or language"
           }
         },
         "fi" : {
@@ -150021,7 +150021,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "更新 Flare 的权限或语言"
+            "value" : "更新 FlareDo 的权限或语言"
           }
         },
         "zh-Hant" : {

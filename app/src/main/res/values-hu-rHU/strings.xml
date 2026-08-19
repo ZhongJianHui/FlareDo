@@ -53,7 +53,7 @@
     <string name="settings_accounts_title">Fiókok</string>
     <string name="settings_accounts_subtitle">Bejelentkezett fiókok kezelése</string>
     <string name="settings_appearance_title">Megjelenés</string>
-    <string name="settings_appearance_subtitle">A Flare megjelenésének testreszabása</string>
+    <string name="settings_appearance_subtitle">A FlareDo megjelenésének testreszabása</string>
     <string name="settings_appearance_theme_group_title">Téma</string>
     <string name="settings_appearance_theme_group_subtitle">Színek, betűméret és profilkép alakja</string>
     <string name="settings_appearance_layout_group_title">Elrendezés</string>
@@ -65,7 +65,7 @@
     <string name="settings_storage_title">Tárhely</string>
     <string name="settings_storage_subtitle">Gyorsítótár, naplók és biztonsági mentések</string>
     <string name="settings_about_title">Névjegy</string>
-    <string name="settings_about_subtitle">Tudj meg többet a Flare-ről</string>
+    <string name="settings_about_subtitle">Tudj meg többet a FlareDo-ről</string>
     <string name="settings_about_description">Nyílt forráskódú, MI-vel segített kliens decentralizált közösségi platformokhoz.</string>
     <string name="settings_about_source_code">Forráskód</string>
     <string name="settings_about_telegram">Telegram</string>
@@ -73,7 +73,7 @@
     <string name="settings_about_discord_description">Csatlakozz a Discord szerverünkhöz</string>
     <string name="settings_about_line_description">Csatlakozz a Line csoportunkhoz</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">Segíts lefordítani a Flare-t</string>
+    <string name="settings_about_localization_description">Segíts lefordítani a FlareDo-t</string>
     <string name="settings_privacy_policy">Adatvédelmi nyilatkozat</string>
     <string name="settings_side_panel">Oldalpanel testreszabása</string>
     <string name="settings_side_panel_description">Az oldalpanel testreszabása</string>
@@ -94,7 +94,7 @@
     <string name="settings_ai_config_server_url_requirement">Az URL-nek perrjellel kell végződnie, és támogatnia kell egy kompatibilis v1/chat/completions API-t.</string>
     <string name="settings_ai_config_server_self_host_description">Használd a hivatalos szolgáltatást vagy saját kompatibilis szerveredet</string>
     <string name="settings_ai_config_type">MI típusa</string>
-    <string name="settings_ai_config_type_description">Válaszd ki, melyik MI motor használja a Flare</string>
+    <string name="settings_ai_config_type_description">Válaszd ki, melyik MI motor használja a FlareDo</string>
     <string name="settings_ai_config_type_select">Kiválasztás</string>
     <string name="settings_ai_config_type_on_device">Eszközön futó MI</string>
     <string name="settings_ai_config_type_on_device_description">Támogatott MI modellek futtatása helyben ezen az eszközön</string>
@@ -146,7 +146,7 @@
     <string name="settings_translation_ai_test_original">Minta szöveg</string>
     <string name="settings_translation_ai_test_result">Lefordított szöveg</string>
     <string name="settings_language_title">Nyelv</string>
-    <string name="settings_language_description">A Flare alkalmazás nyelvének módosítása</string>
+    <string name="settings_language_description">A FlareDo alkalmazás nyelvének módosítása</string>
     <string name="settings_rss_management_title">Feliratkozások kezelése</string>
     <string name="settings_rss_management_description">Feliratkozások kezelése</string>
     <string name="settings_nostr_relays_manage">Nostr relék</string>
@@ -158,8 +158,8 @@
     <string name="login_expired">A bejelentkezési munkamenet lejárt</string>
     <string name="login_expired_message">Érintsd meg az ismételt bejelentkezéshez</string>
     <string name="login_expired_relogin">Bejelentkezés újra</string>
-    <string name="service_select_welcome_title">Üdvözöl a Flare</string>
-    <string name="service_select_welcome_message">A Flare egy közösségi média kliens Androidra.\nVálassz egy szolgáltatást a csatlakozáshoz és a kezdéshez.</string>
+    <string name="service_select_welcome_title">Üdvözöl a FlareDo</string>
+    <string name="service_select_welcome_message">A FlareDo egy közösségi média kliens Androidra.\nVálassz egy szolgáltatást a csatlakozáshoz és a kezdéshez.</string>
     <string name="mastodon_login_verify_message">Hitelesítő adatok ellenőrzése…</string>
     <string name="status_title">Bejegyzés</string>
     <string name="misskey_visibility_public">Nyilvános</string>
@@ -295,7 +295,7 @@
     <string name="settings_appearance_deck_mode">Deck mód</string>
     <string name="settings_appearance_deck_mode_description">Többoszlopos elrendezés a támogatott idővonalakon</string>
     <string name="settings_appearance_in_app_browser">Alkalmazáson belüli böngésző</string>
-    <string name="settings_appearance_in_app_browser_description">Külső linkek megnyitása a Flare-en belül</string>
+    <string name="settings_appearance_in_app_browser_description">Külső linkek megnyitása a FlareDo-en belül</string>
     <string name="settings_appearance_full_width_post">Teljes szélességű bejegyzések</string>
     <string name="settings_appearance_full_width_post_description">Bejegyzések megjelenítése a teljes rendelkezésre álló szélességben</string>
     <string name="settings_appearance_absolute_timestamp">Abszolút időbélyeg</string>
@@ -521,7 +521,7 @@
     <string name="channel_item_unfollow">Követés leállítása</string>
     <string name="channel_item_favourite">Kedvenc</string>
     <string name="channel_item_unfavourite">Eltávolítás a kedvencek közül</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="status_insight_title">Bejegyzéselemzés</string>
     <string name="profile_insight_title">Profilelemzés</string>
     <string name="status_insight_input_placeholder">Tegyen fel egy követő kérdést…</string>
@@ -565,7 +565,7 @@
     <string name="status_insight_trace_agent_closing">Elemzés lezárása...</string>
     <string name="ask_ai">AI megkérdezése</string>
     <string name="agent_chat_title">AI-csevegés</string>
-    <string name="agent_history_title">Flare AI</string>
+    <string name="agent_history_title">FlareDo AI</string>
     <string name="agent_history_empty">Még nincs AI-csevegési előzmény.</string>
     <string name="agent_chat_input_placeholder">Kérdezz bármit...</string>
     <string name="agent_chat_thinking">Gondolkodás...</string>
@@ -671,7 +671,7 @@
     <string name="settings_link_open_defaults_title">Linkek megnyitása</string>
     <string name="settings_link_open_defaults_description">Válaszd ki a támogatott linkek alapértelmezéseit gazdagép szerint</string>
     <string name="settings_link_open_default_title">Alapértelmezett a(z) %1$s linkekhez</string>
-    <string name="settings_link_open_default_description">Válaszd ki, hogyan nyíljanak meg a támogatott linkek, amikor a Flare tudja kezelni őket</string>
+    <string name="settings_link_open_default_description">Válaszd ki, hogyan nyíljanak meg a támogatott linkek, amikor a FlareDo tudja kezelni őket</string>
     <string name="settings_link_open_default_ask_every_time">Kérdezzen rá minden alkalommal</string>
     <string name="fanbox_supported_title">Támogatva</string>
     <string name="fanbox_recommended_creators_title">Ajánlott alkotók</string>

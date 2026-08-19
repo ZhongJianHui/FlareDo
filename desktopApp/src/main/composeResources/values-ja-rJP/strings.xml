@@ -27,8 +27,8 @@
     <string name="service_select_instance_input_placeholder">インスタンスのURL</string>
     <string name="service_select_next_button">次へ</string>
     <string name="service_select_empty_message">インスタンスが見つかりませんでした</string>
-    <string name="service_select_welcome_title">Flareへようこそ</string>
-    <string name="service_select_welcome_message">Flareは %1$s 用のソーシャルメディアクライアントです。\nサービスを選択して接続し、始めましょう。</string>
+    <string name="service_select_welcome_title">FlareDoへようこそ</string>
+    <string name="service_select_welcome_message">FlareDoは %1$s 用のソーシャルメディアクライアントです。\nサービスを選択して接続し、始めましょう。</string>
     <string name="mastodon_login_verify_message">認証情報を確認中…</string>
     <string name="profile_tab_timeline">投稿</string>
     <string name="profile_tab_timeline_with_reply">投稿と返信</string>
@@ -168,7 +168,7 @@
     <string name="settings_appearance_title">外観</string>
     <string name="settings_status_appearance_title">投稿の表示設定</string>
     <string name="settings_status_appearance_subtitle">投稿の見た目をカスタマイズ</string>
-    <string name="settings_appearance_subtitle">Flareの見た目や操作感をカスタマイズ</string>
+    <string name="settings_appearance_subtitle">FlareDoの見た目や操作感をカスタマイズ</string>
     <string name="settings_appearance_theme_group_title">テーマ</string>
     <string name="settings_appearance_theme_group_subtitle">色、フォントサイズ、アイコンの形状</string>
     <string name="settings_appearance_layout_group_title">レイアウト</string>
@@ -182,7 +182,7 @@
     <string name="settings_draft_box_description">保存された下書きの表示、編集、再送信</string>
     <string name="settings_storage_subtitle">キャッシュ、ログ、バックアップの管理</string>
     <string name="settings_about_title">このアプリについて</string>
-    <string name="settings_about_subtitle">Flareについて詳しく知る</string>
+    <string name="settings_about_subtitle">FlareDoについて詳しく知る</string>
     <string name="settings_side_panel">サイドパネルのカスタマイズ</string>
     <string name="settings_side_panel_description">サイドパネルの設定を変更</string>
     <string name="settings_local_filter_title">ローカルフィルター</string>
@@ -191,8 +191,8 @@
     <string name="settings_guest_setting_description">ゲストモードで接続するサーバーを選択</string>
     <string name="settings_local_history_title">ローカル履歴</string>
     <string name="settings_local_history_description">デバイスに保存された投稿やプロファイルを検索</string>
-    <string name="settings_agent_history_title">Flare AI</string>
-    <string name="settings_agent_history_description">ローカルの Flare AI チャット履歴を表示</string>
+    <string name="settings_agent_history_title">FlareDo AI</string>
+    <string name="settings_agent_history_description">ローカルの FlareDo AI チャット履歴を表示</string>
     <string name="agent_history_empty">AI チャット履歴はまだありません。</string>
     <string name="settings_app_logging_title">アプリログ</string>
     <string name="settings_app_logging_save">ログを保存</string>
@@ -206,7 +206,7 @@
     <string name="settings_ai_config_server_url_requirement">URLはスラッシュで終わる必要があり、互換性のある v1/chat/completions APIをサポートしている必要があります。</string>
     <string name="settings_ai_config_server_self_host_description">公式サービスまたは独自の互換サーバーを使用</string>
     <string name="settings_ai_config_type">AIタイプ</string>
-    <string name="settings_ai_config_type_description">Flareで使用するAIバックエンドを選択</string>
+    <string name="settings_ai_config_type_description">FlareDoで使用するAIバックエンドを選択</string>
     <string name="settings_ai_config_type_on_device">デバイス上のAI</string>
     <string name="settings_ai_config_type_openai">AI互換API</string>
     <string name="settings_ai_config_api_key">APIキー</string>
@@ -308,7 +308,7 @@
     <string name="settings_appearance_full_width_post">投稿を全幅で表示</string>
     <string name="settings_appearance_full_width_post_description">投稿を利用可能な全幅に広げます</string>
     <string name="settings_language_title">言語</string>
-    <string name="settings_language_description">Flareのアプリ言語を変更</string>
+    <string name="settings_language_description">FlareDoのアプリ言語を変更</string>
     <string name="settings_appearance_post_action_style">投稿アクションのスタイル</string>
     <string name="settings_appearance_post_action_style_description">アクションボタンの配置を選択</string>
     <string name="settings_appearance_post_action_style_hidden">非表示</string>
@@ -353,7 +353,7 @@
     <string name="settings_about_telegram_description">Telegramグループに参加</string>
     <string name="settings_about_discord_description">Discordサーバーに参加</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">Flareの翻訳を手伝う</string>
+    <string name="settings_about_localization_description">FlareDoの翻訳を手伝う</string>
     <string name="settings_privacy_policy">プライバシーポリシー</string>
     <string name="users">ユーザー</string>
     <string name="hashtags">ハッシュタグ</string>
@@ -516,7 +516,7 @@
     <string name="misskey_channel_tab_featured">トレンド</string>
     <string name="media_save_success">ダウンロードに保存しました</string>
     <string name="media_save_fail">保存に失敗しました</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="profile_insight_title">プロフィールインサイト</string>
     <string name="agent_chat_input_placeholder">AIに聞く...</string>
     <string name="agent_chat_thinking">考え中...</string>
@@ -605,7 +605,7 @@
     <string name="settings_link_open_defaults_title">リンクの開き方</string>
     <string name="settings_link_open_defaults_description">対応リンクの既定動作をホストごとに選択</string>
     <string name="settings_link_open_default_title">%1$s リンクの既定</string>
-    <string name="settings_link_open_default_description">Flare が処理できる対応リンクをどのように開くかを選択</string>
+    <string name="settings_link_open_default_description">FlareDo が処理できる対応リンクをどのように開くかを選択</string>
     <string name="settings_link_open_default_ask_every_time">毎回確認</string>
     <string name="media_download_started">ダウンロードを開始しました</string>
     <string name="fanbox_supported_title">支援中</string>

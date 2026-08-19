@@ -9,7 +9,7 @@
         android:shortcutDisabledMessage="@string/compose_title">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetPackage="dev.dimension.flare"
+            android:targetPackage="io.github.zhongjianhui.flaredo"
             android:targetClass="dev.dimension.flare.ui.screen.compose.ShortcutComposeActivity" />
         <!-- If your shortcut is associated with multiple intents, include them
              here. The last intent in the list determines what the user sees when
@@ -22,6 +22,6 @@
 
     <share-target android:targetClass="dev.dimension.flare.ui.screen.compose.ShortcutComposeActivity">
         <data android:mimeType="text/plain" />
-        <category android:name="dev.dimension.flare.sharingshortcuts.category.TEXT_SHARE_TARGET" />
+        <category android:name="io.github.zhongjianhui.flaredo.sharingshortcuts.category.TEXT_SHARE_TARGET" />
     </share-target>
 </shortcuts>

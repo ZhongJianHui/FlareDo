@@ -30,8 +30,8 @@
     <string name="service_select_instance_input_placeholder">כתובת השרת (Instance URL)</string>
     <string name="service_select_next_button">הבא</string>
     <string name="service_select_empty_message">לא נמצאו שרתים</string>
-    <string name="service_select_welcome_title">ברוכים הבאים ל-Flare</string>
-    <string name="service_select_welcome_message">Flare הוא לקוח רשתות חברתיות עבור %1$s.\nבחרו שירות כדי להתחבר ולהתחיל.</string>
+    <string name="service_select_welcome_title">ברוכים הבאים ל-FlareDo</string>
+    <string name="service_select_welcome_message">FlareDo הוא לקוח רשתות חברתיות עבור %1$s.\nבחרו שירות כדי להתחבר ולהתחיל.</string>
     <string name="mastodon_login_verify_message">מאמת את פרטי ההתחברות…</string>
     <string name="profile_tab_timeline">פוסטים</string>
     <string name="profile_tab_timeline_with_reply">פוסטים ותגובות</string>
@@ -137,7 +137,7 @@
     <string name="settings_appearance_title">מראה</string>
     <string name="settings_status_appearance_title">מראה הפוסט</string>
     <string name="settings_status_appearance_subtitle">התאמה אישית של מראה הפוסט</string>
-    <string name="settings_appearance_subtitle">התאמת המראה והתחושה של Flare</string>
+    <string name="settings_appearance_subtitle">התאמת המראה והתחושה של FlareDo</string>
     <string name="settings_appearance_theme_group_title">ערכת נושא</string>
     <string name="settings_appearance_theme_group_subtitle">צבעים, גודל גופן וצורת תמונת פרופיל</string>
     <string name="settings_appearance_layout_group_title">פריסה</string>
@@ -151,7 +151,7 @@
     <string name="settings_draft_box_description">צפייה, עריכה ושליחה מחדש של טיוטות שמורות</string>
     <string name="settings_storage_subtitle">ניהול קבצי מטמון, יומנים וגיבויים</string>
     <string name="settings_about_title">אודות</string>
-    <string name="settings_about_subtitle">למדו עוד על Flare</string>
+    <string name="settings_about_subtitle">למדו עוד על FlareDo</string>
     <string name="settings_side_panel">התאמת פאנל צד</string>
     <string name="settings_side_panel_description">התאמה אישית של פאנל הצד</string>
     <string name="settings_local_filter_title">מסננים מקומיים</string>
@@ -172,7 +172,7 @@
     <string name="settings_ai_config_server_url_requirement">הכתובת חייבת להסתיים בלוכסן (/) ולתמוך ב-API תואם v1/chat/completions.</string>
     <string name="settings_ai_config_server_self_host_description">השתמשו בשירות הרשמי או בשרת תואם משלכם</string>
     <string name="settings_ai_config_type">סוג בינה מלאכותית</string>
-    <string name="settings_ai_config_type_description">בחרו באיזה מנוע בינה מלאכותית Flare ישתמש</string>
+    <string name="settings_ai_config_type_description">בחרו באיזה מנוע בינה מלאכותית FlareDo ישתמש</string>
     <string name="settings_ai_config_type_on_device">בינה מלאכותית על המכשיר</string>
     <string name="settings_ai_config_type_openai">API תואם בינה מלאכותית</string>
     <string name="settings_ai_config_api_key">מפתח API</string>
@@ -266,7 +266,7 @@
     <string name="settings_appearance_full_width_post">פוסטים ברוחב מלא</string>
     <string name="settings_appearance_full_width_post_description">אפשר לפוסטים להיפרס על פני כל הרוחב הזמין</string>
     <string name="settings_language_title">שפה</string>
-    <string name="settings_language_description">שינוי שפת האפליקציה Flare</string>
+    <string name="settings_language_description">שינוי שפת האפליקציה FlareDo</string>
     <string name="settings_appearance_post_action_style">סגנון פעולות פוסט</string>
     <string name="settings_appearance_post_action_style_description">בחירת אופן פריסת כפתורי הפעולה</string>
     <string name="settings_appearance_post_action_style_hidden">מוסתר</string>
@@ -311,7 +311,7 @@
     <string name="settings_about_telegram_description">הצטרפו לקבוצת הטלגרם שלנו</string>
     <string name="settings_about_discord_description">הצטרפו לשרת הדיסקורד שלנו</string>
     <string name="settings_about_localization">קרואדין</string>
-    <string name="settings_about_localization_description">עזרו לנו לתרגם את Flare</string>
+    <string name="settings_about_localization_description">עזרו לנו לתרגם את FlareDo</string>
     <string name="settings_privacy_policy">מדיניות פרטיות</string>
     <string name="users">משתמשים</string>
     <string name="hashtags">תגיות (Hashtags)</string>
@@ -474,7 +474,7 @@
     <string name="misskey_channel_tab_featured">נבחרים</string>
     <string name="media_save_success">נשמר בתיקיית ההורדות</string>
     <string name="media_save_fail">השמירה נכשלה</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="illustrations_title">איורים</string>
     <string name="manga_title">מנגה</string>
     <string name="pixiv_ranking_week_title">דירוג שבועי</string>
@@ -527,8 +527,8 @@
     <string name="status_insight_trace_agent_failed">הניתוח נכשל</string>
     <string name="status_insight_trace_agent_closing">סוגר ניתוח...</string>
     <string name="ask_ai">שאל AI</string>
-    <string name="settings_agent_history_title">Flare AI</string>
-    <string name="settings_agent_history_description">הצג היסטוריית צ׳אט מקומית של Flare AI</string>
+    <string name="settings_agent_history_title">FlareDo AI</string>
+    <string name="settings_agent_history_description">הצג היסטוריית צ׳אט מקומית של FlareDo AI</string>
     <string name="agent_history_empty">אין עדיין היסטוריית צ׳אט AI.</string>
     <string name="settings_ai_config_enable_agent">הפעלת AI Agent</string>
     <string name="settings_ai_config_agent_description">לאחר ההפעלה, תכונת AI Agent תופיע במקומות הרלוונטיים באפליקציה כאשר מוגדר מודל תואם OpenAI.</string>
@@ -605,7 +605,7 @@
     <string name="settings_link_open_defaults_title">פתיחת קישורים</string>
     <string name="settings_link_open_defaults_description">בחר ברירות מחדל לקישורים נתמכים לפי מארח</string>
     <string name="settings_link_open_default_title">ברירת מחדל לקישורי %1$s</string>
-    <string name="settings_link_open_default_description">בחר כיצד קישורים נתמכים ייפתחו כאשר Flare יכול לטפל בהם</string>
+    <string name="settings_link_open_default_description">בחר כיצד קישורים נתמכים ייפתחו כאשר FlareDo יכול לטפל בהם</string>
     <string name="settings_link_open_default_ask_every_time">שאל בכל פעם</string>
     <string name="media_download_started">ההורדה החלה</string>
     <string name="fanbox_supported_title">נתמך</string>

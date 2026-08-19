@@ -76,7 +76,7 @@
     <string name="status_insight_trace_agent_closing">Fermeture de l\'analyse…</string>
     <string name="ask_ai">Demander à l\'IA</string>
     <string name="agent_chat_title">Chat IA</string>
-    <string name="agent_history_title">Flare AI</string>
+    <string name="agent_history_title">FlareDo AI</string>
     <string name="agent_history_empty">Aucun historique de chat d\'agent pour le moment.</string>
     <string name="agent_chat_input_placeholder">Demander quoi que ce soit…</string>
     <string name="agent_chat_send">Envoyer</string>
@@ -91,7 +91,7 @@
     <string name="settings_accounts_title">Comptes</string>
     <string name="settings_accounts_subtitle">Gérer les comptes connectés</string>
     <string name="settings_appearance_title">Apparence</string>
-    <string name="settings_appearance_subtitle">Personnaliser l\'aspect visuel de Flare</string>
+    <string name="settings_appearance_subtitle">Personnaliser l\'aspect visuel de FlareDo</string>
     <string name="settings_appearance_theme_group_title">Thème</string>
     <string name="settings_appearance_theme_group_subtitle">Couleurs, taille de police et forme de l\'avatar</string>
     <string name="settings_appearance_layout_group_title">Mise en page</string>
@@ -103,7 +103,7 @@
     <string name="settings_storage_title">Stockage</string>
     <string name="settings_storage_subtitle">Gérer le cache, les journaux et les sauvegardes</string>
     <string name="settings_about_title">À propos</string>
-    <string name="settings_about_subtitle">En savoir plus sur Flare</string>
+    <string name="settings_about_subtitle">En savoir plus sur FlareDo</string>
     <string name="settings_about_description">Un client open-source assisté par IA pour les plateformes sociales décentralisées.</string>
     <string name="settings_about_source_code">Code source</string>
     <string name="settings_about_telegram">Télégramme</string>
@@ -111,7 +111,7 @@
     <string name="settings_about_discord_description">Rejoignez notre serveur Discord</string>
     <string name="settings_about_line_description">Rejoignez notre groupe Line</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">Aidez-nous à traduire Flare</string>
+    <string name="settings_about_localization_description">Aidez-nous à traduire FlareDo</string>
     <string name="settings_privacy_policy">Politique de confidentialité</string>
     <string name="settings_side_panel">Personnalisation du panneau latéral</string>
     <string name="settings_side_panel_description">Personnaliser le panneau latéral</string>
@@ -132,7 +132,7 @@
     <string name="settings_ai_config_server_url_requirement">L\'URL doit se terminer par un slash et supporter une API compatible v1/chat/completions.</string>
     <string name="settings_ai_config_server_self_host_description">Utilisez le service officiel ou votre propre serveur compatible</string>
     <string name="settings_ai_config_type">Type d\'IA</string>
-    <string name="settings_ai_config_type_description">Choisir quel moteur d\'IA Flare utilise</string>
+    <string name="settings_ai_config_type_description">Choisir quel moteur d\'IA FlareDo utilise</string>
     <string name="settings_ai_config_type_select">Sélectionner</string>
     <string name="settings_ai_config_type_on_device">IA sur l\'appareil</string>
     <string name="settings_ai_config_type_on_device_description">Exécuter des modèles d\'IA supportés localement sur cet appareil</string>
@@ -188,7 +188,7 @@
     <string name="settings_translation_ai_test_original">Texte d\'échantillon</string>
     <string name="settings_translation_ai_test_result">Texte traduit</string>
     <string name="settings_language_title">Langue</string>
-    <string name="settings_language_description">Changer la langue de l\'application Flare</string>
+    <string name="settings_language_description">Changer la langue de l\'application FlareDo</string>
     <string name="settings_rss_management_title">Gestion des abonnements</string>
     <string name="settings_rss_management_description">Gérer les abonnements</string>
     <string name="settings_nostr_relays_manage">Relais Nostr</string>
@@ -200,8 +200,8 @@
     <string name="login_expired">Session de connexion expirée</string>
     <string name="login_expired_message">Appuyez pour vous reconnecter</string>
     <string name="login_expired_relogin">Se reconnecter</string>
-    <string name="service_select_welcome_title">Bienvenue sur Flare</string>
-    <string name="service_select_welcome_message">Flare est un client de réseaux sociaux pour Android.\nChoisissez un service pour vous connecter et commencer.</string>
+    <string name="service_select_welcome_title">Bienvenue sur FlareDo</string>
+    <string name="service_select_welcome_message">FlareDo est un client de réseaux sociaux pour Android.\nChoisissez un service pour vous connecter et commencer.</string>
     <string name="mastodon_login_verify_message">Vérification de vos identifiants…</string>
     <string name="status_title">Statut</string>
     <string name="misskey_visibility_public">Publique</string>
@@ -339,7 +339,7 @@
     <string name="settings_appearance_deck_mode">Mode Deck</string>
     <string name="settings_appearance_deck_mode_description">Utiliser une mise en page en colonnes (Decks)</string>
     <string name="settings_appearance_in_app_browser">Navigateur intégré</string>
-    <string name="settings_appearance_in_app_browser_description">Ouvrir les liens externes dans Flare</string>
+    <string name="settings_appearance_in_app_browser_description">Ouvrir les liens externes dans FlareDo</string>
     <string name="settings_appearance_full_width_post">Posts pleine largeur</string>
     <string name="settings_appearance_full_width_post_description">Laisser les posts occuper toute la largeur disponible</string>
     <string name="settings_appearance_absolute_timestamp">Horodatage absolu</string>
@@ -575,7 +575,7 @@
     <string name="channel_item_unfollow">Se désabonner</string>
     <string name="channel_item_favourite">Ajouter aux favoris</string>
     <string name="channel_item_unfavourite">Retirer des favoris</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="profile_insight_title">Aperçu du profil</string>
     <string name="status_insight_input_placeholder">Poser une question complémentaire…</string>
     <string name="profile_insight_analyzing">Analyse de ce profil…</string>
@@ -671,7 +671,7 @@
     <string name="settings_link_open_defaults_title">Ouverture des liens</string>
     <string name="settings_link_open_defaults_description">Choisissez les valeurs par défaut des liens pris en charge par hôte</string>
     <string name="settings_link_open_default_title">Par défaut pour les liens %1$s</string>
-    <string name="settings_link_open_default_description">Choisissez comment les liens pris en charge s’ouvrent lorsque Flare peut les gérer</string>
+    <string name="settings_link_open_default_description">Choisissez comment les liens pris en charge s’ouvrent lorsque FlareDo peut les gérer</string>
     <string name="settings_link_open_default_ask_every_time">Demander à chaque fois</string>
     <string name="fanbox_supported_title">Soutien</string>
     <string name="fanbox_recommended_creators_title">Créateurs recommandés</string>

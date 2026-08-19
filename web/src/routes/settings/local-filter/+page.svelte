@@ -60,7 +60,7 @@
 </script>
 
 <svelte:head>
-	<title>{m.settingsLocalFilterTitle()} | Flare</title>
+	<title>{m.settingsLocalFilterTitle()} | FlareDo</title>
 </svelte:head>
 
 <div class="settings-subpage bg-base-200">

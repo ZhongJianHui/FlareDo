@@ -64,7 +64,7 @@
 </script>
 
 <svelte:head>
-	<title>{m.settingsLocalHistoryTitle()} | Flare</title>
+	<title>{m.settingsLocalHistoryTitle()} | FlareDo</title>
 </svelte:head>
 
 <div class="history-page bg-base-200">

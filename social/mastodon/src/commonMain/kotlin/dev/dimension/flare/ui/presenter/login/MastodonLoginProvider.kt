@@ -160,7 +160,7 @@ private class MastodonOAuthLoginHandler(
                 MastodonOAuthService(
                     baseUrl = baseUrl.toString(),
                     client_name = "Flare",
-                    website = "https://github.com/DimensionDev/Flare",
+                    website = "https://github.com/ZhongJianHui/FlareDo",
                     redirect_uri = context.redirectUri ?: DeeplinkRoute.Companion.Callback.MASTODON,
                 )
             val application =
@@ -224,7 +224,7 @@ private class MastodonOAuthLoginHandler(
             MastodonOAuthService(
                 baseUrl = "https://$host/",
                 client_name = "Flare",
-                website = "https://github.com/DimensionDev/Flare",
+                website = "https://github.com/ZhongJianHui/FlareDo",
                 redirect_uri = application.application.redirectURI,
             )
         val accessTokenResponse = service.getAccessToken(code, application.application)

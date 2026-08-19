@@ -1211,7 +1211,7 @@ private struct MacAboutSettingsPane: View {
                         .shadow(color: .black.opacity(0.12), radius: 16, y: 8)
 
                     VStack(spacing: 6) {
-                        Text("Flare")
+                        Text("FlareDo")
                             .font(.largeTitle.weight(.semibold))
                         Text("settings_about_description")
                             .foregroundStyle(.secondary)
@@ -1270,37 +1270,9 @@ private struct MacAboutLink: Identifiable {
         MacAboutLink(
             id: "source-code",
             titleKey: "settings_about_source_code",
-            subtitle: "https://github.com/DimensionDev/Flare",
+            subtitle: "https://github.com/ZhongJianHui/FlareDo",
             icon: .github,
-            url: URL(string: "https://github.com/DimensionDev/Flare")!
-        ),
-        MacAboutLink(
-            id: "telegram",
-            titleKey: "settings_about_telegram",
-            subtitle: String(localized: "settings_about_telegram_description"),
-            icon: .telegram,
-            url: URL(string: "https://t.me/+VZ63fqNQXIA0MzVl")!
-        ),
-        MacAboutLink(
-            id: "discord",
-            titleKey: "settings_about_discord",
-            subtitle: String(localized: "settings_about_discord_description"),
-            icon: .discord,
-            url: URL(string: "https://discord.gg/De9NhXBryT")!
-        ),
-        MacAboutLink(
-            id: "localization",
-            titleKey: "settings_about_localization",
-            subtitle: String(localized: "settings_about_localization_description"),
-            icon: .language,
-            url: URL(string: "https://crowdin.com/project/flareapp")!
-        ),
-        MacAboutLink(
-            id: "privacy-policy",
-            titleKey: "settings_privacy_policy",
-            subtitle: "https://legal.mask.io/maskbook",
-            icon: .lock,
-            url: URL(string: "https://legal.mask.io/maskbook/")!
+            url: URL(string: "https://github.com/ZhongJianHui/FlareDo")!
         )
     ]
 }

@@ -1,6 +1,6 @@
 {
   "fill" : {
-    "automatic-gradient" : "extended-srgb:0.00000,0.78431,0.70196,1.00000"
+    "automatic-gradient" : "extended-srgb:0.09020,0.12941,0.16863,1.00000"
   },
   "groups" : [
     {
@@ -20,7 +20,7 @@
           "image-name" : "Group.svg",
           "name" : "Group",
           "position" : {
-            "scale" : 3.18,
+            "scale" : 1,
             "translation-in-points" : [
               0,
               0
@@ -43,7 +43,7 @@
           "image-name" : "Group-2.svg",
           "name" : "Group-2",
           "position" : {
-            "scale" : 3.18,
+            "scale" : 1,
             "translation-in-points" : [
               0,
               0

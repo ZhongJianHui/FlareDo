@@ -48,7 +48,7 @@ import compose.icons.fontawesomeicons.solid.ArrowRightFromBracket
 import compose.icons.fontawesomeicons.solid.CircleUser
 import compose.icons.fontawesomeicons.solid.EllipsisVertical
 import compose.icons.fontawesomeicons.solid.PaperPlane
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.common.onSuccess
 import dev.dimension.flare.model.AccountType
 import dev.dimension.flare.model.MicroBlogKey

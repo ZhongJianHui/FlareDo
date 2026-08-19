@@ -42,7 +42,7 @@
 </script>
 
 <svelte:head>
-	<title>{m.settingsAiConfigTitle()} | Flare</title>
+	<title>{m.settingsAiConfigTitle()} | FlareDo</title>
 </svelte:head>
 
 <div class="settings-subpage bg-base-200">

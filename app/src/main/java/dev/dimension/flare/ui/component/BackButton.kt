@@ -16,7 +16,7 @@ import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import compose.icons.FontAwesomeIcons
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 
 @Composable
 fun BackButton(

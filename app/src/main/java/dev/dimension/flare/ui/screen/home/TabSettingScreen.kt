@@ -36,7 +36,7 @@ import androidx.compose.ui.unit.dp
 import compose.icons.FontAwesomeIcons
 import compose.icons.fontawesomeicons.Solid
 import compose.icons.fontawesomeicons.solid.Plus
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.data.model.tab.TimelineMergePolicy
 import dev.dimension.flare.data.model.tab.UiGroupTimelineTabItem
 import dev.dimension.flare.data.model.tab.UiTimelineTabItem

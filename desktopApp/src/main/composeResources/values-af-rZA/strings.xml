@@ -28,8 +28,8 @@
     <string name="service_select_instance_input_placeholder">Instansie-URL</string>
     <string name="service_select_next_button">Volgende</string>
     <string name="service_select_empty_message">Geen instansies gevind nie</string>
-    <string name="service_select_welcome_title">Welkom by Flare</string>
-    <string name="service_select_welcome_message">Flare is \'n sosiale media-kliënt vir %1$s.\nKies \'n diens om te koppel en te begin.</string>
+    <string name="service_select_welcome_title">Welkom by FlareDo</string>
+    <string name="service_select_welcome_message">FlareDo is \'n sosiale media-kliënt vir %1$s.\nKies \'n diens om te koppel en te begin.</string>
     <string name="mastodon_login_verify_message">Verifieer tans jou geloofsbriewe…</string>
     <string name="profile_tab_timeline">Plasings</string>
     <string name="profile_tab_timeline_with_reply">Plasings en antwoorde</string>
@@ -134,7 +134,7 @@
     <string name="settings_appearance_title">Voorkoms</string>
     <string name="settings_status_appearance_title">Plasingvoorkoms</string>
     <string name="settings_status_appearance_subtitle">Pasmaak plasingvoorkoms</string>
-    <string name="settings_appearance_subtitle">Pasmaak die voorkoms van Flare</string>
+    <string name="settings_appearance_subtitle">Pasmaak die voorkoms van FlareDo</string>
     <string name="settings_appearance_theme_group_title">Tema</string>
     <string name="settings_appearance_theme_group_subtitle">Kleure, lettergrootte en profielvorm</string>
     <string name="settings_appearance_layout_group_title">Uitleg</string>
@@ -148,7 +148,7 @@
     <string name="settings_draft_box_description">Bekyk, wysig en herstuur gestoorde konsepte</string>
     <string name="settings_storage_subtitle">Bestuur gekasde lêers, logs en rugsteun</string>
     <string name="settings_about_title">Oor</string>
-    <string name="settings_about_subtitle">Leer meer oor Flare</string>
+    <string name="settings_about_subtitle">Leer meer oor FlareDo</string>
     <string name="settings_side_panel">Kantpaneel-pasmaak</string>
     <string name="settings_side_panel_description">Pasmaak die kantpaneel</string>
     <string name="settings_local_filter_title">Plaaslike Filters</string>
@@ -169,7 +169,7 @@
     <string name="settings_ai_config_server_url_requirement">Die URL moet eindig met \'n vorentoe-skuinsstreep en \'n versoenbare v1/chat/completions API ondersteun.</string>
     <string name="settings_ai_config_server_self_host_description">Gebruik die amptelike diens of jou eie versoenbare bediener</string>
     <string name="settings_ai_config_type">KI-tipe</string>
-    <string name="settings_ai_config_type_description">Kies watter KI-agterkant Flare gebruik</string>
+    <string name="settings_ai_config_type_description">Kies watter KI-agterkant FlareDo gebruik</string>
     <string name="settings_ai_config_type_on_device">KI op toestel</string>
     <string name="settings_ai_config_type_openai">KI-versoenbare API</string>
     <string name="settings_ai_config_api_key">API-sleutel</string>
@@ -261,7 +261,7 @@
     <string name="settings_appearance_full_width_post">Plasings oor volle breedte</string>
     <string name="settings_appearance_full_width_post_description">Laat plasings oor die volle beskikbare breedte strek</string>
     <string name="settings_language_title">Taal</string>
-    <string name="settings_language_description">Verander Flare se toepassingstaal</string>
+    <string name="settings_language_description">Verander FlareDo se toepassingstaal</string>
     <string name="settings_appearance_post_action_style">Plasingaksie-styl</string>
     <string name="settings_appearance_post_action_style_description">Kies hoe aksieknoppies uitgelê word</string>
     <string name="settings_appearance_post_action_style_hidden">Versteek</string>
@@ -306,7 +306,7 @@
     <string name="settings_about_telegram_description">Sluit by ons Telegram-groep aan</string>
     <string name="settings_about_discord_description">Sluit by ons Discord-bediener aan</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">Help ons om Flare te vertaal</string>
+    <string name="settings_about_localization_description">Help ons om FlareDo te vertaal</string>
     <string name="settings_privacy_policy">Privaatheidsbeleid</string>
     <string name="users">Gebruikers</string>
     <string name="statues">Plasings</string>
@@ -468,7 +468,7 @@
     <string name="misskey_channel_tab_featured">Uitgesoek</string>
     <string name="media_save_success">Gestoor in Downloads</string>
     <string name="media_save_fail">Kon nie stoor nie</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="illustrations_title">Illustrasies</string>
     <string name="manga_title">Manga</string>
     <string name="pixiv_ranking_week_title">Weeklikse ranglys</string>
@@ -522,8 +522,8 @@
     <string name="status_insight_trace_agent_closing">Sluit ontleding...</string>
     <string name="ask_ai">Vra AI</string>
     <string name="antenna_title">Antennes</string>
-    <string name="settings_agent_history_title">Flare AI</string>
-    <string name="settings_agent_history_description">Bekyk plaaslike Flare AI-kletsgeskiedenis</string>
+    <string name="settings_agent_history_title">FlareDo AI</string>
+    <string name="settings_agent_history_description">Bekyk plaaslike FlareDo AI-kletsgeskiedenis</string>
     <string name="agent_history_empty">Nog geen AI-kletsgeskiedenis nie.</string>
     <string name="settings_ai_config_model">Model</string>
     <string name="settings_ai_config_reasoning_effort_medium">Medium</string>
@@ -603,7 +603,7 @@
     <string name="settings_link_open_defaults_title">Skakelopening</string>
     <string name="settings_link_open_defaults_description">Kies verstekke vir ondersteunde skakels volgens gasheer</string>
     <string name="settings_link_open_default_title">Verstek vir %1$s-skakels</string>
-    <string name="settings_link_open_default_description">Kies hoe ondersteunde skakels oopmaak wanneer Flare dit kan hanteer</string>
+    <string name="settings_link_open_default_description">Kies hoe ondersteunde skakels oopmaak wanneer FlareDo dit kan hanteer</string>
     <string name="settings_link_open_default_ask_every_time">Vra elke keer</string>
     <string name="media_download_started">Aflaai het begin</string>
     <string name="fanbox_supported_title">Ondersteun</string>

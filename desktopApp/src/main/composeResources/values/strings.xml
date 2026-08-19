@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
     <string name="delete">Delete</string>
@@ -34,8 +34,8 @@
     <string name="service_select_next_button">Next</string>
     <string name="service_select_empty_message">No instances found</string>
 
-    <string name="service_select_welcome_title">Welcome to Flare</string>
-    <string name="service_select_welcome_message">Flare is a social media client for %1$s.\nChoose a service to connect and get started.</string>
+    <string name="service_select_welcome_title">Welcome to FlareDo</string>
+    <string name="service_select_welcome_message">FlareDo is a social media client for %1$s.\nChoose a service to connect and get started.</string>
     <string name="mastodon_login_verify_message">Verifying your credentials…</string>
 
     <string name="profile_tab_timeline">Posts</string>
@@ -218,7 +218,7 @@
     <string name="settings_appearance_title">Appearance</string>
     <string name="settings_status_appearance_title">Post Appearance</string>
     <string name="settings_status_appearance_subtitle">Customize post appearance</string>
-    <string name="settings_appearance_subtitle">Customize the look and feel of Flare</string>
+    <string name="settings_appearance_subtitle">Customize the look and feel of FlareDo</string>
     <string name="settings_appearance_theme_group_title">Theme</string>
     <string name="settings_appearance_theme_group_subtitle">Colors, font size, and avatar shape</string>
     <string name="settings_appearance_layout_group_title">Layout</string>
@@ -228,7 +228,7 @@
     <string name="settings_behavior_title">Behavior</string>
     <string name="settings_behavior_description">Timeline refresh, browser, and link handling preferences</string>
     <string name="settings_refresh_home_timeline_on_launch">Refresh home timeline on launch</string>
-    <string name="settings_refresh_home_timeline_on_launch_description">Fetch new posts when Flare opens</string>
+    <string name="settings_refresh_home_timeline_on_launch_description">Fetch new posts when FlareDo opens</string>
     <string name="settings_home_timeline_auto_refresh_interval">Auto-refresh home timeline</string>
     <string name="settings_home_timeline_auto_refresh_interval_description">Refresh the currently selected timeline while the home screen is open</string>
     <string name="settings_auto_refresh_disabled">Off</string>
@@ -251,7 +251,7 @@
     <string name="settings_draft_box_description">View, edit, and resend saved drafts</string>
     <string name="settings_storage_subtitle">Manage cached files, logs, and backups</string>
     <string name="settings_about_title">About</string>
-    <string name="settings_about_subtitle">Learn more about Flare</string>
+    <string name="settings_about_subtitle">Learn more about FlareDo</string>
     <string name="settings_side_panel">Side Panel customization</string>
     <string name="settings_side_panel_description">Customize the side panel</string>
     <string name="settings_local_filter_title">Local Filters</string>
@@ -260,8 +260,8 @@
     <string name="settings_guest_setting_description">Choose which server guest mode connects to</string>
     <string name="settings_local_history_title">Local History</string>
     <string name="settings_local_history_description">Search posts and profiles cached on this device</string>
-    <string name="settings_agent_history_title">Flare AI</string>
-    <string name="settings_agent_history_description">View local Flare AI chat history</string>
+    <string name="settings_agent_history_title">FlareDo AI</string>
+    <string name="settings_agent_history_description">View local FlareDo AI chat history</string>
     <string name="agent_history_empty">No AI chat history yet.</string>
     <string name="settings_app_logging_title">App logs</string>
     <string name="settings_app_logging_save">Save logs</string>
@@ -275,7 +275,7 @@
     <string name="settings_ai_config_server_url_requirement">The URL must end with a trailing slash and support a compatible v1/chat/completions API.</string>
     <string name="settings_ai_config_server_self_host_description">Use the official service or your own compatible server</string>
     <string name="settings_ai_config_type">AI Type</string>
-    <string name="settings_ai_config_type_description">Choose which AI backend Flare uses</string>
+    <string name="settings_ai_config_type_description">Choose which AI backend FlareDo uses</string>
     <string name="settings_ai_config_type_on_device">On-device AI</string>
     <string name="settings_ai_config_type_openai">AI-compatible API</string>
     <string name="settings_ai_config_api_key">API Key</string>
@@ -389,7 +389,7 @@
     <string name="settings_appearance_full_width_post">Full-width posts</string>
     <string name="settings_appearance_full_width_post_description">Let posts span the full available width</string>
     <string name="settings_language_title">Language</string>
-    <string name="settings_language_description">Change Flare\'s app language</string>
+    <string name="settings_language_description">Change FlareDo\'s app language</string>
     <string name="settings_appearance_post_action_style">Post action style</string>
     <string name="settings_appearance_post_action_style_description">Choose how action buttons are laid out</string>
     <string name="settings_appearance_post_action_style_hidden">Hidden</string>
@@ -439,7 +439,7 @@
     <string name="settings_about_discord" translatable="false">Discord</string>
     <string name="settings_about_discord_description">Join our Discord server</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">Help us translate Flare</string>
+    <string name="settings_about_localization_description">Help us translate FlareDo</string>
     <string name="settings_privacy_policy">Privacy Policy</string>
 
     <string name="users">Users</string>
@@ -600,7 +600,7 @@
     <string name="settings_link_open_defaults_title">Link opening</string>
     <string name="settings_link_open_defaults_description">Choose defaults for supported links by host</string>
     <string name="settings_link_open_default_title">Default for %1$s links</string>
-    <string name="settings_link_open_default_description">Choose how supported links open when Flare can handle them</string>
+    <string name="settings_link_open_default_description">Choose how supported links open when FlareDo can handle them</string>
     <string name="settings_link_open_default_ask_every_time">Ask every time</string>
 
     <string name="block_user_title">Block user</string>

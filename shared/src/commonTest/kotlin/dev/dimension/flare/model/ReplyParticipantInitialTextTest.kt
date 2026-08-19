@@ -58,11 +58,11 @@ class ReplyParticipantInitialTextTest {
                     text(
                         """
                         <span>
-                          <a href="flare://ProfileWithNameAndHost/friend/example.com?accountKey=author@example.com">$mentionedHandle</a>
-                          <a href="flare://ProfileWithNameAndHost/me/example.com?accountKey=author@example.com">@me@example.com</a>
-                          <a href="flare://ProfileWithNameAndHost/friend/example.com?accountKey=author@example.com">$mentionedHandle</a>
+                          <a href="flaredo://ProfileWithNameAndHost/friend/example.com?accountKey=author@example.com">$mentionedHandle</a>
+                          <a href="flaredo://ProfileWithNameAndHost/me/example.com?accountKey=author@example.com">@me@example.com</a>
+                          <a href="flaredo://ProfileWithNameAndHost/friend/example.com?accountKey=author@example.com">$mentionedHandle</a>
                           <a href="https://example.com/profile">@external@example.com</a>
-                          <a href="flare://ProfileWithNameAndHost/author/example.com?accountKey=author@example.com">${authorHandle.canonical}</a>
+                          <a href="flaredo://ProfileWithNameAndHost/author/example.com?accountKey=author@example.com">${authorHandle.canonical}</a>
                         </span>
                         """.trimIndent(),
                     ),

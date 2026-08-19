@@ -29,8 +29,8 @@
     <string name="service_select_instance_input_placeholder">URL instance</string>
     <string name="service_select_next_button">Dalje</string>
     <string name="service_select_empty_message">Nijedna instanca nije pronađena</string>
-    <string name="service_select_welcome_title">Dobrodošli u Flare</string>
-    <string name="service_select_welcome_message">Flare je klijent za društvene mreže za %1$s.\nIzaberite servis da biste se povezali i počeli.</string>
+    <string name="service_select_welcome_title">Dobrodošli u FlareDo</string>
+    <string name="service_select_welcome_message">FlareDo je klijent za društvene mreže za %1$s.\nIzaberite servis da biste se povezali i počeli.</string>
     <string name="mastodon_login_verify_message">Provera akreditiva…</string>
     <string name="profile_tab_timeline">Objave</string>
     <string name="profile_tab_timeline_with_reply">Objave i odgovori</string>
@@ -136,7 +136,7 @@
     <string name="settings_appearance_title">Izgled</string>
     <string name="settings_status_appearance_title">Izgled objave</string>
     <string name="settings_status_appearance_subtitle">Prilagodite izgled objave</string>
-    <string name="settings_appearance_subtitle">Prilagodite izgled i osećaj Flare-a</string>
+    <string name="settings_appearance_subtitle">Prilagodite izgled i osećaj FlareDo-a</string>
     <string name="settings_appearance_theme_group_title">Tema</string>
     <string name="settings_appearance_theme_group_subtitle">Boje, veličina fonta i oblik avatara</string>
     <string name="settings_appearance_layout_group_title">Raspored</string>
@@ -150,7 +150,7 @@
     <string name="settings_draft_box_description">Pregledajte, izmenite i ponovo pošaljite sačuvane nacrte</string>
     <string name="settings_storage_subtitle">Upravljajte keširanim datotekama, dnevnicima i rezervnim kopijama</string>
     <string name="settings_about_title">O aplikaciji</string>
-    <string name="settings_about_subtitle">Saznajte više o Flare-u</string>
+    <string name="settings_about_subtitle">Saznajte više o FlareDo-u</string>
     <string name="settings_side_panel">Prilagođavanje bočnog panela</string>
     <string name="settings_side_panel_description">Prilagodite bočni panel</string>
     <string name="settings_local_filter_title">Lokalni filteri</string>
@@ -170,7 +170,7 @@
     <string name="settings_ai_config_server_url_requirement">URL mora da se završava kosom crtom i da podržava kompatibilan v1/chat/completions API.</string>
     <string name="settings_ai_config_server_self_host_description">Koristite zvanični servis ili sopstveni kompatibilni server</string>
     <string name="settings_ai_config_type">Tip AI</string>
-    <string name="settings_ai_config_type_description">Izaberite koji AI pozadinski sistem Flare koristi</string>
+    <string name="settings_ai_config_type_description">Izaberite koji AI pozadinski sistem FlareDo koristi</string>
     <string name="settings_ai_config_type_on_device">AI na uređaju</string>
     <string name="settings_ai_config_type_openai">API компатибилан са ВИ</string>
     <string name="settings_ai_config_api_key">API ključ</string>
@@ -264,7 +264,7 @@
     <string name="settings_appearance_full_width_post">Objave pune širine</string>
     <string name="settings_appearance_full_width_post_description">Neka se objave protežu celom dostupnom širinom</string>
     <string name="settings_language_title">Jezik</string>
-    <string name="settings_language_description">Promenite jezik aplikacije Flare</string>
+    <string name="settings_language_description">Promenite jezik aplikacije FlareDo</string>
     <string name="settings_appearance_post_action_style">Stil akcija objave</string>
     <string name="settings_appearance_post_action_style_description">Izaberite kako su raspoređena dugmad za akciju</string>
     <string name="settings_appearance_post_action_style_hidden">Skriveno</string>
@@ -309,7 +309,7 @@
     <string name="settings_about_telegram_description">Pridružite se našoj Telegram grupi</string>
     <string name="settings_about_discord_description">Pridružite se našem Discord serveru</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">Pomozite nam da prevedemo Flare</string>
+    <string name="settings_about_localization_description">Pomozite nam da prevedemo FlareDo</string>
     <string name="settings_privacy_policy">Politika privatnosti</string>
     <string name="users">Korisnici</string>
     <string name="hashtags">Heštegovi</string>
@@ -472,7 +472,7 @@
     <string name="misskey_channel_tab_featured">Istaknuto</string>
     <string name="media_save_success">Sačuvano u Preuzimanja</string>
     <string name="media_save_fail">Čuvanje nije uspelo</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="illustrations_title">Илустрације</string>
     <string name="manga_title">Манга</string>
     <string name="pixiv_ranking_week_title">Недељна ранг-листа</string>
@@ -525,8 +525,8 @@
     <string name="status_insight_trace_agent_failed">Анализа није успела</string>
     <string name="status_insight_trace_agent_closing">Затварање анализе...</string>
     <string name="ask_ai">Питај AI</string>
-    <string name="settings_agent_history_title">Flare AI</string>
-    <string name="settings_agent_history_description">Погледај локалну историју Flare AI ћаскања</string>
+    <string name="settings_agent_history_title">FlareDo AI</string>
+    <string name="settings_agent_history_description">Погледај локалну историју FlareDo AI ћаскања</string>
     <string name="agent_history_empty">Још увек нема историје AI ћаскања.</string>
     <string name="settings_ai_config_title">ВИ</string>
     <string name="settings_ai_config_model">Модел</string>
@@ -604,7 +604,7 @@
     <string name="settings_link_open_defaults_title">Отварање веза</string>
     <string name="settings_link_open_defaults_description">Изаберите подразумевано за подржане везе по хосту</string>
     <string name="settings_link_open_default_title">Подразумевано за %1$s везе</string>
-    <string name="settings_link_open_default_description">Изаберите како се подржане везе отварају када Flare може да их обради</string>
+    <string name="settings_link_open_default_description">Изаберите како се подржане везе отварају када FlareDo може да их обради</string>
     <string name="settings_link_open_default_ask_every_time">Питај сваки пут</string>
     <string name="media_download_started">Преузимање је започето</string>
     <string name="fanbox_supported_title">Подржавам</string>

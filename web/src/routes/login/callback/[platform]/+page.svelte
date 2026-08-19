@@ -39,7 +39,7 @@
 </script>
 
 <svelte:head>
-    <title>{m.loginCallbackTitle()} | Flare</title>
+    <title>{m.loginCallbackTitle()} | FlareDo</title>
 </svelte:head>
 
 <div class="callback-page bg-base-200">

@@ -27,8 +27,8 @@
     <string name="service_select_instance_input_placeholder">URL máy chủ</string>
     <string name="service_select_next_button">Tiếp theo</string>
     <string name="service_select_empty_message">Không tìm thấy máy chủ nào</string>
-    <string name="service_select_welcome_title">Chào mừng bạn đến với Flare</string>
-    <string name="service_select_welcome_message">Flare là một ứng dụng khách mạng xã hội cho %1$s.\nChọn một dịch vụ để kết nối và bắt đầu.</string>
+    <string name="service_select_welcome_title">Chào mừng bạn đến với FlareDo</string>
+    <string name="service_select_welcome_message">FlareDo là một ứng dụng khách mạng xã hội cho %1$s.\nChọn một dịch vụ để kết nối và bắt đầu.</string>
     <string name="mastodon_login_verify_message">Đang xác minh thông tin đăng nhập của bạn…</string>
     <string name="profile_tab_timeline">Bài đăng</string>
     <string name="profile_tab_timeline_with_reply">Bài đăng và phản hồi</string>
@@ -134,7 +134,7 @@
     <string name="settings_appearance_title">Giao diện</string>
     <string name="settings_status_appearance_title">Giao diện bài đăng</string>
     <string name="settings_status_appearance_subtitle">Tùy chỉnh giao diện bài đăng</string>
-    <string name="settings_appearance_subtitle">Tùy chỉnh giao diện của Flare</string>
+    <string name="settings_appearance_subtitle">Tùy chỉnh giao diện của FlareDo</string>
     <string name="settings_appearance_theme_group_title">Chủ đề</string>
     <string name="settings_appearance_theme_group_subtitle">Màu sắc, kích thước phông chữ và hình dạng ảnh đại diện</string>
     <string name="settings_appearance_layout_group_title">Bố cục</string>
@@ -148,7 +148,7 @@
     <string name="settings_draft_box_description">Xem, chỉnh sửa và gửi lại các bản nháp đã lưu</string>
     <string name="settings_storage_subtitle">Quản lý các tệp đã lưu trong bộ nhớ cache, nhật ký và bản sao lưu</string>
     <string name="settings_about_title">Giới thiệu</string>
-    <string name="settings_about_subtitle">Tìm hiểu thêm về Flare</string>
+    <string name="settings_about_subtitle">Tìm hiểu thêm về FlareDo</string>
     <string name="settings_side_panel">Tùy chỉnh bảng điều khiển bên</string>
     <string name="settings_side_panel_description">Tùy chỉnh bảng điều khiển bên</string>
     <string name="settings_local_filter_title">Bộ lọc địa phương</string>
@@ -168,7 +168,7 @@
     <string name="settings_ai_config_server_url_requirement">URL phải kết thúc bằng dấu gạch chéo và hỗ trợ API v1/chat/completions tương thích.</string>
     <string name="settings_ai_config_server_self_host_description">Sử dụng dịch vụ chính thức hoặc máy chủ tương thích của riêng bạn</string>
     <string name="settings_ai_config_type">Loại AI</string>
-    <string name="settings_ai_config_type_description">Chọn phần phụ trợ AI mà Flare sử dụng</string>
+    <string name="settings_ai_config_type_description">Chọn phần phụ trợ AI mà FlareDo sử dụng</string>
     <string name="settings_ai_config_type_on_device">AI trên thiết bị</string>
     <string name="settings_ai_config_type_openai">API tương thích AI</string>
     <string name="settings_ai_config_api_key">Khóa API</string>
@@ -262,7 +262,7 @@
     <string name="settings_appearance_full_width_post">Bài đăng toàn chiều rộng</string>
     <string name="settings_appearance_full_width_post_description">Để bài đăng trải rộng toàn bộ chiều rộng hiện có</string>
     <string name="settings_language_title">Ngôn ngữ</string>
-    <string name="settings_language_description">Thay đổi ngôn ngữ của ứng dụng Flare</string>
+    <string name="settings_language_description">Thay đổi ngôn ngữ của ứng dụng FlareDo</string>
     <string name="settings_appearance_post_action_style">Kiểu hành động bài đăng</string>
     <string name="settings_appearance_post_action_style_description">Chọn cách bố trí các nút hành động</string>
     <string name="settings_appearance_post_action_style_hidden">Ẩn</string>
@@ -307,7 +307,7 @@
     <string name="settings_about_telegram_description">Tham gia nhóm Telegram của chúng tôi</string>
     <string name="settings_about_discord_description">Tham gia máy chủ Discord của chúng tôi</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">Giúp chúng tôi dịch Flare</string>
+    <string name="settings_about_localization_description">Giúp chúng tôi dịch FlareDo</string>
     <string name="settings_privacy_policy">Chính sách bảo mật</string>
     <string name="users">Người dùng</string>
     <string name="hashtags">Hashtag</string>
@@ -470,7 +470,7 @@
     <string name="misskey_channel_tab_featured">Nổi bật</string>
     <string name="media_save_success">Đã lưu vào thư mục Tải xuống</string>
     <string name="media_save_fail">Lưu thất bại</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="illustrations_title">Minh họa</string>
     <string name="manga_title">Manga</string>
     <string name="pixiv_ranking_week_title">Xếp hạng tuần</string>
@@ -523,8 +523,8 @@
     <string name="status_insight_trace_agent_failed">Phân tích thất bại</string>
     <string name="status_insight_trace_agent_closing">Đang đóng phân tích...</string>
     <string name="ask_ai">Hỏi AI</string>
-    <string name="settings_agent_history_title">Flare AI</string>
-    <string name="settings_agent_history_description">Xem lịch sử trò chuyện Flare AI cục bộ</string>
+    <string name="settings_agent_history_title">FlareDo AI</string>
+    <string name="settings_agent_history_description">Xem lịch sử trò chuyện FlareDo AI cục bộ</string>
     <string name="agent_history_empty">Chưa có lịch sử trò chuyện AI.</string>
     <string name="settings_ai_config_title">Trí tuệ nhân tạo (AI)</string>
     <string name="settings_ai_config_enable_agent">Bật AI Agent</string>
@@ -602,7 +602,7 @@
     <string name="settings_link_open_defaults_title">Mở liên kết</string>
     <string name="settings_link_open_defaults_description">Chọn mặc định cho liên kết được hỗ trợ theo máy chủ</string>
     <string name="settings_link_open_default_title">Mặc định cho liên kết %1$s</string>
-    <string name="settings_link_open_default_description">Chọn cách mở liên kết được hỗ trợ khi Flare có thể xử lý</string>
+    <string name="settings_link_open_default_description">Chọn cách mở liên kết được hỗ trợ khi FlareDo có thể xử lý</string>
     <string name="settings_link_open_default_ask_every_time">Luôn hỏi</string>
     <string name="media_download_started">Đã bắt đầu tải xuống</string>
     <string name="fanbox_supported_title">Đang hỗ trợ</string>

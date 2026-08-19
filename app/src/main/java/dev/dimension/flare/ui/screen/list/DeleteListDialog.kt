@@ -12,7 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.model.AccountType
 import dev.dimension.flare.ui.presenter.invoke
 import dev.dimension.flare.ui.presenter.list.DeleteListPresenter

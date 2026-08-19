@@ -76,7 +76,7 @@
     <string name="status_insight_trace_agent_closing">Afsluitende analyse…</string>
     <string name="ask_ai">Vraag AI</string>
     <string name="agent_chat_title">AI chat</string>
-    <string name="agent_history_title">Flare AI</string>
+    <string name="agent_history_title">FlareDo AI</string>
     <string name="agent_history_empty">Nog geen medewerker chatgeschiedenis.</string>
     <string name="agent_chat_send">Versturen</string>
     <string name="draft_box_title">Concepten</string>
@@ -89,7 +89,7 @@
     <string name="settings_accounts_title">Rekeningen</string>
     <string name="settings_accounts_subtitle">Beheer aangemelde accounts</string>
     <string name="settings_appearance_title">Uiterlijk</string>
-    <string name="settings_appearance_subtitle">Pas het uiterlijk van Flare aan</string>
+    <string name="settings_appearance_subtitle">Pas het uiterlijk van FlareDo aan</string>
     <string name="settings_appearance_theme_group_title">Thema</string>
     <string name="settings_appearance_theme_group_subtitle">Kleuren, lettergrootte en avatarvorm</string>
     <string name="settings_appearance_layout_group_title">Indeling</string>
@@ -101,7 +101,7 @@
     <string name="settings_storage_title">Opslag</string>
     <string name="settings_storage_subtitle">Beheer gecachte bestanden, logs en back-ups</string>
     <string name="settings_about_title">Over</string>
-    <string name="settings_about_subtitle">Leer meer over Flare</string>
+    <string name="settings_about_subtitle">Leer meer over FlareDo</string>
     <string name="settings_about_description">Een open-source, AI-gestuurde cliënt voor gedecentraliseerde sociale platforms.</string>
     <string name="settings_about_source_code">Broncode</string>
     <string name="settings_about_telegram">Telegram</string>
@@ -109,7 +109,7 @@
     <string name="settings_about_discord_description">Sluit je aan bij onze Discord-server</string>
     <string name="settings_about_line_description">Sluit je aan bij onze Line-groep</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">Help ons Flare te vertalen</string>
+    <string name="settings_about_localization_description">Help ons FlareDo te vertalen</string>
     <string name="settings_privacy_policy">Privacybeleid</string>
     <string name="settings_side_panel">Zijpaneel aanpassen</string>
     <string name="settings_side_panel_description">Pas het zijpaneel aan</string>
@@ -130,7 +130,7 @@
     <string name="settings_ai_config_server_url_requirement">De URL moet eindigen op een slash en een compatibele v1/chat/completions API ondersteunen.</string>
     <string name="settings_ai_config_server_self_host_description">Gebruik de officiële service of je eigen compatibele server</string>
     <string name="settings_ai_config_type">AI-type</string>
-    <string name="settings_ai_config_type_description">Kies welke AI-backend Flare gebruikt</string>
+    <string name="settings_ai_config_type_description">Kies welke AI-backend FlareDo gebruikt</string>
     <string name="settings_ai_config_type_select">Selecteren</string>
     <string name="settings_ai_config_type_on_device">AI op apparaat</string>
     <string name="settings_ai_config_type_on_device_description">Voer ondersteunde AI-modellen lokaal uit op dit apparaat</string>
@@ -186,7 +186,7 @@
     <string name="settings_translation_ai_test_original">Voorbeeldtekst</string>
     <string name="settings_translation_ai_test_result">Vertaalde tekst</string>
     <string name="settings_language_title">Taal</string>
-    <string name="settings_language_description">Wijzig de taal van de Flare-app</string>
+    <string name="settings_language_description">Wijzig de taal van de FlareDo-app</string>
     <string name="settings_rss_management_title">Abonnementsbeheer</string>
     <string name="settings_rss_management_description">Beheer abonnementen</string>
     <string name="settings_nostr_relays_manage">Nostr-relays</string>
@@ -198,8 +198,8 @@
     <string name="login_expired">Inlogsessie verlopen</string>
     <string name="login_expired_message">Tik om opnieuw in te loggen</string>
     <string name="login_expired_relogin">Opnieuw inloggen</string>
-    <string name="service_select_welcome_title">Welkom bij Flare</string>
-    <string name="service_select_welcome_message">Flare is een social media-client voor Android.\nKies een service om verbinding te maken en aan de slag te gaan.</string>
+    <string name="service_select_welcome_title">Welkom bij FlareDo</string>
+    <string name="service_select_welcome_message">FlareDo is een social media-client voor Android.\nKies een service om verbinding te maken en aan de slag te gaan.</string>
     <string name="mastodon_login_verify_message">Inloggegevens verifiëren…</string>
     <string name="status_title">Bericht</string>
     <string name="misskey_visibility_public">Openbaar</string>
@@ -337,7 +337,7 @@
     <string name="settings_appearance_deck_mode">Deck-modus</string>
     <string name="settings_appearance_deck_mode_description">Gebruik een deck-indeling voor ondersteunde tijdlijnen</string>
     <string name="settings_appearance_in_app_browser">In-app browser</string>
-    <string name="settings_appearance_in_app_browser_description">Open externe links binnen Flare</string>
+    <string name="settings_appearance_in_app_browser_description">Open externe links binnen FlareDo</string>
     <string name="settings_appearance_full_width_post">Berichten over volledige breedte</string>
     <string name="settings_appearance_full_width_post_description">Laat berichten de volledige beschikbare breedte beslaan</string>
     <string name="settings_appearance_absolute_timestamp">Absoluut tijdstempel</string>
@@ -573,7 +573,7 @@
     <string name="channel_item_unfollow">Ontvolgen</string>
     <string name="channel_item_favourite">Favoriet</string>
     <string name="channel_item_unfavourite">Favoriet verwijderen</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="profile_insight_title">Profielinzicht</string>
     <string name="profile_insight_analyzing">Dit profiel analyseren…</string>
     <string name="profile_insight_error">Kan dit profiel niet analyseren.</string>
@@ -671,7 +671,7 @@
     <string name="settings_link_open_defaults_title">Links openen</string>
     <string name="settings_link_open_defaults_description">Kies standaardinstellingen voor ondersteunde links per host</string>
     <string name="settings_link_open_default_title">Standaard voor %1$s-links</string>
-    <string name="settings_link_open_default_description">Kies hoe ondersteunde links worden geopend wanneer Flare ze kan verwerken</string>
+    <string name="settings_link_open_default_description">Kies hoe ondersteunde links worden geopend wanneer FlareDo ze kan verwerken</string>
     <string name="settings_link_open_default_ask_every_time">Elke keer vragen</string>
     <string name="fanbox_supported_title">Ondersteund</string>
     <string name="fanbox_recommended_creators_title">Aanbevolen makers</string>

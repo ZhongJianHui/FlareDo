@@ -107,7 +107,7 @@
 </script>
 
 <svelte:head>
-    <title>{m.loginButton()} | Flare</title>
+    <title>{m.loginButton()} | FlareDo</title>
 </svelte:head>
 
 <div class="login-page bg-base-200">

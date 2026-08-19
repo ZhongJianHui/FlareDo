@@ -95,7 +95,7 @@ public final class PlatformTextStyleDescriptor: NSObject {
 }
 
 public extension NSAttributedString.Key {
-    static let platformTextStyleDescriptor = NSAttributedString.Key("dev.dimension.flare.platformTextStyleDescriptor")
+    static let platformTextStyleDescriptor = NSAttributedString.Key("io.github.zhongjianhui.flaredo.platformTextStyleDescriptor")
 }
 
 public final class PlatformTextImageRun: PlatformTextRun {

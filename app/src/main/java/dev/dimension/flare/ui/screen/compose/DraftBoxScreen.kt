@@ -41,7 +41,7 @@ import compose.icons.fontawesomeicons.solid.Trash
 import compose.icons.fontawesomeicons.solid.TriangleExclamation
 import compose.icons.fontawesomeicons.solid.Upload
 import compose.icons.fontawesomeicons.solid.Video
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.ui.component.AvatarComponent
 import dev.dimension.flare.ui.component.BackButton
 import dev.dimension.flare.ui.component.DateTimeText

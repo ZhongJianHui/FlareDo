@@ -28,8 +28,8 @@
     <string name="service_select_instance_input_placeholder">Sunucu (Instance) URL\'si</string>
     <string name="service_select_next_button">İleri</string>
     <string name="service_select_empty_message">Hiçbir sunucu bulunamadı</string>
-    <string name="service_select_welcome_title">Flare\'e Hoş Geldiniz</string>
-    <string name="service_select_welcome_message">Flare, %1$s için bir sosyal medya istemcisidir.\nBağlanmak ve başlamak için bir hizmet seçin.</string>
+    <string name="service_select_welcome_title">FlareDo\'e Hoş Geldiniz</string>
+    <string name="service_select_welcome_message">FlareDo, %1$s için bir sosyal medya istemcisidir.\nBağlanmak ve başlamak için bir hizmet seçin.</string>
     <string name="mastodon_login_verify_message">Kimlik bilgileriniz doğrulanıyor…</string>
     <string name="profile_tab_timeline">Gönderiler</string>
     <string name="profile_tab_timeline_with_reply">Gönderiler ve yanıtlar</string>
@@ -135,7 +135,7 @@
     <string name="settings_appearance_title">Görünüm</string>
     <string name="settings_status_appearance_title">Gönderi Görünümü</string>
     <string name="settings_status_appearance_subtitle">Gönderi görünümünü özelleştirin</string>
-    <string name="settings_appearance_subtitle">Flare\'in görünümünü ve hissini özelleştirin</string>
+    <string name="settings_appearance_subtitle">FlareDo\'in görünümünü ve hissini özelleştirin</string>
     <string name="settings_appearance_theme_group_title">Tema</string>
     <string name="settings_appearance_theme_group_subtitle">Renkler, yazı tipi boyutu ve avatar şekli</string>
     <string name="settings_appearance_layout_group_title">Düzen</string>
@@ -149,7 +149,7 @@
     <string name="settings_draft_box_description">Kaydedilen taslakları görüntüleyin, düzenleyin ve yeniden gönderin</string>
     <string name="settings_storage_subtitle">Önbelleğe alınmış dosyaları, günlükleri ve yedekleri yönetin</string>
     <string name="settings_about_title">Hakkında</string>
-    <string name="settings_about_subtitle">Flare hakkında daha fazla bilgi edinin</string>
+    <string name="settings_about_subtitle">FlareDo hakkında daha fazla bilgi edinin</string>
     <string name="settings_side_panel">Yan Panel özelleştirme</string>
     <string name="settings_side_panel_description">Yan paneli özelleştirin</string>
     <string name="settings_local_filter_title">Yerel Filtreler</string>
@@ -169,7 +169,7 @@
     <string name="settings_ai_config_server_url_requirement">URL bir eğik çizgi ile bitmeli ve uyumlu bir v1/chat/completions API\'sini desteklemelidir.</string>
     <string name="settings_ai_config_server_self_host_description">Resmi hizmeti veya kendi uyumlu sunucunuzu kullanın</string>
     <string name="settings_ai_config_type">AI Türü</string>
-    <string name="settings_ai_config_type_description">Flare\'in hangi AI altyapısını kullanacağını seçin</string>
+    <string name="settings_ai_config_type_description">FlareDo\'in hangi AI altyapısını kullanacağını seçin</string>
     <string name="settings_ai_config_type_on_device">Cihaz üzerindeki AI</string>
     <string name="settings_ai_config_type_openai">YZ uyumlu API</string>
     <string name="settings_ai_config_api_key">API Anahtarı</string>
@@ -264,7 +264,7 @@
     <string name="settings_appearance_full_width_post">Tam genişlikte gönderiler</string>
     <string name="settings_appearance_full_width_post_description">Gönderilerin mevcut tüm genişliği kaplamasına izin ver</string>
     <string name="settings_language_title">Dil</string>
-    <string name="settings_language_description">Flare\'in uygulama dilini değiştirin</string>
+    <string name="settings_language_description">FlareDo\'in uygulama dilini değiştirin</string>
     <string name="settings_appearance_post_action_style">Gönderi eylem stili</string>
     <string name="settings_appearance_post_action_style_description">Eylem düğmelerinin nasıl düzenleneceğini seçin</string>
     <string name="settings_appearance_post_action_style_hidden">Gizli</string>
@@ -309,7 +309,7 @@
     <string name="settings_about_telegram_description">Telegram grubumuza katılın</string>
     <string name="settings_about_discord_description">Discord sunucumuza katılın</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">Flare\'i çevirmemize yardımcı olun</string>
+    <string name="settings_about_localization_description">FlareDo\'i çevirmemize yardımcı olun</string>
     <string name="settings_privacy_policy">Gizlilik Politikası</string>
     <string name="users">Kullanıcılar</string>
     <string name="hashtags">Etiketler</string>
@@ -472,7 +472,7 @@
     <string name="misskey_channel_tab_featured">Öne Çıkanlar</string>
     <string name="media_save_success">İndirilenler\'e kaydedildi</string>
     <string name="media_save_fail">Kaydetme başarısız oldu</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="illustrations_title">İllüstrasyonlar</string>
     <string name="manga_title">Manga</string>
     <string name="pixiv_ranking_week_title">Haftalık sıralama</string>
@@ -525,8 +525,8 @@
     <string name="status_insight_trace_agent_failed">Analiz başarısız</string>
     <string name="status_insight_trace_agent_closing">Analiz kapatılıyor...</string>
     <string name="ask_ai">AI’ye sor</string>
-    <string name="settings_agent_history_title">Flare AI</string>
-    <string name="settings_agent_history_description">Yerel Flare AI sohbet geçmişini görüntüle</string>
+    <string name="settings_agent_history_title">FlareDo AI</string>
+    <string name="settings_agent_history_description">Yerel FlareDo AI sohbet geçmişini görüntüle</string>
     <string name="agent_history_empty">Henüz AI sohbet geçmişi yok.</string>
     <string name="settings_ai_config_title">Yapay Zeka (AI)</string>
     <string name="settings_ai_config_enable_agent">AI Agent’ı etkinleştir</string>
@@ -603,7 +603,7 @@
     <string name="settings_link_open_defaults_title">Bağlantı açma</string>
     <string name="settings_link_open_defaults_description">Desteklenen bağlantılar için ana makineye göre varsayılanları seçin</string>
     <string name="settings_link_open_default_title">%1$s bağlantıları için varsayılan</string>
-    <string name="settings_link_open_default_description">Flare işleyebildiğinde desteklenen bağlantıların nasıl açılacağını seçin</string>
+    <string name="settings_link_open_default_description">FlareDo işleyebildiğinde desteklenen bağlantıların nasıl açılacağını seçin</string>
     <string name="settings_link_open_default_ask_every_time">Her seferinde sor</string>
     <string name="media_download_started">İndirme başladı</string>
     <string name="fanbox_supported_title">Destekleniyor</string>

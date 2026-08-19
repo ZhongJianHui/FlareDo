@@ -27,8 +27,8 @@
     <string name="service_select_instance_input_placeholder">인스턴스 URL</string>
     <string name="service_select_next_button">다음</string>
     <string name="service_select_empty_message">인스턴스가 없습니다</string>
-    <string name="service_select_welcome_title">Flare에 오신 것을 환영합니다</string>
-    <string name="service_select_welcome_message">Flare는 %1$s의 소셜 네트워크 클라이언트입니다.\n시작하려면 연결할 서비스를 선택하세요.</string>
+    <string name="service_select_welcome_title">FlareDo에 오신 것을 환영합니다</string>
+    <string name="service_select_welcome_message">FlareDo는 %1$s의 소셜 네트워크 클라이언트입니다.\n시작하려면 연결할 서비스를 선택하세요.</string>
     <string name="mastodon_login_verify_message">귀하의 자격 증명을 확인하는 동안 잠시 기다려 주세요.</string>
     <string name="profile_tab_timeline">게시물</string>
     <string name="profile_tab_timeline_with_reply">게시물 및 회신</string>
@@ -134,7 +134,7 @@
     <string name="settings_appearance_title">모양</string>
     <string name="settings_status_appearance_title">게시물 모양</string>
     <string name="settings_status_appearance_subtitle">게시물 모양 사용자 정의</string>
-    <string name="settings_appearance_subtitle">Flare의 모양과 느낌 사용자 정의</string>
+    <string name="settings_appearance_subtitle">FlareDo의 모양과 느낌 사용자 정의</string>
     <string name="settings_appearance_theme_group_title">테마</string>
     <string name="settings_appearance_theme_group_subtitle">색상, 글꼴 크기 및 아바타 모양</string>
     <string name="settings_appearance_layout_group_title">레이아웃</string>
@@ -146,9 +146,9 @@
     <string name="settings_storage_title">저장소</string>
     <string name="settings_draft_box_title">초안함</string>
     <string name="settings_draft_box_description">저장된 초안 보기, 편집 및 재전송</string>
-    <string name="settings_storage_subtitle">Flare의 저장소 관리</string>
+    <string name="settings_storage_subtitle">FlareDo의 저장소 관리</string>
     <string name="settings_about_title">정보</string>
-    <string name="settings_about_subtitle">Flare에 대해 더 알아보기</string>
+    <string name="settings_about_subtitle">FlareDo에 대해 더 알아보기</string>
     <string name="settings_side_panel">사이드 패널 사용자 정의</string>
     <string name="settings_side_panel_description">사이드 패널을 사용자 정의합니다</string>
     <string name="settings_local_filter_title">로컬 필터</string>
@@ -169,7 +169,7 @@
     <string name="settings_ai_config_server_url_requirement">URL은 후행 슬래시(/)로 끝나야 하며 호환되는 v1/chat/completions API를 지원해야 합니다.</string>
     <string name="settings_ai_config_server_self_host_description">공식 서버를 사용하거나 자체 서버를 호스팅할 수 있습니다</string>
     <string name="settings_ai_config_type">AI 유형</string>
-    <string name="settings_ai_config_type_description">Flare가 사용할 AI 백엔드 선택</string>
+    <string name="settings_ai_config_type_description">FlareDo가 사용할 AI 백엔드 선택</string>
     <string name="settings_ai_config_type_on_device">온디바이스 AI</string>
     <string name="settings_ai_config_type_openai">AI 호환 API</string>
     <string name="settings_ai_config_api_key">API 키</string>
@@ -264,7 +264,7 @@
     <string name="settings_appearance_full_width_post">전체 너비 게시물</string>
     <string name="settings_appearance_full_width_post_description">게시물이 사용 가능한 전체 너비를 차지하도록 허용</string>
     <string name="settings_language_title">언어</string>
-    <string name="settings_language_description">Flare 앱 언어 변경</string>
+    <string name="settings_language_description">FlareDo 앱 언어 변경</string>
     <string name="settings_appearance_post_action_style">게시물 동작 스타일</string>
     <string name="settings_appearance_post_action_style_description">동작 버튼 배치 방식 선택</string>
     <string name="settings_appearance_post_action_style_hidden">숨김</string>
@@ -309,7 +309,7 @@
     <string name="settings_about_telegram_description">우리의 텔레그램 그룹에 참여하세요</string>
     <string name="settings_about_discord_description">저희 Discord 서버에 참여하세요</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">Flare 번역에 도움을 주세요</string>
+    <string name="settings_about_localization_description">FlareDo 번역에 도움을 주세요</string>
     <string name="settings_privacy_policy">개인정보 처리방침</string>
     <string name="users">사용자</string>
     <string name="hashtags">해시태그</string>
@@ -472,7 +472,7 @@
     <string name="misskey_channel_tab_featured">추천</string>
     <string name="media_save_success">다운로드에 저장됨</string>
     <string name="media_save_fail">저장 실패</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="illustrations_title">일러스트</string>
     <string name="manga_title">만화</string>
     <string name="pixiv_ranking_week_title">주간 랭킹</string>
@@ -525,8 +525,8 @@
     <string name="status_insight_trace_agent_failed">분석 실패</string>
     <string name="status_insight_trace_agent_closing">분석 종료 중...</string>
     <string name="ask_ai">AI에게 묻기</string>
-    <string name="settings_agent_history_title">Flare AI</string>
-    <string name="settings_agent_history_description">로컬 Flare AI 채팅 기록 보기</string>
+    <string name="settings_agent_history_title">FlareDo AI</string>
+    <string name="settings_agent_history_description">로컬 FlareDo AI 채팅 기록 보기</string>
     <string name="agent_history_empty">아직 AI 채팅 기록이 없습니다.</string>
     <string name="settings_ai_config_enable_agent">AI Agent 활성화</string>
     <string name="settings_ai_config_agent_description">활성화하면 OpenAI 호환 모델이 설정된 경우 앱의 관련 위치에 AI Agent 기능이 표시됩니다.</string>
@@ -602,7 +602,7 @@
     <string name="settings_link_open_defaults_title">링크 열기</string>
     <string name="settings_link_open_defaults_description">호스트별 지원 링크 기본값 선택</string>
     <string name="settings_link_open_default_title">%1$s 링크 기본값</string>
-    <string name="settings_link_open_default_description">Flare가 처리할 수 있는 지원 링크를 여는 방법을 선택하세요</string>
+    <string name="settings_link_open_default_description">FlareDo가 처리할 수 있는 지원 링크를 여는 방법을 선택하세요</string>
     <string name="settings_link_open_default_ask_every_time">항상 묻기</string>
     <string name="media_download_started">다운로드를 시작했습니다</string>
     <string name="fanbox_supported_title">지원 중</string>

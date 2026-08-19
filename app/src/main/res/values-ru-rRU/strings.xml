@@ -80,7 +80,7 @@
     <string name="status_insight_trace_agent_closing">Закрытие анализа…</string>
     <string name="ask_ai">Спросить ИИ</string>
     <string name="agent_chat_title">AI Чат</string>
-    <string name="agent_history_title">Flare AI</string>
+    <string name="agent_history_title">FlareDo AI</string>
     <string name="agent_history_empty">Пока нет истории чата агента.</string>
     <string name="agent_chat_input_placeholder">Спросите что-нибудь…</string>
     <string name="agent_chat_send">Отправить</string>
@@ -95,7 +95,7 @@
     <string name="settings_accounts_title">Аккаунты</string>
     <string name="settings_accounts_subtitle">Управление вошедшими аккаунтами</string>
     <string name="settings_appearance_title">Внешний вид</string>
-    <string name="settings_appearance_subtitle">Настройка оформления Flare</string>
+    <string name="settings_appearance_subtitle">Настройка оформления FlareDo</string>
     <string name="settings_appearance_theme_group_title">Тема</string>
     <string name="settings_appearance_theme_group_subtitle">Цвета, размер шрифта и форма аватара</string>
     <string name="settings_appearance_layout_group_title">Макет</string>
@@ -107,7 +107,7 @@
     <string name="settings_storage_title">Хранилище</string>
     <string name="settings_storage_subtitle">Управление кешем, логами и резервными копиями</string>
     <string name="settings_about_title">О приложении</string>
-    <string name="settings_about_subtitle">Узнать больше о Flare</string>
+    <string name="settings_about_subtitle">Узнать больше о FlareDo</string>
     <string name="settings_about_description">Клиент для децентрализованных соцсетей с открытым исходным кодом и функциями ИИ.</string>
     <string name="settings_about_source_code">Исходный код</string>
     <string name="settings_about_telegram">Телеграмма</string>
@@ -115,7 +115,7 @@
     <string name="settings_about_discord_description">Присоединиться к нашему серверу Discord</string>
     <string name="settings_about_line_description">Вступить в нашу группу в Line</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">Помочь с переводом Flare</string>
+    <string name="settings_about_localization_description">Помочь с переводом FlareDo</string>
     <string name="settings_privacy_policy">Политика конфиденциальности</string>
     <string name="settings_side_panel">Настройка боковой панели</string>
     <string name="settings_side_panel_description">Настроить боковую панель</string>
@@ -136,7 +136,7 @@
     <string name="settings_ai_config_server_url_requirement">URL должен заканчиваться слешем и поддерживать совместимый API v1/chat/completions.</string>
     <string name="settings_ai_config_server_self_host_description">Используйте официальный сервис или свой совместимый сервер</string>
     <string name="settings_ai_config_type">Тип ИИ</string>
-    <string name="settings_ai_config_type_description">Выберите, какой ИИ-движок использует Flare</string>
+    <string name="settings_ai_config_type_description">Выберите, какой ИИ-движок использует FlareDo</string>
     <string name="settings_ai_config_type_select">Выбрать</string>
     <string name="settings_ai_config_type_on_device">ИИ на устройстве</string>
     <string name="settings_ai_config_type_on_device_description">Запуск поддерживаемых моделей ИИ локально на этом устройстве</string>
@@ -192,7 +192,7 @@
     <string name="settings_translation_ai_test_original">Образец текста</string>
     <string name="settings_translation_ai_test_result">Переведенный текст</string>
     <string name="settings_language_title">Язык</string>
-    <string name="settings_language_description">Изменить язык приложения Flare</string>
+    <string name="settings_language_description">Изменить язык приложения FlareDo</string>
     <string name="settings_rss_management_title">Управление подписками</string>
     <string name="settings_rss_management_description">Управление подписками</string>
     <string name="settings_nostr_relays_manage">Реле Nostr</string>
@@ -204,8 +204,8 @@
     <string name="login_expired">Сессия истекла</string>
     <string name="login_expired_message">Нажмите, чтобы войти снова</string>
     <string name="login_expired_relogin">Войти снова</string>
-    <string name="service_select_welcome_title">Добро пожаловать во Flare</string>
-    <string name="service_select_welcome_message">Flare — клиент для социальных сетей для Android.\nВыберите сервис для подключения, чтобы начать.</string>
+    <string name="service_select_welcome_title">Добро пожаловать во FlareDo</string>
+    <string name="service_select_welcome_message">FlareDo — клиент для социальных сетей для Android.\nВыберите сервис для подключения, чтобы начать.</string>
     <string name="mastodon_login_verify_message">Проверка учетных данных…</string>
     <string name="status_title">Пост</string>
     <string name="misskey_visibility_public">Публичный</string>
@@ -343,7 +343,7 @@
     <string name="settings_appearance_deck_mode">Режим колод</string>
     <string name="settings_appearance_deck_mode_description">Использовать многоколонный макет для поддерживаемых лент</string>
     <string name="settings_appearance_in_app_browser">Встроенный браузер</string>
-    <string name="settings_appearance_in_app_browser_description">Открывать внешние ссылки внутри Flare</string>
+    <string name="settings_appearance_in_app_browser_description">Открывать внешние ссылки внутри FlareDo</string>
     <string name="settings_appearance_full_width_post">Посты во всю ширину</string>
     <string name="settings_appearance_full_width_post_description">Позволить постам занимать всю доступную ширину</string>
     <string name="settings_appearance_absolute_timestamp">Абсолютное время</string>
@@ -579,7 +579,7 @@
     <string name="channel_item_unfollow">Отписаться</string>
     <string name="channel_item_favourite">В избранное</string>
     <string name="channel_item_unfavourite">Из избранного</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="profile_insight_title">Анализ профиля</string>
     <string name="profile_insight_analyzing">Анализ профиля…</string>
     <string name="profile_insight_error">Не удалось проанализировать этот профиль.</string>
@@ -673,7 +673,7 @@
     <string name="settings_link_open_defaults_title">Открытие ссылок</string>
     <string name="settings_link_open_defaults_description">Выберите значения по умолчанию для поддерживаемых ссылок по хосту</string>
     <string name="settings_link_open_default_title">По умолчанию для ссылок %1$s</string>
-    <string name="settings_link_open_default_description">Выберите, как открывать поддерживаемые ссылки, когда Flare может их обработать</string>
+    <string name="settings_link_open_default_description">Выберите, как открывать поддерживаемые ссылки, когда FlareDo может их обработать</string>
     <string name="settings_link_open_default_ask_every_time">Спрашивать каждый раз</string>
     <string name="fanbox_supported_title">Поддерживаю</string>
     <string name="fanbox_recommended_creators_title">Рекомендуемые авторы</string>

@@ -31,7 +31,7 @@
 </script>
 
 <svelte:head>
-	<title>{m.settingsAppLogsTitle()} | Flare</title>
+	<title>{m.settingsAppLogsTitle()} | FlareDo</title>
 </svelte:head>
 
 <div class="logs-page bg-base-200">

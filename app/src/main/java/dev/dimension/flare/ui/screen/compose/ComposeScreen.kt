@@ -92,7 +92,7 @@ import compose.icons.fontawesomeicons.solid.Plus
 import compose.icons.fontawesomeicons.solid.SquarePollHorizontal
 import compose.icons.fontawesomeicons.solid.TriangleExclamation
 import compose.icons.fontawesomeicons.solid.Xmark
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.common.FileItem
 import dev.dimension.flare.data.datasource.microblog.ComposeConfig
 import dev.dimension.flare.data.datasource.microblog.ComposeData

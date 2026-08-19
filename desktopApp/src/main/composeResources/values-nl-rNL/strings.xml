@@ -28,8 +28,8 @@
     <string name="service_select_instance_input_placeholder">Instantie-URL</string>
     <string name="service_select_next_button">Volgende</string>
     <string name="service_select_empty_message">Geen instanties gevonden</string>
-    <string name="service_select_welcome_title">Welkom bij Flare</string>
-    <string name="service_select_welcome_message">Flare is een sociale media client voor %1$s.\nKies een service om verbinding te maken en aan de slag te gaan.</string>
+    <string name="service_select_welcome_title">Welkom bij FlareDo</string>
+    <string name="service_select_welcome_message">FlareDo is een sociale media client voor %1$s.\nKies een service om verbinding te maken en aan de slag te gaan.</string>
     <string name="mastodon_login_verify_message">Je inloggegevens verifiëren…</string>
     <string name="profile_tab_timeline">Berichten</string>
     <string name="profile_tab_timeline_with_reply">Berichten en reacties</string>
@@ -177,7 +177,7 @@
     <string name="settings_appearance_title">Uiterlijk</string>
     <string name="settings_status_appearance_title">Uiterlijk bericht</string>
     <string name="settings_status_appearance_subtitle">Uiterlijk van berichten aanpassen</string>
-    <string name="settings_appearance_subtitle">Het uiterlijk van Flare aanpassen</string>
+    <string name="settings_appearance_subtitle">Het uiterlijk van FlareDo aanpassen</string>
     <string name="settings_appearance_theme_group_title">Thema</string>
     <string name="settings_appearance_theme_group_subtitle">Kleuren, lettergrootte en avatarvorm</string>
     <string name="settings_appearance_layout_group_title">Indeling</string>
@@ -191,7 +191,7 @@
     <string name="settings_draft_box_description">Bewaarde concepten bekijken, bewerken en opnieuw verzenden</string>
     <string name="settings_storage_subtitle">Gecachte bestanden, logs en back-ups beheren</string>
     <string name="settings_about_title">Over</string>
-    <string name="settings_about_subtitle">Meer informatie over Flare</string>
+    <string name="settings_about_subtitle">Meer informatie over FlareDo</string>
     <string name="settings_side_panel">Zijpaneel aanpassen</string>
     <string name="settings_side_panel_description">Het zijpaneel aanpassen</string>
     <string name="settings_local_filter_title">Lokale filters</string>
@@ -200,8 +200,8 @@
     <string name="settings_guest_setting_description">Kies met welke server de gastmodus verbinding maakt</string>
     <string name="settings_local_history_title">Lokale geschiedenis</string>
     <string name="settings_local_history_description">Zoeken in berichten en profielen die op dit apparaat zijn gecachet</string>
-    <string name="settings_agent_history_title">Flare AI</string>
-    <string name="settings_agent_history_description">Bekijk lokale Flare AI chatgeschiedenis</string>
+    <string name="settings_agent_history_title">FlareDo AI</string>
+    <string name="settings_agent_history_description">Bekijk lokale FlareDo AI chatgeschiedenis</string>
     <string name="agent_history_empty">Nog geen medewerker chatgeschiedenis.</string>
     <string name="settings_app_logging_title">App-logs</string>
     <string name="settings_app_logging_save">Logs opslaan</string>
@@ -215,7 +215,7 @@
     <string name="settings_ai_config_server_url_requirement">De URL moet eindigen met een schuine streep en een compatibele v1/chat/completions API ondersteunen.</string>
     <string name="settings_ai_config_server_self_host_description">Gebruik de officiële service of je eigen compatibele server</string>
     <string name="settings_ai_config_type">AI-type</string>
-    <string name="settings_ai_config_type_description">Kies welke AI-backend Flare gebruikt</string>
+    <string name="settings_ai_config_type_description">Kies welke AI-backend FlareDo gebruikt</string>
     <string name="settings_ai_config_type_on_device">On-apparaat AI</string>
     <string name="settings_ai_config_type_openai">AI-compatibele API</string>
     <string name="settings_ai_config_api_key">API-sleutel</string>
@@ -317,7 +317,7 @@
     <string name="settings_appearance_full_width_post">Berichten over de volle breedte</string>
     <string name="settings_appearance_full_width_post_description">Berichten de volledige beschikbare breedte laten beslaan</string>
     <string name="settings_language_title">Taal</string>
-    <string name="settings_language_description">De taal van de Flare-app wijzigen</string>
+    <string name="settings_language_description">De taal van de FlareDo-app wijzigen</string>
     <string name="settings_appearance_post_action_style">Stijl berichtacties</string>
     <string name="settings_appearance_post_action_style_description">Kies hoe actieknoppen worden weergegeven</string>
     <string name="settings_appearance_post_action_style_hidden">Verborgen</string>
@@ -362,7 +362,7 @@
     <string name="settings_about_telegram_description">Word lid van onze Telegram-groep</string>
     <string name="settings_about_discord_description">Word lid van onze Discord-server</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">Help ons Flare te vertalen</string>
+    <string name="settings_about_localization_description">Help ons FlareDo te vertalen</string>
     <string name="settings_privacy_policy">Privacybeleid</string>
     <string name="users">Gebruikers</string>
     <string name="hashtags">Hashtags</string>
@@ -525,7 +525,7 @@
     <string name="misskey_channel_tab_featured">Uitgelicht</string>
     <string name="media_save_success">Opgeslagen in Downloads</string>
     <string name="media_save_fail">Opslaan mislukt</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="profile_insight_title">Profielinzicht</string>
     <string name="agent_chat_input_placeholder">Vraag iets...</string>
     <string name="agent_chat_thinking">Denken...</string>
@@ -603,7 +603,7 @@
     <string name="settings_link_open_defaults_title">Links openen</string>
     <string name="settings_link_open_defaults_description">Kies standaardinstellingen voor ondersteunde links per host</string>
     <string name="settings_link_open_default_title">Standaard voor %1$s-links</string>
-    <string name="settings_link_open_default_description">Kies hoe ondersteunde links worden geopend wanneer Flare ze kan verwerken</string>
+    <string name="settings_link_open_default_description">Kies hoe ondersteunde links worden geopend wanneer FlareDo ze kan verwerken</string>
     <string name="settings_link_open_default_ask_every_time">Elke keer vragen</string>
     <string name="media_download_started">Download gestart</string>
     <string name="fanbox_supported_title">Ondersteund</string>

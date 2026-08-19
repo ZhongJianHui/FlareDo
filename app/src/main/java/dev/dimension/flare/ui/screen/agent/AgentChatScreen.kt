@@ -7,7 +7,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.feature.agent.presenter.chat.GenericChatPresenter
 import dev.dimension.flare.ui.component.BackButton
 import dev.dimension.flare.ui.component.FlareTopAppBar

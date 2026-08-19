@@ -53,7 +53,7 @@
     <string name="settings_accounts_title">Comptes</string>
     <string name="settings_accounts_subtitle">Gestiona els comptes iniciats</string>
     <string name="settings_appearance_title">Aparença</string>
-    <string name="settings_appearance_subtitle">Personalitza l\'aspecte de Flare</string>
+    <string name="settings_appearance_subtitle">Personalitza l\'aspecte de FlareDo</string>
     <string name="settings_appearance_theme_group_title">Tema</string>
     <string name="settings_appearance_theme_group_subtitle">Colors, mida de font i forma de l\'avatar</string>
     <string name="settings_appearance_layout_group_title">Disseny</string>
@@ -65,7 +65,7 @@
     <string name="settings_storage_title">Emmagatzematge</string>
     <string name="settings_storage_subtitle">Gestiona els fitxers a la memòria cau, els registres i les còpies de seguretat</string>
     <string name="settings_about_title">Sobre l\'aplicació</string>
-    <string name="settings_about_subtitle">Més informació sobre Flare</string>
+    <string name="settings_about_subtitle">Més informació sobre FlareDo</string>
     <string name="settings_about_description">Un client de codi obert i impulsat per IA per a plataformes socials descentralitzades.</string>
     <string name="settings_about_source_code">Codi font</string>
     <string name="settings_about_telegram">Telegram</string>
@@ -73,7 +73,7 @@
     <string name="settings_about_discord_description">Uneix-te al nostre servidor de Discord</string>
     <string name="settings_about_line_description">Uneix-te al nostre grup de Line</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">Ajuda\'ns a traduir Flare</string>
+    <string name="settings_about_localization_description">Ajuda\'ns a traduir FlareDo</string>
     <string name="settings_privacy_policy">Política de Privadesa</string>
     <string name="settings_side_panel">Personalització del panell lateral</string>
     <string name="settings_side_panel_description">Personalitza el panell lateral</string>
@@ -94,7 +94,7 @@
     <string name="settings_ai_config_server_url_requirement">L\'URL ha d\'acabar amb una barra inclinada i admetre una API v1/chat/completions compatible.</string>
     <string name="settings_ai_config_server_self_host_description">Utilitza el servei oficial o el teu propi servidor compatible</string>
     <string name="settings_ai_config_type">Tipus d\'IA</string>
-    <string name="settings_ai_config_type_description">Tria quin motor d\'IA utilitza Flare</string>
+    <string name="settings_ai_config_type_description">Tria quin motor d\'IA utilitza FlareDo</string>
     <string name="settings_ai_config_type_select">Selecciona</string>
     <string name="settings_ai_config_type_on_device">IA al dispositiu</string>
     <string name="settings_ai_config_type_on_device_description">Executa models d\'IA compatibles localment en aquest dispositiu</string>
@@ -142,7 +142,7 @@
     <string name="settings_translation_ai_test_original">Text de mostra</string>
     <string name="settings_translation_ai_test_result">Text traduït</string>
     <string name="settings_language_title">Idioma</string>
-    <string name="settings_language_description">Canvia l\'idioma de l\'aplicació Flare</string>
+    <string name="settings_language_description">Canvia l\'idioma de l\'aplicació FlareDo</string>
     <string name="settings_rss_management_title">Gestió de subscripcions</string>
     <string name="settings_rss_management_description">Gestiona les subscripcions</string>
     <string name="settings_nostr_relays_manage">Repetidors Nostr (relays)</string>
@@ -154,8 +154,8 @@
     <string name="login_expired">La sessió ha caducat</string>
     <string name="login_expired_message">Toca per tornar a iniciar la sessió</string>
     <string name="login_expired_relogin">Torna a iniciar la sessió</string>
-    <string name="service_select_welcome_title">Benvingut/da a Flare</string>
-    <string name="service_select_welcome_message">Flare és un client de xarxes socials per a Android.\nTria un servei per connectar-te i començar.</string>
+    <string name="service_select_welcome_title">Benvingut/da a FlareDo</string>
+    <string name="service_select_welcome_message">FlareDo és un client de xarxes socials per a Android.\nTria un servei per connectar-te i començar.</string>
     <string name="mastodon_login_verify_message">S\'estan verificant les teves credencials…</string>
     <string name="status_title">Publicació</string>
     <string name="misskey_visibility_public">Públic</string>
@@ -291,7 +291,7 @@
     <string name="settings_appearance_deck_mode">Mode de baralla (Deck)</string>
     <string name="settings_appearance_deck_mode_description">Utilitza un disseny de baralla per a les línies de temps compatibles</string>
     <string name="settings_appearance_in_app_browser">Navegador intern</string>
-    <string name="settings_appearance_in_app_browser_description">Obre enllaços externs dins de Flare</string>
+    <string name="settings_appearance_in_app_browser_description">Obre enllaços externs dins de FlareDo</string>
     <string name="settings_appearance_full_width_post">Publicacions d\'amplada completa</string>
     <string name="settings_appearance_full_width_post_description">Permet que les publicacions ocupin tota l\'amplada disponible</string>
     <string name="settings_appearance_absolute_timestamp">Marca de temps absoluta</string>
@@ -516,7 +516,7 @@
     <string name="channel_item_unfollow">Deixa de seguir</string>
     <string name="channel_item_favourite">Marca com a preferit</string>
     <string name="channel_item_unfavourite">Treu de preferits</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="status_insight_title">Informació de la publicació</string>
     <string name="profile_insight_title">Informació del perfil</string>
     <string name="status_insight_input_placeholder">Fes una pregunta de seguiment…</string>
@@ -560,7 +560,7 @@
     <string name="status_insight_trace_agent_closing">Tancant l’anàlisi...</string>
     <string name="ask_ai">Pregunta a la IA</string>
     <string name="agent_chat_title">Xat d’IA</string>
-    <string name="agent_history_title">Flare AI</string>
+    <string name="agent_history_title">FlareDo AI</string>
     <string name="agent_history_empty">Encara no hi ha historial de xat d’IA.</string>
     <string name="agent_chat_input_placeholder">Pregunta qualsevol cosa...</string>
     <string name="agent_chat_thinking">Pensant...</string>
@@ -671,7 +671,7 @@
     <string name="settings_link_open_defaults_title">Obertura d\'enllaços</string>
     <string name="settings_link_open_defaults_description">Tria valors per defecte dels enllaços compatibles per amfitrió</string>
     <string name="settings_link_open_default_title">Valor per defecte per als enllaços %1$s</string>
-    <string name="settings_link_open_default_description">Tria com s\'obren els enllaços compatibles quan Flare els pot gestionar</string>
+    <string name="settings_link_open_default_description">Tria com s\'obren els enllaços compatibles quan FlareDo els pot gestionar</string>
     <string name="settings_link_open_default_ask_every_time">Pregunta-ho sempre</string>
     <string name="fanbox_supported_title">Donant suport</string>
     <string name="fanbox_recommended_creators_title">Creadors recomanats</string>

@@ -61,7 +61,7 @@
 </script>
 
 <svelte:head>
-	<title>{m.rssSourcesTitle()} | Flare</title>
+	<title>{m.rssSourcesTitle()} | FlareDo</title>
 </svelte:head>
 
 <div class="subscriptions-page bg-base-200">

@@ -3,7 +3,7 @@ import UniformTypeIdentifiers
 
 public extension UTType {
     nonisolated static var opml: UTType {
-        UTType(exportedAs: "dev.dimension.flare.opml", conformingTo: .xml)
+        UTType(exportedAs: "io.github.zhongjianhui.flaredo.opml", conformingTo: .xml)
     }
 }
 

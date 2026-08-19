@@ -28,44 +28,7 @@
 	const projectFooterLinks = $derived([
 		{
 			label: m.settingsAboutSourceCode(),
-			href: 'https://github.com/DimensionDev/Flare',
-			icon: 'Github',
-		},
-		{
-			label: m.settingsAboutTelegram(),
-			href: 'https://t.me/+VZ63fqNQXIA0MzVl',
-			icon: 'Telegram',
-		},
-		{
-			label: m.settingsAboutDiscord(),
-			href: 'https://discord.gg/De9NhXBryT',
-			icon: 'Discord',
-		},
-		{
-			label: m.settingsPrivacyPolicy(),
-			href: 'https://legal.mask.io/maskbook/',
-			icon: 'Lock',
-		},
-	]);
-	const downloadFooterLinks = $derived([
-		{
-			label: 'App Store',
-			href: 'https://apps.apple.com/us/app/flare-social-network-client/id6476077738',
-			icon: 'Apple',
-		},
-		{
-			label: 'Google Play',
-			href: 'https://play.google.com/store/apps/details?id=dev.dimension.flare',
-			icon: 'GooglePlay',
-		},
-		{
-			label: 'F-Droid',
-			href: 'https://f-droid.org/packages/dev.dimension.flare',
-			icon: 'Android',
-		},
-		{
-			label: 'AppImage',
-			href: 'https://github.com/DimensionDev/Flare/releases/latest',
+			href: 'https://github.com/ZhongJianHui/FlareDo',
 			icon: 'Github',
 		},
 	]);
@@ -230,14 +193,6 @@
 		<footer class="secondary-footer">
 			<nav class="footer-links" aria-label={m.settingsAboutTitle()}>
 				{#each projectFooterLinks as link (link.href)}
-					<a href={link.href} target="_blank" rel="noreferrer">
-						<FaIcon name={link.icon} size={12} />
-						<span>{link.label}</span>
-					</a>
-				{/each}
-			</nav>
-			<nav class="footer-links" aria-label={m.secondaryFooterDownloadApp()}>
-				{#each downloadFooterLinks as link (link.href)}
 					<a href={link.href} target="_blank" rel="noreferrer">
 						<FaIcon name={link.icon} size={12} />
 						<span>{link.label}</span>

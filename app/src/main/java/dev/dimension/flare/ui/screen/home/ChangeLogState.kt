@@ -6,8 +6,8 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.fromHtml
-import dev.dimension.flare.BuildConfig
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.BuildConfig
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.ui.model.UiState
 import dev.dimension.flare.ui.presenter.ChangeLogPresenter
 import dev.dimension.flare.ui.presenter.invoke

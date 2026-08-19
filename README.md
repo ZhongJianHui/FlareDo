@@ -1,53 +1,42 @@
-# Flare
-[![license](https://img.shields.io/github/license/DimensionDev/Flare)](https://github.com/DimensionDev/Flare/blob/master/LICENSE)
-[![Crowdin](https://badges.crowdin.net/flareapp/localized.svg)](https://crowdin.com/project/flareapp)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/DimensionDev/Flare)
-[![Telegram](https://img.shields.io/badge/-telegram-blue?logo=telegram&color=white)](https://t.me/+fEJ2UYnOlVM0NmM1)
-[![Discord](https://img.shields.io/badge/-discord-blue?logo=discord&color=white)](https://discord.gg/De9NhXBryT)
+# FlareDo
 
-![badge-Android](https://img.shields.io/badge/Android-8.0-3DDC84)
-![badge-iOS](https://img.shields.io/badge/iOS-17.0-black)
-![badge-Windows](https://img.shields.io/badge/Windows_10-1809-blue)
-![badge-macOS](https://img.shields.io/badge/macOS-Sonoma-black)
-![badge-Linux](https://img.shields.io/badge/Linux-AppImage-black)
-![badge-Web](https://img.shields.io/badge/Web-Svelte-black)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
+[![Bootstrap CI](https://github.com/ZhongJianHui/FlareDo/actions/workflows/bootstrap.yml/badge.svg)](https://github.com/ZhongJianHui/FlareDo/actions/workflows/bootstrap.yml)
 
-Flare is an open-source, privacy-first social client that brings Mastodon, Misskey, Bluesky, X, Pixiv, Fanbox, Nostr, and RSS into one unified timeline. It supports cross-posting, lists, feeds, DMs, RSS management, and AI-powered features such as translation and agents. Built with Kotlin Multiplatform, Flare shares its core logic across Android, iOS, macOS, Windows, and Linux, turning fragmented social feeds into a personal information hub.
+[English](#english) | [简体中文](#简体中文)
 
-<a href="https://apps.microsoft.com/detail/9NLRN0BKZ357?referrer=appbadge&mode=direct">
-	<img src="https://get.microsoft.com/images/en-us%20dark.svg" width="190"/>
-</a>
-<a href='https://apps.apple.com/us/app/flare-social-network-client/id6476077738'><img alt='Get it on Google Play' src='https://developer.apple.com/app-store/marketing/guidelines/images/badge-example-preferred_2x.png' width=150/></a>
-<a href='https://play.google.com/store/apps/details?id=dev.dimension.flare&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1'><img alt='Get it on Google Play' src='docs/GetItOnGooglePlay_Badge_Web_color_English.svg' width=170/></a>
-<a href='https://f-droid.org/packages/dev.dimension.flare'><img alt='Get it on F-Droid' src='https://f-droid.org/badge/get-it-on.svg' width=150/></a>
-<a href='https://github.com/DimensionDev/Flare/releases/latest'><img alt='Download AppImage' src='docs/appimage_badge.svg' width=150/></a>
+## 简体中文
 
-## Features
- - Unified social inbox: Flare brings Mastodon, Misskey, Bluesky, X, Pixiv, Fanbox, Nostr and RSS together in one place, so users can follow fragmented communities through a single timeline.
- - Mixed timeline experience: It merges content from multiple accounts and platforms into a coherent feed, reducing context switching between apps.
- - Cross-platform by design: Built with Kotlin Multiplatform, Flare shares core logic across Android, iOS, macOS, Windows, and Linux.
- - Rich platform support: Beyond basic timelines, it supports features such as polls, lists, bookmarks/favorites, Misskey antennas, Bluesky feeds and DMs, and RSS management.
- - Cross-posting workflow: Users can publish to multiple platforms at once, making it practical for creators and heavy social media users.
- - Built in AI Agent: Configure OpenAI-compatible or on-device AI, enable summaries, or ask for post or profile insights, chat with Flare’s agent, and query local cache/history.
- - Privacy-first approach: As a FOSS client, it emphasizes user control with features like anonymous mode, local filtering, local history, and transparent data handling.
+FlareDo 是面向 [Linux.do](https://linux.do/) 的非官方、开源、多平台论坛客户端，计划支持 Android、iOS、macOS、Windows 和 Linux。项目使用 Kotlin Multiplatform 共享业务逻辑，在 Android、Windows 和 Linux 上使用 Compose，在 iOS 和 macOS 上使用 SwiftUI。
 
-## Roadmap
-Here're some features we're planning to implement in the future.
- - [x] Grouped Mixed timeline
- - [ ] Showing instance's announcement
- - [x] Crossposting for repost
- - [ ] Auto thread
- - [ ] AI powered features
-   - [ ] Personal trends of the day
-   - [ ] Quick reply
- - [ ] Support for Meta Threads
- - [ ] Support for Discourse forum
- - [x] Support for Nostr
- - [x] Desktop Client
- - [x] Web Client
+项目目前处于早期开发阶段，尚未发布安装包。首个可用版本将聚焦主题浏览、分类与标签、搜索、登录、发帖与回复、上传、点赞、书签、通知和个人资料。
 
-## Contributing
-See [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
+### 来源与独立性
+
+- FlareDo 基于 [Flare](https://github.com/DimensionDev/Flare) 开发，保留其 Git 历史、版权声明以及 AGPL-3.0 许可要求。
+- [fluxdo](https://github.com/Lingyan000/fluxdo) 仅用于参考公开的 Linux.do/Discourse API 行为；FlareDo 不复制其源代码、文案、测试数据、渲染器或素材。
+- FlareDo 是社区独立项目，与 Linux.do、Discourse、Flare、fluxdo 及其维护者不存在隶属、合作或认可关系。
+
+FlareDo 的发布版本不会包含遥测、广告或第三方分析。登录凭据将存储在各平台的安全凭据设施中；详细隐私和安全设计会随实现一并公开。
+
+问题与贡献请使用本仓库的 [Issues](https://github.com/ZhongJianHui/FlareDo/issues) 和 [Pull requests](https://github.com/ZhongJianHui/FlareDo/pulls)。
+
+## English
+
+FlareDo is an unofficial, open-source, cross-platform forum client for [Linux.do](https://linux.do/), targeting Android, iOS, macOS, Windows, and Linux. It shares business logic with Kotlin Multiplatform, uses Compose on Android, Windows, and Linux, and uses SwiftUI on iOS and macOS.
+
+The project is in early development and does not publish installable builds yet. The first usable release will focus on topic browsing, categories and tags, search, sign-in, topics and replies, uploads, likes, bookmarks, notifications, and profiles.
+
+### Origins and independence
+
+- FlareDo is based on [Flare](https://github.com/DimensionDev/Flare) and preserves its Git history, copyright notices, and AGPL-3.0 obligations.
+- [fluxdo](https://github.com/Lingyan000/fluxdo) is consulted only for observable Linux.do/Discourse API behavior. No fluxdo source code, copy, fixtures, renderers, or assets are copied into FlareDo.
+- FlareDo is an independent community project. It is not affiliated with, sponsored by, or endorsed by Linux.do, Discourse, Flare, fluxdo, or their maintainers.
+
+FlareDo releases will contain no telemetry, advertising, or third-party analytics. Authentication material will be kept in each platform's secure credential facility; the detailed privacy and security design will be documented alongside the implementation.
+
+Use this repository's [Issues](https://github.com/ZhongJianHui/FlareDo/issues) and [Pull requests](https://github.com/ZhongJianHui/FlareDo/pulls) to report problems or contribute.
 
 ## License
-This project is licensed under the [AGPL-3.0](LICENSE) license.
+
+FlareDo is licensed under the [GNU Affero General Public License v3.0](LICENSE). The original Flare notices and contributor history remain part of this repository.

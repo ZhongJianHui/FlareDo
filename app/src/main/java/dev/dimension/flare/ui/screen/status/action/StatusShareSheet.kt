@@ -87,7 +87,7 @@ import compose.icons.fontawesomeicons.solid.Download
 import compose.icons.fontawesomeicons.solid.Image
 import compose.icons.fontawesomeicons.solid.Link
 import compose.icons.fontawesomeicons.solid.Retweet
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.common.AndroidDownloadManager
 import dev.dimension.flare.common.MediaFileNamePolicy
 import dev.dimension.flare.data.model.VideoAutoplay

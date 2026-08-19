@@ -83,7 +83,7 @@ import compose.icons.fontawesomeicons.solid.Bars
 import compose.icons.fontawesomeicons.solid.CaretDown
 import compose.icons.fontawesomeicons.solid.Check
 import compose.icons.fontawesomeicons.solid.Sliders
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.common.onSuccess
 import dev.dimension.flare.data.datastore.model.TimelineAutoRefreshInterval
 import dev.dimension.flare.data.model.BottomBarBehavior

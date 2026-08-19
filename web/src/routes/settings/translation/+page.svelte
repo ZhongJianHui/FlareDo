@@ -50,7 +50,7 @@
 </script>
 
 <svelte:head>
-	<title>{m.settingsTranslationTitle()} | Flare</title>
+	<title>{m.settingsTranslationTitle()} | FlareDo</title>
 </svelte:head>
 
 <div class="settings-subpage bg-base-200">

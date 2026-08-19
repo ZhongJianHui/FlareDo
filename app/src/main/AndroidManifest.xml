@@ -30,7 +30,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Flare.Starting"
         android:enableOnBackInvokedCallback="true"
-        android:name=".App">
+        android:name="dev.dimension.flare.App">
         <activity
             android:windowSoftInputMode="adjustResize"
             android:launchMode="singleTask"
@@ -43,7 +43,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <intent-filter>
-                <data android:scheme="flare" />
+                <data android:scheme="flaredo" />
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
@@ -64,7 +64,7 @@
             android:label="@string/compose_title"
             android:theme="@android:style/Theme.DeviceDefault.Dialog.NoActionBar"
             android:exported="true"
-            android:name=".ui.screen.compose.ShortcutComposeActivity">
+            android:name="dev.dimension.flare.ui.screen.compose.ShortcutComposeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -87,7 +87,7 @@
             android:label="@string/add_rss_source"
             android:theme="@android:style/Theme.DeviceDefault.Dialog.NoActionBar"
             android:exported="true"
-            android:name=".ui.screen.rss.AddRssSourceActivity">
+            android:name="dev.dimension.flare.ui.screen.rss.AddRssSourceActivity">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -102,7 +102,7 @@
         </activity>
 
         <service
-            android:name=".common.PlaybackService"
+            android:name="dev.dimension.flare.common.PlaybackService"
             android:foregroundServiceType="mediaPlayback"
             android:exported="true">
             <intent-filter>

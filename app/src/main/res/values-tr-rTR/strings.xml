@@ -53,7 +53,7 @@
     <string name="settings_accounts_title">Hesaplar</string>
     <string name="settings_accounts_subtitle">Oturum açılmış hesapları yönet</string>
     <string name="settings_appearance_title">Görünüm</string>
-    <string name="settings_appearance_subtitle">Flare\'in görünümünü ve hissini özelleştir</string>
+    <string name="settings_appearance_subtitle">FlareDo\'in görünümünü ve hissini özelleştir</string>
     <string name="settings_appearance_theme_group_title">Tema</string>
     <string name="settings_appearance_theme_group_subtitle">Renkler, yazı tipi boyutu ve profil resmi şekli</string>
     <string name="settings_appearance_layout_group_title">Düzen</string>
@@ -65,7 +65,7 @@
     <string name="settings_storage_title">Depolama</string>
     <string name="settings_storage_subtitle">Önbelleğe alınan dosyaları, günlükleri ve yedekleri yönet</string>
     <string name="settings_about_title">Hakkında</string>
-    <string name="settings_about_subtitle">Flare hakkında daha fazla bilgi edin</string>
+    <string name="settings_about_subtitle">FlareDo hakkında daha fazla bilgi edin</string>
     <string name="settings_about_description">Merkezi olmayan sosyal platformlar için açık kaynaklı, yapay zeka destekli bir istemci.</string>
     <string name="settings_about_source_code">Kaynak kod</string>
     <string name="settings_about_telegram">Telegram</string>
@@ -73,7 +73,7 @@
     <string name="settings_about_discord_description">Discord sunucumuza katılın</string>
     <string name="settings_about_line_description">Line grubumuza katılın</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">Flare\'i çevirmemize yardımcı olun</string>
+    <string name="settings_about_localization_description">FlareDo\'i çevirmemize yardımcı olun</string>
     <string name="settings_privacy_policy">Gizlilik Politikası</string>
     <string name="settings_side_panel">Yan Panel özelleştirme</string>
     <string name="settings_side_panel_description">Yan paneli özelleştir</string>
@@ -94,7 +94,7 @@
     <string name="settings_ai_config_server_url_requirement">URL bir eğik çizgi ile bitmeli ve uyumlu bir v1/chat/completions API\'sini desteklemelidir.</string>
     <string name="settings_ai_config_server_self_host_description">Resmi hizmeti veya kendi uyumlu sunucunuzu kullanın</string>
     <string name="settings_ai_config_type">AI Türü</string>
-    <string name="settings_ai_config_type_description">Flare\'in hangi AI arka ucunu kullanacağını seçin</string>
+    <string name="settings_ai_config_type_description">FlareDo\'in hangi AI arka ucunu kullanacağını seçin</string>
     <string name="settings_ai_config_type_select">Seç</string>
     <string name="settings_ai_config_type_on_device">Cihaz içi AI</string>
     <string name="settings_ai_config_type_on_device_description">Desteklenen AI modellerini bu cihazda yerel olarak çalıştırın</string>
@@ -145,7 +145,7 @@
     <string name="settings_translation_ai_test_original">Örnek metin</string>
     <string name="settings_translation_ai_test_result">Çevrilmiş metin</string>
     <string name="settings_language_title">Dil</string>
-    <string name="settings_language_description">Flare\'in uygulama dilini değiştir</string>
+    <string name="settings_language_description">FlareDo\'in uygulama dilini değiştir</string>
     <string name="settings_rss_management_title">Abonelik Yönetimi</string>
     <string name="settings_rss_management_description">Abonelikleri yönet</string>
     <string name="settings_nostr_relays_manage">Nostr röleleri</string>
@@ -157,8 +157,8 @@
     <string name="login_expired">Giriş oturumu sona erdi</string>
     <string name="login_expired_message">Yeniden giriş yapmak için dokunun</string>
     <string name="login_expired_relogin">Yeniden giriş yap</string>
-    <string name="service_select_welcome_title">Flare\'e Hoş Geldiniz</string>
-    <string name="service_select_welcome_message">Flare, Android için bir sosyal medya istemcisidir.\nBağlanmak ve başlamak için bir hizmet seçin.</string>
+    <string name="service_select_welcome_title">FlareDo\'e Hoş Geldiniz</string>
+    <string name="service_select_welcome_message">FlareDo, Android için bir sosyal medya istemcisidir.\nBağlanmak ve başlamak için bir hizmet seçin.</string>
     <string name="mastodon_login_verify_message">Kimlik bilgileriniz doğrulanıyor…</string>
     <string name="status_title">Gönderi</string>
     <string name="misskey_visibility_public">Herkese Açık</string>
@@ -294,7 +294,7 @@
     <string name="settings_appearance_deck_mode">Deste modu</string>
     <string name="settings_appearance_deck_mode_description">Desteklenen zaman akışları için bir deste düzeni kullanın</string>
     <string name="settings_appearance_in_app_browser">Uygulama içi tarayıcı</string>
-    <string name="settings_appearance_in_app_browser_description">Harici bağlantıları Flare içinde aç</string>
+    <string name="settings_appearance_in_app_browser_description">Harici bağlantıları FlareDo içinde aç</string>
     <string name="settings_appearance_full_width_post">Tam genişlikte gönderiler</string>
     <string name="settings_appearance_full_width_post_description">Gönderilerin mevcut tüm genişliği kaplamasına izin ver</string>
     <string name="settings_appearance_absolute_timestamp">Mutlak zaman damgası</string>
@@ -521,7 +521,7 @@
     <string name="channel_item_unfollow">Takibi bırak</string>
     <string name="channel_item_favourite">Favorilere ekle</string>
     <string name="channel_item_unfavourite">Favorilerden çıkar</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="status_insight_title">Gönderi içgörüsü</string>
     <string name="profile_insight_title">Profil içgörüsü</string>
     <string name="status_insight_input_placeholder">Takip sorusu sor…</string>
@@ -565,7 +565,7 @@
     <string name="status_insight_trace_agent_closing">Analiz kapatılıyor...</string>
     <string name="ask_ai">AI’ye sor</string>
     <string name="agent_chat_title">AI sohbeti</string>
-    <string name="agent_history_title">Flare AI</string>
+    <string name="agent_history_title">FlareDo AI</string>
     <string name="agent_history_empty">Henüz AI sohbet geçmişi yok.</string>
     <string name="agent_chat_input_placeholder">Herhangi bir şey sorun...</string>
     <string name="agent_chat_thinking">Düşünüyor...</string>
@@ -671,7 +671,7 @@
     <string name="settings_link_open_defaults_title">Bağlantı açma</string>
     <string name="settings_link_open_defaults_description">Desteklenen bağlantılar için ana makineye göre varsayılanları seçin</string>
     <string name="settings_link_open_default_title">%1$s bağlantıları için varsayılan</string>
-    <string name="settings_link_open_default_description">Flare işleyebildiğinde desteklenen bağlantıların nasıl açılacağını seçin</string>
+    <string name="settings_link_open_default_description">FlareDo işleyebildiğinde desteklenen bağlantıların nasıl açılacağını seçin</string>
     <string name="settings_link_open_default_ask_every_time">Her seferinde sor</string>
     <string name="fanbox_supported_title">Destekleniyor</string>
     <string name="fanbox_recommended_creators_title">Önerilen içerik üreticiler</string>

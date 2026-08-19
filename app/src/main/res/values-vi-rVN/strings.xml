@@ -52,7 +52,7 @@
     <string name="settings_accounts_title">Tài khoản</string>
     <string name="settings_accounts_subtitle">Quản lý các tài khoản đã đăng nhập</string>
     <string name="settings_appearance_title">Giao diện</string>
-    <string name="settings_appearance_subtitle">Tùy chỉnh diện mạo của Flare</string>
+    <string name="settings_appearance_subtitle">Tùy chỉnh diện mạo của FlareDo</string>
     <string name="settings_appearance_theme_group_title">Chủ đề</string>
     <string name="settings_appearance_theme_group_subtitle">Màu sắc, cỡ chữ và hình dạng ảnh đại diện</string>
     <string name="settings_appearance_layout_group_title">Bố cục</string>
@@ -64,7 +64,7 @@
     <string name="settings_storage_title">Lưu trữ</string>
     <string name="settings_storage_subtitle">Quản lý tệp lưu tạm, nhật ký và bản sao lưu</string>
     <string name="settings_about_title">Giới thiệu</string>
-    <string name="settings_about_subtitle">Tìm hiểu thêm về Flare</string>
+    <string name="settings_about_subtitle">Tìm hiểu thêm về FlareDo</string>
     <string name="settings_about_description">Một ứng dụng khách mã nguồn mở, hỗ trợ AI cho các nền tảng xã hội phi tập trung.</string>
     <string name="settings_about_source_code">Mã nguồn</string>
     <string name="settings_about_telegram">Telegram</string>
@@ -72,7 +72,7 @@
     <string name="settings_about_discord_description">Tham gia máy chủ Discord của chúng tôi</string>
     <string name="settings_about_line_description">Tham gia nhóm Line của chúng tôi</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">Giúp chúng tôi dịch Flare</string>
+    <string name="settings_about_localization_description">Giúp chúng tôi dịch FlareDo</string>
     <string name="settings_privacy_policy">Chính sách Bảo mật</string>
     <string name="settings_side_panel">Tùy chỉnh bảng điều khiển bên</string>
     <string name="settings_side_panel_description">Tùy chỉnh bảng điều khiển bên</string>
@@ -93,7 +93,7 @@
     <string name="settings_ai_config_server_url_requirement">URL phải kết thúc bằng dấu gạch chéo và hỗ trợ API v1/chat/completions tương thích.</string>
     <string name="settings_ai_config_server_self_host_description">Sử dụng dịch vụ chính thức hoặc máy chủ tương thích của riêng bạn</string>
     <string name="settings_ai_config_type">Loại AI</string>
-    <string name="settings_ai_config_type_description">Chọn phần phụ trợ AI mà Flare sử dụng</string>
+    <string name="settings_ai_config_type_description">Chọn phần phụ trợ AI mà FlareDo sử dụng</string>
     <string name="settings_ai_config_type_select">Chọn</string>
     <string name="settings_ai_config_type_on_device">AI trên thiết bị</string>
     <string name="settings_ai_config_type_on_device_description">Chạy các mô hình AI được hỗ trợ ngay trên thiết bị này</string>
@@ -144,7 +144,7 @@
     <string name="settings_translation_ai_test_original">Văn bản mẫu</string>
     <string name="settings_translation_ai_test_result">Văn bản đã dịch</string>
     <string name="settings_language_title">Ngôn ngữ</string>
-    <string name="settings_language_description">Thay đổi ngôn ngữ ứng dụng Flare</string>
+    <string name="settings_language_description">Thay đổi ngôn ngữ ứng dụng FlareDo</string>
     <string name="settings_rss_management_title">Quản lý đăng ký</string>
     <string name="settings_rss_management_description">Quản lý các nội dung đăng ký</string>
     <string name="settings_nostr_relays_manage">Nostr relay</string>
@@ -156,8 +156,8 @@
     <string name="login_expired">Phiên đăng nhập đã hết hạn</string>
     <string name="login_expired_message">Chạm để đăng nhập lại</string>
     <string name="login_expired_relogin">Đăng nhập lại</string>
-    <string name="service_select_welcome_title">Chào mừng đến với Flare</string>
-    <string name="service_select_welcome_message">Flare là một ứng dụng mạng xã hội dành cho Android.\nHãy chọn một dịch vụ để kết nối và bắt đầu.</string>
+    <string name="service_select_welcome_title">Chào mừng đến với FlareDo</string>
+    <string name="service_select_welcome_message">FlareDo là một ứng dụng mạng xã hội dành cho Android.\nHãy chọn một dịch vụ để kết nối và bắt đầu.</string>
     <string name="mastodon_login_verify_message">Đang xác thực thông tin của bạn…</string>
     <string name="status_title">Bài đăng</string>
     <string name="misskey_visibility_public">Công khai</string>
@@ -293,7 +293,7 @@
     <string name="settings_appearance_deck_mode">Chế độ thẻ bài (Deck)</string>
     <string name="settings_appearance_deck_mode_description">Sử dụng bố cục thẻ bài cho các dòng thời gian được hỗ trợ</string>
     <string name="settings_appearance_in_app_browser">Trình duyệt trong ứng dụng</string>
-    <string name="settings_appearance_in_app_browser_description">Mở các liên kết ngoài ngay bên trong Flare</string>
+    <string name="settings_appearance_in_app_browser_description">Mở các liên kết ngoài ngay bên trong FlareDo</string>
     <string name="settings_appearance_full_width_post">Bài đăng toàn chiều rộng</string>
     <string name="settings_appearance_full_width_post_description">Cho phép bài đăng trải rộng toàn bộ chiều rộng khả dụng</string>
     <string name="settings_appearance_absolute_timestamp">Dấu thời gian tuyệt đối</string>
@@ -519,7 +519,7 @@
     <string name="channel_item_unfollow">Bỏ theo dõi</string>
     <string name="channel_item_favourite">Yêu thích</string>
     <string name="channel_item_unfavourite">Bỏ yêu thích</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="status_insight_title">Thông tin bài viết</string>
     <string name="profile_insight_title">Thông tin hồ sơ</string>
     <string name="status_insight_input_placeholder">Hỏi tiếp…</string>
@@ -563,7 +563,7 @@
     <string name="status_insight_trace_agent_closing">Đang đóng phân tích...</string>
     <string name="ask_ai">Hỏi AI</string>
     <string name="agent_chat_title">Trò chuyện AI</string>
-    <string name="agent_history_title">Flare AI</string>
+    <string name="agent_history_title">FlareDo AI</string>
     <string name="agent_history_empty">Chưa có lịch sử trò chuyện AI.</string>
     <string name="agent_chat_input_placeholder">Hỏi bất cứ điều gì...</string>
     <string name="agent_chat_thinking">Đang suy nghĩ...</string>
@@ -670,7 +670,7 @@
     <string name="settings_link_open_defaults_title">Mở liên kết</string>
     <string name="settings_link_open_defaults_description">Chọn mặc định cho liên kết được hỗ trợ theo máy chủ</string>
     <string name="settings_link_open_default_title">Mặc định cho liên kết %1$s</string>
-    <string name="settings_link_open_default_description">Chọn cách mở liên kết được hỗ trợ khi Flare có thể xử lý</string>
+    <string name="settings_link_open_default_description">Chọn cách mở liên kết được hỗ trợ khi FlareDo có thể xử lý</string>
     <string name="settings_link_open_default_ask_every_time">Luôn hỏi</string>
     <string name="fanbox_supported_title">Đang hỗ trợ</string>
     <string name="fanbox_recommended_creators_title">Nhà sáng tạo được đề xuất</string>

@@ -5,18 +5,17 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Flare</string>
+	<string>FlareDo</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>CFBundleURLName</key>
-			<string>dev.dimension.flare</string>
+			<string>io.github.zhongjianhui.flaredo</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>flare</string>
-				<string>pixiv</string>
+				<string>flaredo</string>
 			</array>
 		</dict>
 	</array>

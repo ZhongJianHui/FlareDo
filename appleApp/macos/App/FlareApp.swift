@@ -32,7 +32,7 @@ struct FlareApp: App {
     }
 
     var body: some Scene {
-        Window("Flare", id: MacWindowID.main) {
+        Window("FlareDo", id: MacWindowID.main) {
             FlareTheme {
                 RootView()
             }

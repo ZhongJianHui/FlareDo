@@ -28,8 +28,8 @@
     <string name="service_select_instance_input_placeholder">URL de l\'instance</string>
     <string name="service_select_next_button">Suivant</string>
     <string name="service_select_empty_message">Aucune instance trouvée</string>
-    <string name="service_select_welcome_title">Bienvenue sur Flare</string>
-    <string name="service_select_welcome_message">Flare est un client de réseau social pour %1$s.\nChoisissez un service pour vous connecter et commencer.</string>
+    <string name="service_select_welcome_title">Bienvenue sur FlareDo</string>
+    <string name="service_select_welcome_message">FlareDo est un client de réseau social pour %1$s.\nChoisissez un service pour vous connecter et commencer.</string>
     <string name="mastodon_login_verify_message">Vérification de vos identifiants…</string>
     <string name="profile_tab_timeline">Messages</string>
     <string name="profile_tab_timeline_with_reply">Messages et réponses</string>
@@ -180,7 +180,7 @@
     <string name="settings_appearance_title">Apparence</string>
     <string name="settings_status_appearance_title">Apparence des messages</string>
     <string name="settings_status_appearance_subtitle">Personnaliser l\'apparence des messages</string>
-    <string name="settings_appearance_subtitle">Personnaliser l\'apparence et l\'ergonomie de Flare</string>
+    <string name="settings_appearance_subtitle">Personnaliser l\'apparence et l\'ergonomie de FlareDo</string>
     <string name="settings_appearance_theme_group_title">Thème</string>
     <string name="settings_appearance_theme_group_subtitle">Couleurs, taille de police et forme des avatars</string>
     <string name="settings_appearance_layout_group_title">Mise en page</string>
@@ -194,7 +194,7 @@
     <string name="settings_draft_box_description">Voir, modifier et renvoyer les brouillons enregistrés</string>
     <string name="settings_storage_subtitle">Gérer les fichiers mis en cache, les journaux et les sauvegardes</string>
     <string name="settings_about_title">À propos</string>
-    <string name="settings_about_subtitle">En savoir plus sur Flare</string>
+    <string name="settings_about_subtitle">En savoir plus sur FlareDo</string>
     <string name="settings_side_panel">Personnalisation du panneau latéral</string>
     <string name="settings_side_panel_description">Personnaliser le panneau latéral</string>
     <string name="settings_local_filter_title">Filtres locaux</string>
@@ -203,8 +203,8 @@
     <string name="settings_guest_setting_description">Choisir le serveur auquel le mode invité se connecte</string>
     <string name="settings_local_history_title">Historique local</string>
     <string name="settings_local_history_description">Rechercher des messages et des profils mis en cache sur cet appareil</string>
-    <string name="settings_agent_history_title">Flare AI</string>
-    <string name="settings_agent_history_description">Afficher l\'historique de discussion local de Flare AI</string>
+    <string name="settings_agent_history_title">FlareDo AI</string>
+    <string name="settings_agent_history_description">Afficher l\'historique de discussion local de FlareDo AI</string>
     <string name="agent_history_empty">Aucun historique de chat d\'agent pour le moment.</string>
     <string name="settings_app_logging_title">Journaux de l\'application</string>
     <string name="settings_app_logging_save">Enregistrer les journaux</string>
@@ -218,7 +218,7 @@
     <string name="settings_ai_config_server_url_requirement">L\'URL doit se terminer par une barre oblique (/) et supporter une API compatible v1/chat/completions.</string>
     <string name="settings_ai_config_server_self_host_description">Utilisez le service officiel ou votre propre serveur compatible</string>
     <string name="settings_ai_config_type">Type d\'IA</string>
-    <string name="settings_ai_config_type_description">Choisissez quel moteur d\'IA Flare utilise</string>
+    <string name="settings_ai_config_type_description">Choisissez quel moteur d\'IA FlareDo utilise</string>
     <string name="settings_ai_config_type_on_device">IA sur l\'appareil</string>
     <string name="settings_ai_config_type_openai">API compatible IA</string>
     <string name="settings_ai_config_api_key">Clé API</string>
@@ -320,7 +320,7 @@
     <string name="settings_appearance_full_width_post">Messages en pleine largeur</string>
     <string name="settings_appearance_full_width_post_description">Laisser les messages occuper toute la largeur disponible</string>
     <string name="settings_language_title">Langue</string>
-    <string name="settings_language_description">Changer la langue de l\'application Flare</string>
+    <string name="settings_language_description">Changer la langue de l\'application FlareDo</string>
     <string name="settings_appearance_post_action_style">Style des actions sur les messages</string>
     <string name="settings_appearance_post_action_style_description">Choisir comment les boutons d\'action sont disposés</string>
     <string name="settings_appearance_post_action_style_hidden">Masqué</string>
@@ -365,7 +365,7 @@
     <string name="settings_about_telegram_description">Rejoindre notre groupe Telegram</string>
     <string name="settings_about_discord_description">Rejoindre notre serveur Discord</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">Aidez-nous à traduire Flare</string>
+    <string name="settings_about_localization_description">Aidez-nous à traduire FlareDo</string>
     <string name="settings_privacy_policy">Politique de confidentialité</string>
     <string name="users">Utilisateurs</string>
     <string name="hashtags">Hashtags</string>
@@ -528,7 +528,7 @@
     <string name="misskey_channel_tab_featured">Mis en avant</string>
     <string name="media_save_success">Enregistré dans Téléchargements</string>
     <string name="media_save_fail">Échec de l\'enregistrement</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="profile_insight_title">Aperçu du profil</string>
     <string name="profile_insight_analyzing">Analyse de ce profil…</string>
     <string name="status_insight_trace_agent_started">Démarrage de l\'analyse...</string>
@@ -603,7 +603,7 @@
     <string name="settings_link_open_defaults_title">Ouverture des liens</string>
     <string name="settings_link_open_defaults_description">Choisissez les valeurs par défaut des liens pris en charge par hôte</string>
     <string name="settings_link_open_default_title">Par défaut pour les liens %1$s</string>
-    <string name="settings_link_open_default_description">Choisissez comment les liens pris en charge s’ouvrent lorsque Flare peut les gérer</string>
+    <string name="settings_link_open_default_description">Choisissez comment les liens pris en charge s’ouvrent lorsque FlareDo peut les gérer</string>
     <string name="settings_link_open_default_ask_every_time">Demander à chaque fois</string>
     <string name="media_download_started">Téléchargement démarré</string>
     <string name="fanbox_supported_title">Soutien</string>

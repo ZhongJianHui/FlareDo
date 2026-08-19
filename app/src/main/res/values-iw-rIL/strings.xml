@@ -55,7 +55,7 @@
     <string name="settings_accounts_title">חשבונות</string>
     <string name="settings_accounts_subtitle">נהל חשבונות מחוברים</string>
     <string name="settings_appearance_title">מראה</string>
-    <string name="settings_appearance_subtitle">התאם אישית את המראה והתחושה של Flare</string>
+    <string name="settings_appearance_subtitle">התאם אישית את המראה והתחושה של FlareDo</string>
     <string name="settings_appearance_theme_group_title">ערכת נושא</string>
     <string name="settings_appearance_theme_group_subtitle">צבעים, גודל גופן וצורת אוואטאר</string>
     <string name="settings_appearance_layout_group_title">פריסה</string>
@@ -67,7 +67,7 @@
     <string name="settings_storage_title">אחסון</string>
     <string name="settings_storage_subtitle">נהל קבצים במטמון, לוגים וגיבויים</string>
     <string name="settings_about_title">אודות</string>
-    <string name="settings_about_subtitle">למד עוד על Flare</string>
+    <string name="settings_about_subtitle">למד עוד על FlareDo</string>
     <string name="settings_about_description">לקוח קוד פתוח המבוסס על בינה מלאכותית עבור פלטפורמות חברתיות מבוזרות.</string>
     <string name="settings_about_source_code">קוד מקור</string>
     <string name="settings_about_telegram">טלגרם</string>
@@ -75,7 +75,7 @@
     <string name="settings_about_discord_description">הצטרפו לשרת ה-Discord שלנו</string>
     <string name="settings_about_line_description">הצטרפו לקבוצת ה-Line שלנו</string>
     <string name="settings_about_localization">קרואדין</string>
-    <string name="settings_about_localization_description">עזור לנו לתרגם את Flare</string>
+    <string name="settings_about_localization_description">עזור לנו לתרגם את FlareDo</string>
     <string name="settings_privacy_policy">מדיניות פרטיות</string>
     <string name="settings_side_panel">התאמת פאנל צד</string>
     <string name="settings_side_panel_description">התאם אישית את פאנל הצד</string>
@@ -96,7 +96,7 @@
     <string name="settings_ai_config_server_url_requirement">הכתובת חייבת להסתיים בלוכסן (/) ולתמוך ב-v1/chat/completions API תואם.</string>
     <string name="settings_ai_config_server_self_host_description">השתמש בשירות הרשמי או בשרת תואם משלך</string>
     <string name="settings_ai_config_type">סוג AI</string>
-    <string name="settings_ai_config_type_description">בחר באיזה AI של Flare להשתמש</string>
+    <string name="settings_ai_config_type_description">בחר באיזה AI של FlareDo להשתמש</string>
     <string name="settings_ai_config_type_select">בחר</string>
     <string name="settings_ai_config_type_on_device">AI על המכשיר</string>
     <string name="settings_ai_config_type_on_device_description">הרץ מודלי AI נתמכים מקומית על המכשיר</string>
@@ -146,7 +146,7 @@
     <string name="settings_translation_ai_test_original">טקסט לדוגמה</string>
     <string name="settings_translation_ai_test_result">טקסט מתורגם</string>
     <string name="settings_language_title">שפה</string>
-    <string name="settings_language_description">שנה את שפת האפליקציה של Flare</string>
+    <string name="settings_language_description">שנה את שפת האפליקציה של FlareDo</string>
     <string name="settings_rss_management_title">ניהול מנויים</string>
     <string name="settings_rss_management_description">נהל מנויים</string>
     <string name="settings_nostr_relays_manage">ממסרי Nostr</string>
@@ -158,8 +158,8 @@
     <string name="login_expired">פג תוקף התחברות</string>
     <string name="login_expired_message">לחץ להתחברות מחדש</string>
     <string name="login_expired_relogin">התחבר מחדש</string>
-    <string name="service_select_welcome_title">ברוכים הבאים ל-Flare</string>
-    <string name="service_select_welcome_message">Flare הוא לקוח רשת חברתית לאנדרואיד.\nבחר שירות לחיבור כדי להתחיל.</string>
+    <string name="service_select_welcome_title">ברוכים הבאים ל-FlareDo</string>
+    <string name="service_select_welcome_message">FlareDo הוא לקוח רשת חברתית לאנדרואיד.\nבחר שירות לחיבור כדי להתחיל.</string>
     <string name="mastodon_login_verify_message">מאמת את האישורים שלך…</string>
     <string name="status_title">פוסט</string>
     <string name="misskey_visibility_public">ציבורי</string>
@@ -295,7 +295,7 @@
     <string name="settings_appearance_deck_mode">מצב סיפון (Deck)</string>
     <string name="settings_appearance_deck_mode_description">השתמש בפריסת סיפון עבור צירי זמן נתמכים</string>
     <string name="settings_appearance_in_app_browser">דפדפן בתוך האפליקציה</string>
-    <string name="settings_appearance_in_app_browser_description">פתח קישורים חיצוניים בתוך Flare</string>
+    <string name="settings_appearance_in_app_browser_description">פתח קישורים חיצוניים בתוך FlareDo</string>
     <string name="settings_appearance_full_width_post">פוסטים ברוחב מלא</string>
     <string name="settings_appearance_full_width_post_description">אפשר לפוסטים להתפרס על פני כל הרוחב הזמין</string>
     <string name="settings_appearance_absolute_timestamp">חותמת זמן מוחלטת</string>
@@ -522,7 +522,7 @@
     <string name="channel_item_unfollow">בטל מעקב</string>
     <string name="channel_item_favourite">הוסף למועדפים</string>
     <string name="channel_item_unfavourite">הסר ממועדפים</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="status_insight_title">תובנות פוסט</string>
     <string name="profile_insight_title">תובנות פרופיל</string>
     <string name="status_insight_input_placeholder">שאל שאלת המשך…</string>
@@ -566,7 +566,7 @@
     <string name="status_insight_trace_agent_closing">סוגר ניתוח...</string>
     <string name="ask_ai">שאל AI</string>
     <string name="agent_chat_title">צ׳אט AI</string>
-    <string name="agent_history_title">Flare AI</string>
+    <string name="agent_history_title">FlareDo AI</string>
     <string name="agent_history_empty">אין עדיין היסטוריית צ׳אט AI.</string>
     <string name="agent_chat_input_placeholder">שאל כל דבר...</string>
     <string name="agent_chat_thinking">חושב...</string>
@@ -673,7 +673,7 @@
     <string name="settings_link_open_defaults_title">פתיחת קישורים</string>
     <string name="settings_link_open_defaults_description">בחר ברירות מחדל לקישורים נתמכים לפי מארח</string>
     <string name="settings_link_open_default_title">ברירת מחדל לקישורי %1$s</string>
-    <string name="settings_link_open_default_description">בחר כיצד קישורים נתמכים ייפתחו כאשר Flare יכול לטפל בהם</string>
+    <string name="settings_link_open_default_description">בחר כיצד קישורים נתמכים ייפתחו כאשר FlareDo יכול לטפל בהם</string>
     <string name="settings_link_open_default_ask_every_time">שאל בכל פעם</string>
     <string name="fanbox_supported_title">נתמך</string>
     <string name="fanbox_recommended_creators_title">יוצרים מומלצים</string>

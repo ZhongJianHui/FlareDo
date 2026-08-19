@@ -28,8 +28,8 @@
     <string name="service_select_instance_input_placeholder">Instanz-URL</string>
     <string name="service_select_next_button">Weiter</string>
     <string name="service_select_empty_message">Keine Instanzen gefunden</string>
-    <string name="service_select_welcome_title">Willkommen bei Flare</string>
-    <string name="service_select_welcome_message">Flare ist ein Social-Media-Client für %1$s.\nWählen Sie einen Dienst aus, um eine Verbindung herzustellen und loszulegen.</string>
+    <string name="service_select_welcome_title">Willkommen bei FlareDo</string>
+    <string name="service_select_welcome_message">FlareDo ist ein Social-Media-Client für %1$s.\nWählen Sie einen Dienst aus, um eine Verbindung herzustellen und loszulegen.</string>
     <string name="mastodon_login_verify_message">Anmeldedaten werden überprüft…</string>
     <string name="profile_tab_timeline">Beiträge</string>
     <string name="profile_tab_timeline_with_reply">Beiträge und Antworten</string>
@@ -185,7 +185,7 @@
     <string name="settings_appearance_title">Aussehen</string>
     <string name="settings_status_appearance_title">Beitragsaussehen</string>
     <string name="settings_status_appearance_subtitle">Beitragsaussehen anpassen</string>
-    <string name="settings_appearance_subtitle">Das Aussehen von Flare anpassen</string>
+    <string name="settings_appearance_subtitle">Das Aussehen von FlareDo anpassen</string>
     <string name="settings_appearance_theme_group_title">Thema</string>
     <string name="settings_appearance_theme_group_subtitle">Farben, Schriftgröße und Avatar-Form</string>
     <string name="settings_appearance_layout_group_title">Layout</string>
@@ -199,7 +199,7 @@
     <string name="settings_draft_box_description">Gespeicherte Entwürfe ansehen, bearbeiten und erneut senden</string>
     <string name="settings_storage_subtitle">Cache-Dateien, Protokolle und Backups verwalten</string>
     <string name="settings_about_title">Über</string>
-    <string name="settings_about_subtitle">Mehr über Flare erfahren</string>
+    <string name="settings_about_subtitle">Mehr über FlareDo erfahren</string>
     <string name="settings_side_panel">Anpassung der Seitenleiste</string>
     <string name="settings_side_panel_description">Seitenleiste anpassen</string>
     <string name="settings_local_filter_title">Lokale Filter</string>
@@ -208,8 +208,8 @@
     <string name="settings_guest_setting_description">Wählen Sie den Server aus, mit dem sich der Gastmodus verbindet</string>
     <string name="settings_local_history_title">Lokaler Verlauf</string>
     <string name="settings_local_history_description">Auf diesem Gerät gespeicherte Beiträge und Profile suchen</string>
-    <string name="settings_agent_history_title">Flare AI</string>
-    <string name="settings_agent_history_description">Zeige den lokalen Flare AI Chatverlauf</string>
+    <string name="settings_agent_history_title">FlareDo AI</string>
+    <string name="settings_agent_history_description">Zeige den lokalen FlareDo AI Chatverlauf</string>
     <string name="agent_history_empty">Noch kein Agenten-Chat-Verlauf.</string>
     <string name="settings_app_logging_title">App-Protokolle</string>
     <string name="settings_app_logging_save">Protokolle speichern</string>
@@ -223,7 +223,7 @@
     <string name="settings_ai_config_server_url_requirement">Die URL muss mit einem Schrägstrich enden und eine kompatible v1/chat/completions-API unterstützen.</string>
     <string name="settings_ai_config_server_self_host_description">Verwenden Sie den offiziellen Dienst oder Ihren eigenen kompatiblen Server</string>
     <string name="settings_ai_config_type">KI-Typ</string>
-    <string name="settings_ai_config_type_description">Wählen Sie das KI-Backend für Flare</string>
+    <string name="settings_ai_config_type_description">Wählen Sie das KI-Backend für FlareDo</string>
     <string name="settings_ai_config_type_on_device">On-Device KI</string>
     <string name="settings_ai_config_type_openai">KI-kompatible API</string>
     <string name="settings_ai_config_api_key">API-Schlüssel</string>
@@ -325,7 +325,7 @@
     <string name="settings_appearance_full_width_post">Beiträge in voller Breite</string>
     <string name="settings_appearance_full_width_post_description">Beiträge die gesamte verfügbare Breite einnehmen lassen</string>
     <string name="settings_language_title">Sprache</string>
-    <string name="settings_language_description">Die App-Sprache von Flare ändern</string>
+    <string name="settings_language_description">Die App-Sprache von FlareDo ändern</string>
     <string name="settings_appearance_post_action_style">Stil der Beitragsaktionen</string>
     <string name="settings_appearance_post_action_style_description">Anordnung der Aktionsschaltflächen wählen</string>
     <string name="settings_appearance_post_action_style_hidden">Ausgeblendet</string>
@@ -370,7 +370,7 @@
     <string name="settings_about_telegram_description">Treten Sie unserer Telegram-Gruppe bei</string>
     <string name="settings_about_discord_description">Treten Sie unserem Discord-Server bei</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">Helfen Sie uns bei der Übersetzung von Flare</string>
+    <string name="settings_about_localization_description">Helfen Sie uns bei der Übersetzung von FlareDo</string>
     <string name="settings_privacy_policy">Datenschutzerklärung</string>
     <string name="users">Benutzer</string>
     <string name="hashtags">Hashtags</string>
@@ -533,7 +533,7 @@
     <string name="misskey_channel_tab_featured">Empfohlen</string>
     <string name="media_save_success">In Downloads gespeichert</string>
     <string name="media_save_fail">Speichern fehlgeschlagen</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="profile_insight_title">Profileinblick</string>
     <string name="profile_insight_analyzing">Analysiere dieses Profil…</string>
     <string name="settings_about_discord" translatable="false">Discord</string>
@@ -603,7 +603,7 @@
     <string name="settings_link_open_defaults_title">Linköffnung</string>
     <string name="settings_link_open_defaults_description">Standardwerte für unterstützte Links nach Host auswählen</string>
     <string name="settings_link_open_default_title">Standard für %1$s-Links</string>
-    <string name="settings_link_open_default_description">Wähle aus, wie unterstützte Links geöffnet werden, wenn Flare sie verarbeiten kann</string>
+    <string name="settings_link_open_default_description">Wähle aus, wie unterstützte Links geöffnet werden, wenn FlareDo sie verarbeiten kann</string>
     <string name="settings_link_open_default_ask_every_time">Jedes Mal fragen</string>
     <string name="media_download_started">Download gestartet</string>
     <string name="fanbox_supported_title">Unterstützt</string>

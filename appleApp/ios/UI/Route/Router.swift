@@ -155,7 +155,7 @@ class DeepLinkHandler : ObservableObject {
 
 private extension URL {
     var openInFlareTargetURL: URL? {
-        guard scheme?.lowercased() == "flare",
+        guard scheme?.lowercased() == "flaredo",
               host?.lowercased() == "open",
               let targetValue = URLComponents(
                   url: self,

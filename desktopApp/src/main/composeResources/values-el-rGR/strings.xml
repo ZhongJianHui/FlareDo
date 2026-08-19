@@ -28,8 +28,8 @@
     <string name="service_select_instance_input_placeholder">URL διακομιστή</string>
     <string name="service_select_next_button">Επόμενο</string>
     <string name="service_select_empty_message">Δεν βρέθηκαν διακομιστές</string>
-    <string name="service_select_welcome_title">Καλώς ήρθατε στο Flare</string>
-    <string name="service_select_welcome_message">Το Flare είναι ένας πελάτης κοινωνικών δικτύων για το %1$s.\nΕπιλέξτε μια υπηρεσία για να συνδεθείτε και να ξεκινήσετε.</string>
+    <string name="service_select_welcome_title">Καλώς ήρθατε στο FlareDo</string>
+    <string name="service_select_welcome_message">Το FlareDo είναι ένας πελάτης κοινωνικών δικτύων για το %1$s.\nΕπιλέξτε μια υπηρεσία για να συνδεθείτε και να ξεκινήσετε.</string>
     <string name="mastodon_login_verify_message">Επαλήθευση των στοιχείων σας…</string>
     <string name="profile_tab_timeline">Δημοσιεύσεις</string>
     <string name="profile_tab_timeline_with_reply">Δημοσιεύσεις και απαντήσεις</string>
@@ -170,7 +170,7 @@
     <string name="settings_appearance_title">Εμφάνιση</string>
     <string name="settings_status_appearance_title">Εμφάνιση δημοσίευσης</string>
     <string name="settings_status_appearance_subtitle">Προσαρμογή εμφάνισης δημοσίευσης</string>
-    <string name="settings_appearance_subtitle">Προσαρμογή της εμφάνισης και της αίσθησης του Flare</string>
+    <string name="settings_appearance_subtitle">Προσαρμογή της εμφάνισης και της αίσθησης του FlareDo</string>
     <string name="settings_appearance_theme_group_title">Θέμα</string>
     <string name="settings_appearance_theme_group_subtitle">Χρώματα, μέγεθος γραμματοσειράς και σχήμα άβαταρ</string>
     <string name="settings_appearance_layout_group_title">Διάταξη</string>
@@ -184,7 +184,7 @@
     <string name="settings_draft_box_description">Προβολή, επεξεργασία και επαναποστολή αποθηκευμένων προσχεδίων</string>
     <string name="settings_storage_subtitle">Διαχείριση προσωρινών αρχείων, καταγραφών και αντιγράφων ασφαλείας</string>
     <string name="settings_about_title">Σχετικά</string>
-    <string name="settings_about_subtitle">Μάθετε περισσότερα για το Flare</string>
+    <string name="settings_about_subtitle">Μάθετε περισσότερα για το FlareDo</string>
     <string name="settings_side_panel">Προσαρμογή πλευρικού πλαισίου</string>
     <string name="settings_side_panel_description">Προσαρμογή του πλευρικού πλαισίου</string>
     <string name="settings_local_filter_title">Τοπικά Φίλτρα</string>
@@ -193,8 +193,8 @@
     <string name="settings_guest_setting_description">Επιλέξτε σε ποιον διακομιστή συνδέεται η λειτουργία επισκέπτη</string>
     <string name="settings_local_history_title">Τοπικό Ιστορικό</string>
     <string name="settings_local_history_description">Αναζήτηση δημοσιεύσεων και προφίλ που έχουν αποθηκευτεί προσωρινά σε αυτήν τη συσκευή</string>
-    <string name="settings_agent_history_title">Flare AI</string>
-    <string name="settings_agent_history_description">Δείτε το ιστορικό συνομιλίας του τοπικού παράγοντα Flare AI</string>
+    <string name="settings_agent_history_title">FlareDo AI</string>
+    <string name="settings_agent_history_description">Δείτε το ιστορικό συνομιλίας του τοπικού παράγοντα FlareDo AI</string>
     <string name="agent_history_empty">Δεν υπάρχει ιστορικό συνομιλίας πράκτορα ακόμα.</string>
     <string name="settings_app_logging_title">Καταγραφές εφαρμογής</string>
     <string name="settings_app_logging_save">Αποθήκευση καταγραφών</string>
@@ -208,7 +208,7 @@
     <string name="settings_ai_config_server_url_requirement">Το URL πρέπει να τελειώνει με κάθετο (/) και να υποστηρίζει ένα συμβατό v1/chat/completions API.</string>
     <string name="settings_ai_config_server_self_host_description">Χρησιμοποιήστε την επίσημη υπηρεσία ή τον δικό σας συμβατό διακομιστή</string>
     <string name="settings_ai_config_type">Τύπος AI</string>
-    <string name="settings_ai_config_type_description">Επιλέξτε ποιο σύστημα AI χρησιμοποιεί το Flare</string>
+    <string name="settings_ai_config_type_description">Επιλέξτε ποιο σύστημα AI χρησιμοποιεί το FlareDo</string>
     <string name="settings_ai_config_type_on_device">AI στη συσκευή</string>
     <string name="settings_ai_config_type_openai">API συμβατό με AI</string>
     <string name="settings_ai_config_api_key">Κλειδί API</string>
@@ -310,7 +310,7 @@
     <string name="settings_appearance_full_width_post">Δημοσιεύσεις πλήρους πλάτους</string>
     <string name="settings_appearance_full_width_post_description">Επιτρέψτε στις δημοσιεύσεις να εκτείνονται σε όλο το διαθέσιμο πλάτος</string>
     <string name="settings_language_title">Γλώσσα</string>
-    <string name="settings_language_description">Αλλαγή γλώσσας της εφαρμογής Flare</string>
+    <string name="settings_language_description">Αλλαγή γλώσσας της εφαρμογής FlareDo</string>
     <string name="settings_appearance_post_action_style">Στυλ ενεργειών δημοσίευσης</string>
     <string name="settings_appearance_post_action_style_description">Επιλέξτε πώς διατάσσονται τα κουμπιά ενεργειών</string>
     <string name="settings_appearance_post_action_style_hidden">Κρυφό</string>
@@ -355,7 +355,7 @@
     <string name="settings_about_telegram_description">Γίνετε μέλος στην ομάδα μας στο Telegram</string>
     <string name="settings_about_discord_description">Γίνετε μέλος στον διακομιστή μας στο Discord</string>
     <string name="settings_about_localization">Crowdin</string>
-    <string name="settings_about_localization_description">Βοηθήστε μας να μεταφράσουμε το Flare</string>
+    <string name="settings_about_localization_description">Βοηθήστε μας να μεταφράσουμε το FlareDo</string>
     <string name="settings_privacy_policy">Πολιτική Απορρήτου</string>
     <string name="users">Χρήστες</string>
     <string name="hashtags">Hashtags</string>
@@ -518,7 +518,7 @@
     <string name="misskey_channel_tab_featured">Προτεινόμενα</string>
     <string name="media_save_success">Αποθηκεύτηκε στις Λήψεις</string>
     <string name="media_save_fail">Αποτυχία αποθήκευσης</string>
-    <string name="app_name" translatable="false">Flare</string>
+    <string name="app_name" translatable="false">FlareDo</string>
     <string name="profile_insight_title">Πληροφορίες προφίλ</string>
     <string name="agent_chat_input_placeholder">Ερώτηση οτιδήποτε...</string>
     <string name="agent_chat_thinking">Σκέφτεται...</string>
@@ -603,7 +603,7 @@
     <string name="settings_link_open_defaults_title">Άνοιγμα συνδέσμων</string>
     <string name="settings_link_open_defaults_description">Επιλέξτε προεπιλογές για υποστηριζόμενους συνδέσμους ανά κεντρικό υπολογιστή</string>
     <string name="settings_link_open_default_title">Προεπιλογή για συνδέσμους %1$s</string>
-    <string name="settings_link_open_default_description">Επιλέξτε πώς ανοίγουν οι υποστηριζόμενοι σύνδεσμοι όταν το Flare μπορεί να τους χειριστεί</string>
+    <string name="settings_link_open_default_description">Επιλέξτε πώς ανοίγουν οι υποστηριζόμενοι σύνδεσμοι όταν το FlareDo μπορεί να τους χειριστεί</string>
     <string name="settings_link_open_default_ask_every_time">Ερώτηση κάθε φορά</string>
     <string name="media_download_started">Η λήψη ξεκίνησε</string>
     <string name="fanbox_supported_title">Υποστηρίζω</string>

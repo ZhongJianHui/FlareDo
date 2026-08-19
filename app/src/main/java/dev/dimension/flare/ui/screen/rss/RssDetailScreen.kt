@@ -47,7 +47,7 @@ import compose.icons.fontawesomeicons.Solid
 import compose.icons.fontawesomeicons.brands.Chrome
 import compose.icons.fontawesomeicons.solid.Language
 import compose.icons.fontawesomeicons.solid.ShareNodes
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.common.encodeJson
 import dev.dimension.flare.data.network.rss.DocumentData
 import dev.dimension.flare.data.repository.SettingsRepository

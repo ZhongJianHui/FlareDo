@@ -527,7 +527,7 @@
 </script>
 
 <svelte:head>
-	<title>{m.tabSettingsTitle()} | Flare</title>
+	<title>{m.tabSettingsTitle()} | FlareDo</title>
 </svelte:head>
 
 <div class="tab-settings-page bg-base-200">

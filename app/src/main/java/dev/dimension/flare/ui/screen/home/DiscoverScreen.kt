@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.dp
 import compose.icons.FontAwesomeIcons
 import compose.icons.fontawesomeicons.Solid
 import compose.icons.fontawesomeicons.solid.Robot
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 import dev.dimension.flare.common.isLoading
 import dev.dimension.flare.common.isRefreshing
 import dev.dimension.flare.common.isSuccess

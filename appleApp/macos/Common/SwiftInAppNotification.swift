@@ -212,11 +212,11 @@ final class SwiftInAppNotification: NSObject, ObservableObject, InAppNotificatio
     }
 
     private func notificationIdentifier(for message: Message, kind: String) -> String {
-        "dev.dimension.flare.in-app-notification.\(messageKey(for: message)).\(kind)"
+        "io.github.zhongjianhui.flaredo.in-app-notification.\(messageKey(for: message)).\(kind)"
     }
 
     private func notificationIdentifier(for identifier: String, kind: String) -> String {
-        "dev.dimension.flare.in-app-notification.\(identifier).\(kind)"
+        "io.github.zhongjianhui.flaredo.in-app-notification.\(identifier).\(kind)"
     }
 
     private func messageKey(for message: Message) -> String {

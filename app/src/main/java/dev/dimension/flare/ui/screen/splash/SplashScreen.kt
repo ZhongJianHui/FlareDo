@@ -10,7 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
-import dev.dimension.flare.R
+import io.github.zhongjianhui.flaredo.R
 
 @Composable
 internal fun SplashScreen() {

@@ -21,7 +21,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Flare"
+rootProject.name = "FlareDo"
 include(":app")
 include(":shared")
 include(":social:bluesky")
