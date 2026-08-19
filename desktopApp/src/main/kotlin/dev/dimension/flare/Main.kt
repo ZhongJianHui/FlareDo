@@ -1,172 +1,30 @@
 package dev.dimension.flare
 
-import androidx.compose.foundation.layout.width
-import androidx.compose.runtime.ExperimentalComposeApi
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.ExperimentalMediaQueryApi
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
-import coil3.ImageLoader
-import coil3.annotation.ExperimentalCoilApi
-import coil3.compose.setSingletonImageLoaderFactory
-import coil3.network.ktor3.KtorNetworkFetcherFactory
-import coil3.request.crossfade
-import dev.dimension.flare.common.DeeplinkHandler
-import dev.dimension.flare.data.network.ktorClient
-import dev.dimension.flare.di.DesktopKoinApplication
-import dev.dimension.flare.ui.component.PlatformTitleBar
-import dev.dimension.flare.ui.component.PlatformWindow
-import dev.dimension.flare.ui.component.status.ProvideDesktopTimelineMediaActions
-import dev.dimension.flare.ui.theme.FlareTheme
-import dev.dimension.flare.ui.theme.ProvideComposeWindow
-import dev.dimension.flare.ui.theme.ProvideThemeSettings
-import io.github.composefluent.component.NavigationDefaults
-import io.github.kdroidfilter.nucleus.aot.runtime.AotRuntime
-import io.github.kdroidfilter.nucleus.core.runtime.DeepLinkHandler
-import io.github.kdroidfilter.nucleus.core.runtime.SingleInstanceManager
-import io.sentry.Sentry
-import kotlinx.coroutines.flow.MutableStateFlow
-import org.apache.commons.lang3.SystemUtils
+import dev.dimension.flare.ui.ForumShell
+import dev.dimension.flare.ui.theme.FlareDoTheme
 import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.resources.stringResource
-import org.koin.plugin.module.dsl.startKoin
-import kotlin.system.exitProcess
-import kotlin.time.Duration.Companion.seconds
-import kotlin.time.toJavaDuration
 
-@OptIn(
-    ExperimentalCoilApi::class,
-    ExperimentalComposeUiApi::class,
-    ExperimentalComposeApi::class,
-    ExperimentalMediaQueryApi::class,
-)
-fun main(args: Array<String>) {
-    if (AotRuntime.isTraining()) {
-        Thread({
-            Thread.sleep(15.seconds.toJavaDuration())
-            exitProcess(0)
-        }, "aot-timer").apply {
-            isDaemon = false
-            start()
-        }
-    } else {
-        BuildConfig.dsn?.let { dsn ->
-            Sentry.init { options ->
-                options.dsn = dsn
-                options.release = "${BuildConfig.versionName} (${BuildConfig.versionCode})"
-            }
-        }
-    }
-    val restoreRequestFlow = MutableStateFlow(0)
-    DeepLinkHandler.register(args) { uri ->
-        DeeplinkHandler.handleDeeplink(uri.toString())
-    }
-    val isFirstInstance =
-        SingleInstanceManager.isSingleInstance(
-            onRestoreFileCreated = { DeepLinkHandler.writeUriTo(this) },
-            onRestoreRequest = {
-                DeepLinkHandler.readUriFrom(this)
-                restoreRequestFlow.value++
-            },
-        )
-    if (!isFirstInstance) {
-        return
-    }
-    startKoin<DesktopKoinApplication>()
+public fun main(): Unit =
     application {
-        setSingletonImageLoaderFactory { context ->
-            ImageLoader
-                .Builder(context)
-                .components {
-                    add(
-                        KtorNetworkFetcherFactory(
-                            httpClient =
-                                ktorClient {
-                                    useDefaultTransformers = false
-                                },
-                        ),
-                    )
-                }.crossfade(true)
-                .build()
-        }
-        ProvideThemeSettings {
-            PlatformWindow(
-                onCloseRequest = {
-                    exitApplication()
-                },
-                title = stringResource(Res.string.app_name),
-                icon = painterResource(Res.drawable.flare_logo),
-                state =
-                    rememberWindowState(
-                        position = WindowPosition(Alignment.Center),
-                        size = DpSize(520.dp, 840.dp),
-                    ),
-            ) {
-                val restoreRequest by restoreRequestFlow.collectAsState()
-                LaunchedEffect(restoreRequest) {
-                    if (restoreRequest > 0) {
-                        window.toFront()
-                        window.requestFocus()
-                    }
-                }
-                val backButtonState =
-                    remember {
-                        NavigationBackButtonState()
-                    }
-                FlareTheme {
-                    ProvideComposeWindow {
-                        ProvideDesktopTimelineMediaActions {
-                            FlareApp(
-                                backButtonState = backButtonState,
-                            )
-                        }
-                    }
-                    PlatformTitleBar {
-                        if (backButtonState.canGoBack) {
-                            NavigationDefaults.BackButton(
-                                onClick = {
-                                    backButtonState.onClick.invoke()
-                                },
-                                modifier =
-                                    Modifier
-                                        .let {
-                                            if (SystemUtils.IS_OS_WINDOWS) {
-                                                it.width(70.dp)
-                                            } else {
-                                                it
-                                            }
-                                        },
-                            )
-                        }
-                    }
-                }
+        Window(
+            onCloseRequest = ::exitApplication,
+            title = "FlareDo",
+            icon = painterResource(Res.drawable.flaredo_logo),
+            state =
+                rememberWindowState(
+                    position = WindowPosition(Alignment.Center),
+                    size = DpSize(width = 1180.dp, height = 760.dp),
+                ),
+        ) {
+            FlareDoTheme {
+                ForumShell()
             }
         }
     }
-}
-
-internal class NavigationBackButtonState {
-    var canGoBack by mutableStateOf(false)
-        private set
-    var onClick: () -> Unit = {}
-        private set
-
-    fun attach(onClick: () -> Unit) {
-        this.onClick = onClick
-    }
-
-    fun update(canGoBack: Boolean) {
-        this.canGoBack = canGoBack
-    }
-}

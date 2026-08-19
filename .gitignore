@@ -20,8 +20,8 @@ signing.properties
 build/
 */Podfile.lock
 */Pods/*
-*/Flare.xcworkspace/*
-*/Flare.xcodeproj/*
+*/FlareDo.xcworkspace/*
+*/FlareDo.xcodeproj/*
 shared/shared.podspec
 .kotlin
 .history
@@ -30,5 +30,3 @@ appleApp/K_D/
 *.sh
 !.github/scripts/*.sh
 .env
-
-GoogleService-Info.plist

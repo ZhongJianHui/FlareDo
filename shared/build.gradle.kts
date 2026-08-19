@@ -8,8 +8,6 @@ plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
-    alias(libs.plugins.ktorfit)
-    alias(libs.plugins.koin.compiler)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.room)
 }
@@ -21,113 +19,49 @@ kotlin {
             FlarePlatform.ANDROID,
             FlarePlatform.JVM,
             FlarePlatform.IOS,
-            FlarePlatform.WEB,
             FlarePlatform.MACOS,
         )
-        ksp(
-            libs.ktorfit.ksp,
-            libs.room.compiler,
-        )
+        ksp(libs.room.compiler)
     }
+
     android {
-        withDeviceTest {
-            instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-            execution = "HOST"
-        }
+        withHostTest {}
     }
 
     sourceSets {
-        all {
-            languageSettings {
-                optIn("kotlin.uuid.ExperimentalUuidApi")
-            }
+        commonMain.dependencies {
+            implementation(libs.compose.runtime)
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.kotlinx.datetime)
+            implementation(project.dependencies.platform(libs.koin.bom))
+            implementation(libs.koin.core)
+            api(libs.paging.common)
+            api(libs.paging.compose)
+            implementation(libs.molecule.runtime)
+            implementation(libs.room.runtime)
+            implementation(libs.room.paging)
+            implementation(libs.sqlite)
+            implementation(libs.sqlite.async)
         }
-        val commonMain by getting {
-            dependencies {
-                implementation(dependencies.platform(libs.compose.bom))
-                implementation(libs.compose.runtime)
-                implementation(libs.bundles.kotlinx)
-                implementation(dependencies.platform(libs.koin.bom))
-                implementation(libs.koin.core)
-                implementation(libs.koin.annotations)
-                api(libs.paging.common)
-                api(libs.paging.compose)
-                implementation(libs.bundles.ktorfit)
-                implementation(libs.bundles.ktor)
-                implementation(libs.okio)
-                implementation(libs.kotlin.codepoints.deluxe)
-                implementation(libs.ksoup)
-                implementation(libs.mfm.multiplatform)
-                implementation(libs.twitter.parser)
-                implementation(libs.molecule.runtime)
-                implementation(libs.room.runtime)
-                implementation(libs.room.paging)
-                implementation(libs.sqlite)
-                implementation(libs.sqlite.async)
-                implementation(libs.datastore.core)
-                implementation(libs.datastore.core.okio)
-                implementation(libs.kotlinx.serialization.protobuf)
-                implementation(libs.ktor.client.resources)
-                implementation(libs.cryptography.provider.optimal)
-                implementation(libs.openai.client)
-            }
+        getByName("nonWebMain").dependencies {
+            implementation(libs.sqlite.bundled)
         }
-        val nonWebMain by getting {
-            dependencies {
-                implementation(libs.sqlite.bundled)
-            }
-        }
-        val commonTest by getting {
-            dependencies {
-                implementation(kotlin("test"))
-                implementation(libs.kotlinx.coroutines.test)
-                implementation(libs.paging.testing)
-                implementation(libs.ktor.client.mock)
-            }
-        }
-        val androidJvmMain by getting {
-            dependencies {
-                implementation(libs.ktor.client.okhttp)
-            }
-        }
-        val androidMain by getting {
-            dependencies {
-                implementation(libs.core.ktx)
-                implementation(libs.koin.android)
-                implementation(libs.koin.compose)
-                implementation(libs.activity.compose)
-            }
-        }
-        val androidDeviceTest by getting {
-            dependencies {
-                implementation(libs.junit)
-                implementation(libs.robolectric)
-                implementation(libs.kotlinx.coroutines.test)
-            }
-        }
-        val jvmMain by getting {
-            dependencies {
-                implementation(libs.commons.lang3)
-                implementation(libs.prettytime)
-                implementation(libs.jna)
-            }
-        }
-        val appleMain by getting {
-            dependencies {
-                implementation(libs.ktor.client.darwin)
-            }
-        }
-        val wasmJsMain by getting {
-            dependencies {
-                implementation(libs.ktor.client.js)
-                implementation(libs.sqlite.web)
-                implementation(libs.kotlinx.browser)
-                implementation(npm("@androidx/sqlite-web-worker", file("sqlite-web-worker")))
-            }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.paging.testing)
         }
     }
 }
 
 room3 {
     schemaDirectory("$projectDir/schemas")
+}
+
+// AGP's host-test lint tasks read KSP output but do not currently wire the producer task.
+tasks.matching {
+    it.name.contains("AndroidHostTest") && it.name.contains("lint", ignoreCase = true)
+}.configureEach {
+    dependsOn(tasks.matching { it.name == "kspAndroidHostTest" })
 }

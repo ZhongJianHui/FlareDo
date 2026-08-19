@@ -16,30 +16,13 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven("https://central.sonatype.com/repository/maven-snapshots/")
-        maven("https://jitpack.io")
     }
 }
 
 rootProject.name = "FlareDo"
 include(":app")
 include(":shared")
-include(":social:bluesky")
-include(":social:fanbox")
-include(":social:mastodon")
-include(":social:misskey")
-include(":social:nostr")
-include(":social:pixiv")
-include(":social:vvo")
-include(":social:xqt")
-include(":feature:login-api")
-include(":feature:agent")
-include(":feature:login")
-include(":feature:subscription")
-include(":feature:tab")
 include(":compose-ui")
 include(":apple-shared")
-include(":web-shared")
-include(":web-presenter-processor")
 include(":desktopApp")
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")

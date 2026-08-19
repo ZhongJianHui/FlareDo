@@ -12,7 +12,6 @@ import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.getByName
 import org.gradle.kotlin.dsl.getByType
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
-import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jlleitschuh.gradle.ktlint.KtlintExtension
@@ -24,7 +23,6 @@ enum class FlarePlatform {
     IOS,
     MACOS,
     LINUX,
-    WEB,
     MINGW,
 }
 
@@ -46,14 +44,6 @@ class FlareRootConventionsPlugin : Plugin<Project> {
                 version.set(ktlintCliVersion)
                 filter {
                     exclude { element -> element.file.path.contains("build", ignoreCase = true) }
-                    if (subproject.path.startsWith(":social")) {
-                        exclude { element ->
-                            element.file.absolutePath.contains("data/network/misskey/api/", ignoreCase = true)
-                        }
-                        exclude { element ->
-                            element.file.absolutePath.contains("data/network/xqt/", ignoreCase = true)
-                        }
-                    }
                 }
             }
             subproject.tasks.matching { it.name.startsWith("runKtlint") }.configureEach {
@@ -157,7 +147,7 @@ class FlareModuleSpec internal constructor(
         kspDependencies.addAll(dependencyNotations)
     }
 
-    @OptIn(ExperimentalKotlinGradlePluginApi::class, ExperimentalWasmDsl::class)
+    @OptIn(ExperimentalKotlinGradlePluginApi::class)
     internal fun apply() {
         require(configuredPlatforms.isNotEmpty()) {
             "flare { } requires at least one platform."
@@ -227,11 +217,6 @@ class FlareModuleSpec internal constructor(
         }
         if (FlarePlatform.LINUX in selectedPlatforms && !kotlin.hasTarget("linuxX64")) {
             kotlin.linuxX64()
-        }
-        if (FlarePlatform.WEB in selectedPlatforms && !kotlin.hasTarget("wasmJs")) {
-            kotlin.wasmJs {
-                browser()
-            }
         }
         if (FlarePlatform.MINGW in selectedPlatforms && !kotlin.hasTarget("mingwX64")) {
             kotlin.mingwX64()

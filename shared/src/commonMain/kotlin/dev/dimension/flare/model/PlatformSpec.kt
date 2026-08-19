@@ -1,180 +1,34 @@
 package dev.dimension.flare.model
 
-import dev.dimension.flare.data.database.app.model.SubscriptionType
-import dev.dimension.flare.data.datasource.microblog.MicroblogDataSource
-import dev.dimension.flare.data.datasource.microblog.paging.CacheableRemoteLoader
-import dev.dimension.flare.data.model.tab.TimelineSpec
-import dev.dimension.flare.ui.model.UiInstance
-import dev.dimension.flare.ui.model.UiTimelineV2
-import dev.dimension.flare.ui.route.DeeplinkRoute
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.coroutines.flow.Flow
-import kotlinx.serialization.KSerializer
-import org.koin.core.annotation.Provided
-import org.koin.core.annotation.Single
-import kotlin.native.HiddenFromObjC
-
-@HiddenFromObjC
+/**
+ * Describes a forum implementation that can be registered with the shared application core.
+ *
+ * FlareDo currently targets Linux.do only, but keeping the contract in the shared module avoids
+ * coupling presenters and caches to the Discourse transport module introduced in stage 3.
+ */
 public interface PlatformSpec {
-    public val platformId: String
-    public val metadata: PlatformMetadata
-    public val order: Int
-        get() = 0
-    public val isDefaultGuest: Boolean
-        get() = false
-    public val capabilities: Set<PlatformCapability>
-        get() = emptySet()
+    /** Stable identifier used in persisted, non-secret records. */
+    public val id: String
 
-    public fun resolveInitialText(context: ComposeInitialTextContext): InitialText? = null
+    /** Human-readable name shown in account and diagnostics screens. */
+    public val displayName: String
 
-    public val timelineSpecs: ImmutableList<TimelineSpec<out TimelineSpec.Data>>
-    public val subscriptionTimelineSpecs: ImmutableList<SubscriptionTimelineSpec>
-        get() = persistentListOf()
-
-    public fun deepLinks(accountKey: MicroBlogKey): ImmutableList<PlatformDeepLink<*>>
-
-    public fun createDataSource(context: PlatformDataSourceContext): MicroblogDataSource
-
-    public fun guestDataSource(
-        host: String,
-        locale: String,
-    ): MicroblogDataSource
+    /** Canonical HTTPS origin. Implementations must not derive this value from untrusted input. */
+    public val baseUrl: String
 }
 
-@HiddenFromObjC
-public interface SubscriptionTimelineSpec {
-    public val type: SubscriptionType
-
-    public suspend fun isAvailable(
-        host: String,
-        locale: String,
-    ): Boolean
-
-    public fun createLoader(
-        host: String,
-        locale: String,
-    ): CacheableRemoteLoader<UiTimelineV2>
-}
-
-@HiddenFromObjC
-public interface PlatformDataSourceContext {
-    public val accountKey: MicroBlogKey
-
-    public fun <T : Any> credential(serializer: KSerializer<T>): T
-
-    public fun <T : Any> credentialFlow(serializer: KSerializer<T>): Flow<T>
-
-    public suspend fun <T : Any> updateCredential(
-        serializer: KSerializer<T>,
-        credential: T,
-    )
-}
-
-@HiddenFromObjC
-public data class PlatformDeepLink<T>(
-    public val uriPattern: String,
-    public val serializer: KSerializer<T>,
-    public val matcher: (T) -> Boolean = { true },
-    public val callback: (T) -> DeeplinkRoute,
-)
-
-@HiddenFromObjC
-public data class RecommendedInstance(
-    public val instance: UiInstance,
-    public val priority: Int = 0,
-)
-
-@Provided
-@HiddenFromObjC
-public data class PlatformRuntimeData(
-    public val platformSpecs: List<PlatformSpec>,
-    public val extraTimelineSpecs: List<TimelineSpec<out TimelineSpec.Data>>,
-) {
-    internal val timelineSpecs by lazy {
-        platformSpecs
-            .sortedWith(compareBy<PlatformSpec> { it.order }.thenBy { it.platformId })
-            .flatMap { it.timelineSpecs }
-            .plus(extraTimelineSpecs)
-    }
-}
-
-@Single
-@HiddenFromObjC
+/** Immutable lookup table for installed [PlatformSpec] implementations. */
 public class PlatformRegistry(
-    data: PlatformRuntimeData,
+    specs: List<PlatformSpec>,
 ) {
-    public val all: List<PlatformSpec> =
-        data.platformSpecs
-            .also { specs ->
-                specs.forEach { requireValidPlatformId(it.platformId) }
-                val duplicateIds =
-                    specs
-                        .groupBy { it.platformId.lowercase() }
-                        .filterValues { it.size > 1 }
-                        .keys
-                require(duplicateIds.isEmpty()) {
-                    "Duplicate platform specs: ${duplicateIds.joinToString()}"
-                }
-                val defaultGuests = specs.filter { it.isDefaultGuest }
-                require(defaultGuests.size == 1) {
-                    "Exactly one default guest platform is required: ${defaultGuests.joinToString { it.platformId }}"
-                }
-            }.sortedWith(compareBy<PlatformSpec> { it.order }.thenBy { it.platformId })
-    private val byId: Map<String, PlatformSpec> = all.associateBy { it.platformId }
+    private val specsById: Map<String, PlatformSpec> =
+        specs.associateBy(PlatformSpec::id).also { indexed ->
+            require(indexed.size == specs.size) { "Platform ids must be unique" }
+        }
 
-    public val defaultGuest: PlatformSpec = all.single { it.isDefaultGuest }
+    /** Returns all registered platforms in deterministic identifier order. */
+    public val all: List<PlatformSpec> = specsById.values.sortedBy(PlatformSpec::id)
 
-    public val subscriptionTimelineSpecs: List<SubscriptionTimelineSpec> by lazy {
-        all
-            .flatMap { it.subscriptionTimelineSpecs }
-            .also { specs ->
-                val duplicateTypes =
-                    specs
-                        .groupBy { it.type }
-                        .filterValues { it.size > 1 }
-                        .keys
-                require(duplicateTypes.isEmpty()) {
-                    "Duplicate subscription timeline specs: ${duplicateTypes.joinToString()}"
-                }
-            }
-    }
-
-    private val subscriptionTimelineSpecsByType: Map<SubscriptionType, SubscriptionTimelineSpec> by lazy {
-        subscriptionTimelineSpecs.associateBy { it.type }
-    }
-
-    public fun get(platformId: String): PlatformSpec? = byId[platformId]
-
-    public fun require(platformId: String): PlatformSpec = get(platformId) ?: throw UnsupportedPlatformException(platformId)
-
-    public fun isRegistered(platformId: String): Boolean = platformId in byId
-
-    public fun metadataOrFallback(platformId: String): PlatformMetadata =
-        get(platformId)?.metadata
-            ?: PlatformMetadata(
-                displayName = platformId,
-                icon = dev.dimension.flare.ui.model.UiIcon.World,
-            )
-
-    public fun supports(
-        platformId: String,
-        capability: PlatformCapability,
-    ): Boolean = capability in get(platformId)?.capabilities.orEmpty()
-
-    public fun getSubscriptionTimelineSpec(type: SubscriptionType): SubscriptionTimelineSpec? = subscriptionTimelineSpecsByType[type]
-
-    public fun requireSubscriptionTimelineSpec(type: SubscriptionType): SubscriptionTimelineSpec =
-        getSubscriptionTimelineSpec(type) ?: throw UnsupportedSubscriptionTimelineException(type)
+    /** Finds a platform without turning unknown persisted identifiers into crashes. */
+    public fun find(id: String): PlatformSpec? = specsById[id]
 }
-
-@HiddenFromObjC
-public class UnsupportedPlatformException(
-    public val platformId: String,
-    public val accountKey: MicroBlogKey? = null,
-) : IllegalArgumentException("Platform is not registered: $platformId")
-
-@HiddenFromObjC
-public class UnsupportedSubscriptionTimelineException(
-    public val type: SubscriptionType,
-) : IllegalArgumentException("Subscription timeline is not registered: $type")

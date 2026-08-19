@@ -1,0 +1,16 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="1024"
+    android:viewportHeight="1024">
+    <!-- Original FlareDo mark: two forum replies and an activity spark. -->
+    <path
+        android:fillColor="#13A89E"
+        android:pathData="M216,244h420c66,0 120,54 120,120v164c0,66 -54,120 -120,120H416L264,760V648h-48c-66,0 -120,-54 -120,-120V364c0,-66 54,-120 120,-120Z" />
+    <path
+        android:fillColor="#F7F9FA"
+        android:pathData="M488,376h320c66,0 120,54 120,120v164c0,66 -54,120 -120,120h-44v104L624,780H488c-66,0 -120,-54 -120,-120V496c0,-66 54,-120 120,-120Z" />
+    <path
+        android:fillColor="#E85D4A"
+        android:pathData="M662,450L704,544l94,42 -94,42 -42,94 -42,-94 -94,-42 94,-42Z" />
+</vector>

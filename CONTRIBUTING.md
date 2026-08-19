@@ -46,15 +46,13 @@ Flare uses [ktlint](https://github.com/pinterest/ktlint) to check the code style
  - Run `./gradlew run` to build and run the debug version of the desktop app.
 
 ### Project structure
-The project is split into theses parts:
- - `shared`: The common code, including bussiness logic.
- - `apple-shared`: The common code for Apple target.
- - `web-shared`: The common code for Web.
- - `web`: The Web app.
- - `compose-ui`: The Compose UI code that shared between Android, iOS, Desktop.
- - `app`: The Android app.
- - `appleApp`: The iOS and macOS apps.
- - `desktopApp`: The desktop app for Windows/macOS.  
+The project is split into these parts:
+ - `shared`: Kotlin Multiplatform forum data, cache, and presentation contracts.
+ - `apple-shared`: Kotlin framework exported to the Apple applications.
+ - `compose-ui`: Shared Compose UI for Android, Linux, and Windows.
+ - `app`: The Android application.
+ - `appleApp`: The SwiftUI iOS and macOS applications.
+ - `desktopApp`: The Compose Desktop application for Linux and Windows.
 
 Most of the business logic is in `shared`, and the platform specific code and UI is in `app` and `appleApp`.
 Flare uses [Kotlin Multiplatform](https://kotlinlang.org/docs/multiplatform.html) to share code between platforms, [Jetpack Compose](https://developer.android.com/jetpack/compose) for the UI on Android, [SwiftUI](https://developer.apple.com/xcode/swiftui/) for the UI on iOS.
