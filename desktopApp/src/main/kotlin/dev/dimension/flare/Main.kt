@@ -7,41 +7,53 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
-import dev.dimension.flare.data.database.FlareDoDatabase
-import dev.dimension.flare.data.database.createJvmFlareDoDatabase
+import dev.dimension.flare.data.network.discourse.auth.DiscourseLoginService
+import dev.dimension.flare.data.network.discourse.discourseAuthenticationModule
 import dev.dimension.flare.data.network.discourse.discourseModule
-import dev.dimension.flare.data.network.discourse.forum.DiscourseForumCache
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumPresenter
-import dev.dimension.flare.data.network.discourse.forum.roomDiscourseForumCache
+import dev.dimension.flare.data.network.discourse.session.DesktopCredentialStoreAvailability
+import dev.dimension.flare.data.network.discourse.session.SessionOnlySecureCredentialStore
+import dev.dimension.flare.data.network.discourse.session.createDesktopSecureCredentialStore
 import dev.dimension.flare.di.sharedModule
 import dev.dimension.flare.ui.DesktopForumShell
 import dev.dimension.flare.ui.theme.FlareDoTheme
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.compose.resources.painterResource
 import org.koin.dsl.koinApplication
-import org.koin.dsl.module
-import org.koin.dsl.onClose
 import java.nio.file.Path
 import java.util.Locale
 
 public fun main() {
+    val credentialStore =
+        runBlocking {
+            when (val availability = createDesktopSecureCredentialStore()) {
+                is DesktopCredentialStoreAvailability.Available -> {
+                    availability.store
+                }
+
+                is DesktopCredentialStoreAvailability.Unavailable -> {
+                    // Linux without an unlocked Secret Service is explicitly session-only. The
+                    // unavailability reason contains no secret and is intentionally not persisted.
+                    SessionOnlySecureCredentialStore()
+                }
+            }
+        }
     val dependencies =
         koinApplication {
             allowOverride(true)
             modules(
                 sharedModule,
                 discourseModule,
-                module {
-                    single { createJvmFlareDoDatabase(flareDoDatabasePath()) } onClose { database ->
-                        database?.close()
-                    }
-                    single<DiscourseForumCache> {
-                        roomDiscourseForumCache(
-                            dao = get<FlareDoDatabase>().forumCacheEntryDao(),
-                        )
-                    }
-                },
+                discourseAuthenticationModule,
+                createDesktopDiscourseHostModule(
+                    credentialStore = credentialStore,
+                    databasePath = flareDoDatabasePath(),
+                ),
             )
         }
+    runBlocking {
+        dependencies.koin.get<DiscourseLoginService>().restoreSession()
+    }
     val presenter = dependencies.koin.get<DiscourseForumPresenter>()
 
     try {

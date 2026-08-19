@@ -160,6 +160,11 @@ internal class DefaultDiscourseApi(
 
     override suspend fun currentSession(): DiscourseCurrentSessionResponse = read { wire.currentSession() }
 
+    override suspend fun logout(username: String) {
+        requireUsername(username)
+        mutate { csrfToken -> wire.logout(username = username, csrfToken = csrfToken) }
+    }
+
     override suspend fun userBookmarks(
         username: String,
         page: DiscourseListPage,

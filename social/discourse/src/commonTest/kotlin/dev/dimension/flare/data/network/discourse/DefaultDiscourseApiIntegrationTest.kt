@@ -14,6 +14,7 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.http.ContentType
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.Url
 import kotlinx.coroutines.CompletableDeferred
@@ -26,6 +27,54 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 
 internal class DefaultDiscourseApiIntegrationTest {
+    @Test
+    fun logoutUsesCsrfProtectedSessionDelete() =
+        runTest {
+            val observed = mutableListOf<Pair<HttpMethod, String>>()
+            val engine =
+                MockEngine { request ->
+                    observed += request.method to request.url.encodedPath
+                    when (request.url.encodedPath) {
+                        "/session/csrf" -> {
+                            respond(
+                                content = "{\"csrf\":\"logout-token\"}",
+                                headers = apiJsonHeaders(),
+                            )
+                        }
+
+                        "/session/member" -> {
+                            assertEquals("logout-token", request.headers["X-CSRF-Token"])
+                            respond(content = "", status = HttpStatusCode.NoContent)
+                        }
+
+                        else -> {
+                            error("Unexpected logout request")
+                        }
+                    }
+                }
+            val cookieStorage = DiscourseCookieStorage()
+            val client = createDiscourseHttpClient(engine, cookieStorage)
+            val api =
+                DefaultDiscourseApi(
+                    wire = createDiscourseWireTransport(client),
+                    sessionManager = DiscourseSessionManager(cookieStorage = cookieStorage),
+                )
+
+            try {
+                api.logout("member")
+            } finally {
+                client.close()
+            }
+
+            assertEquals(
+                listOf(
+                    HttpMethod.Get to "/session/csrf",
+                    HttpMethod.Delete to "/session/member",
+                ),
+                observed,
+            )
+        }
+
     @Test
     fun cursorOriginsAreEncodedWithoutOffByOne() =
         runTest {

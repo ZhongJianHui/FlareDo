@@ -221,6 +221,33 @@ public class DiscourseCookieStorage(
         }
     }
 
+    /**
+     * Merges cookies without changing the request boundary when [expectedRevision] still owns it.
+     *
+     * This narrow operation exists for a foreground Cloudflare challenge that is already executing
+     * inside a generation-bound request. Advancing the revision there would make the retry reject the
+     * freshly bridged cookies. Conversely, accepting a mismatched revision could write an old browser
+     * snapshot into a newly logged-in account. The compare-and-set therefore preserves the revision
+     * on success and fails closed after any import, clear, close, login, or logout boundary.
+     */
+    internal fun mergeSnapshotIfRevision(
+        snapshot: List<DiscourseCookieSnapshot>,
+        expectedRevision: Long,
+    ): Boolean {
+        val now = nowEpochMillis()
+        val prepared = prepareSnapshot(snapshot)
+        while (true) {
+            val state = mutableState.value
+            if (state.isClosed || state.revision != expectedRevision) return false
+            val candidate =
+                prepared.fold(state.cookies.filterNot { it.isExpired(now) }) { current, item ->
+                    current.filterNot { it.hasSameKeyAs(item) } + item
+                }
+            requireWithinBounds(candidate)
+            if (mutableState.compareAndSet(state, state.copy(cookies = candidate))) return true
+        }
+    }
+
     /** Removes every cookie, including cookies that have not yet expired. */
     public fun clear() {
         mutableState.update { state ->
@@ -331,7 +358,7 @@ public class DiscourseCookieStorage(
         if (
             cookie.value.length > maxCookieValueBytes ||
             cookie.value.encodeToByteArray().size > maxCookieValueBytes ||
-            cookie.value.any(Char::isForbiddenCookieControl)
+            cookie.value.any { character -> !character.isRfc6265CookieOctet() }
         ) {
             throw RejectedDiscourseCookieException("Cookie value is invalid or too long")
         }
@@ -407,7 +434,18 @@ public class DiscourseCookieStorage(
     }
 }
 
-private fun Char.isForbiddenCookieControl(): Boolean = this == '\r' || this == '\n' || this == '\u0000'
+/**
+ * RFC 6265 `cookie-octet` after an optional surrounding DQUOTE has been removed by the parser.
+ *
+ * Validating the logical value, rather than only CR/LF, is essential for RAW browser snapshots:
+ * accepting `;` would let a non-session Cookie append another `_t` pair to the request header.
+ */
+private fun Char.isRfc6265CookieOctet(): Boolean =
+    this == '\u0021' ||
+        this in '\u0023'..'\u002b' ||
+        this in '\u002d'..'\u003a' ||
+        this in '\u003c'..'\u005b' ||
+        this in '\u005d'..'\u007e'
 
 private fun utf8Size(value: String): Long = value.encodeToByteArray().size.toLong()
 

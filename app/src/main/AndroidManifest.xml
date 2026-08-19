@@ -16,9 +16,8 @@
         android:theme="@style/Theme.FlareDo"
         android:usesCleartextTraffic="false">
         <!--
-          The launcher is the only app-owned exported component and consumes no external payload.
-          Authentication redirects will use a dedicated, narrowly scoped component instead of widening
-          this filter.
+          The launcher consumes no external payload. Authentication redirects use the dedicated,
+          narrowly scoped component below instead of widening this filter.
         -->
         <activity
             android:name="dev.dimension.flare.MainActivity"
@@ -27,6 +26,29 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+          This is the only exported data entry point. Runtime validation repeats this exact route
+          allowlist and rejects extras, ClipData, selectors, nested intents, MIME types and URI grants.
+        -->
+        <activity
+            android:name="dev.dimension.flare.auth.DiscourseAuthRedirectActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:noHistory="true"
+            android:taskAffinity="">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="auth_redirect"
+                    android:scheme="discourse" />
             </intent-filter>
         </activity>
     </application>

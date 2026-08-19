@@ -19,6 +19,8 @@ dependencies {
     implementation(libs.koin.core)
     implementation(compose.desktop.currentOs)
     implementation(compose("org.jetbrains.compose.components:components-resources"))
+
+    testImplementation(kotlin("test"))
 }
 
 val fdroidProperties =

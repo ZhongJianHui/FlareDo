@@ -28,6 +28,8 @@ android {
 }
 
 dependencies {
+    // IntentSanitizer is a direct security boundary, so do not rely on a transitive Core version.
+    implementation("androidx.core:core:1.19.0")
     implementation(libs.activity.compose)
     implementation(libs.lifecycle.viewmodel)
     implementation(project.dependencies.platform(libs.koin.bom))
@@ -38,6 +40,8 @@ dependencies {
 
     screenshotTestImplementation(libs.screenshot.validation.api)
     screenshotTestImplementation(libs.compose.ui.tooling)
+    testImplementation(kotlin("test-junit"))
+    testImplementation(libs.kotlinx.coroutines.test)
 
     // The shared Android convention enables core library desugaring for every app variant.
     coreLibraryDesugaring(libs.desugar.jdk.libs)

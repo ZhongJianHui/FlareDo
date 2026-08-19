@@ -3,6 +3,7 @@ package dev.dimension.flare.data.network.discourse.session
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.serialization.Serializable
 import kotlin.jvm.JvmInline
+import kotlin.random.Random
 
 private const val MAX_CREDENTIAL_REFERENCE_LENGTH = 512
 private const val MAX_ACCOUNT_ID_LENGTH = 512
@@ -66,6 +67,10 @@ public class SessionOnlySecureCredentialStore private constructor(
     @Suppress("UNUSED_PARAMETER") constructorMarker: Unit,
 ) : SecureCredentialStore,
     AutoCloseable {
+    // Session-only references can remain in Room after a process exits. A per-instance namespace
+    // makes every such stale reference miss instead of resolving to an unrelated new-process value.
+    private val referenceNamespace: String = createSessionOnlyReferenceNamespace()
+
     private data class CredentialRecord(
         val accountId: String,
         val secret: ByteArray,
@@ -124,7 +129,7 @@ public class SessionOnlySecureCredentialStore private constructor(
                 check(!current.isClosed) { "The session-only credential store is closed" }
                 check(current.nextReference > 0L) { "Credential reference space is exhausted" }
 
-                val reference = SecureCredentialRef("session:${current.nextReference}")
+                val reference = SecureCredentialRef("session:$referenceNamespace:${current.nextReference}")
                 val candidate =
                     current.copy(
                         nextReference = current.nextReference.nextReference(),
@@ -302,6 +307,17 @@ public class SessionOnlySecureCredentialStore private constructor(
 }
 
 private fun Long.nextReference(): Long = if (this == Long.MAX_VALUE) 0L else this + 1L
+
+private fun createSessionOnlyReferenceNamespace(): String {
+    val bytes = Random.Default.nextBytes(16)
+    return try {
+        bytes.joinToString(separator = "") { byte ->
+            byte.toUByte().toString(radix = 16).padStart(2, '0')
+        }
+    } finally {
+        bytes.fill(0)
+    }
+}
 
 internal fun requireValidAccountId(accountId: String) {
     require(accountId.isNotBlank()) { "Account id must not be blank" }

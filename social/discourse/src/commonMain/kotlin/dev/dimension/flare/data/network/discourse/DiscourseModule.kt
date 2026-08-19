@@ -1,5 +1,17 @@
 package dev.dimension.flare.data.network.discourse
 
+import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthAttemptStore
+import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthRedirectProcessor
+import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthTokenGenerator
+import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthorizationCoordinator
+import dev.dimension.flare.data.network.discourse.auth.DiscourseCloudflareChallengeHandler
+import dev.dimension.flare.data.network.discourse.auth.DiscourseLoginService
+import dev.dimension.flare.data.network.discourse.auth.DiscourseManualChallengeCoordinator
+import dev.dimension.flare.data.network.discourse.auth.DiscourseManualChallengePresenter
+import dev.dimension.flare.data.network.discourse.auth.DiscourseOtpSessionExchangeTransport
+import dev.dimension.flare.data.network.discourse.auth.DiscourseWebSessionLogin
+import dev.dimension.flare.data.network.discourse.auth.MemoryDiscourseAuthAttemptStore
+import dev.dimension.flare.data.network.discourse.auth.createPlatformDiscourseAuthTokenGenerator
 import dev.dimension.flare.data.network.discourse.content.DiscourseCookedHtmlParser
 import dev.dimension.flare.data.network.discourse.forum.DefaultDiscourseForumRepository
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumCache
@@ -9,6 +21,7 @@ import dev.dimension.flare.data.network.discourse.forum.DiscourseForumRepository
 import dev.dimension.flare.data.network.discourse.forum.MemoryDiscourseForumCache
 import dev.dimension.flare.data.network.discourse.session.DiscourseCookieStorage
 import dev.dimension.flare.data.network.discourse.session.DiscourseCsrfTokenStore
+import dev.dimension.flare.data.network.discourse.session.DiscourseSessionLifecycle
 import dev.dimension.flare.data.network.discourse.session.DiscourseSessionManager
 import dev.dimension.flare.data.network.discourse.session.SecureCredentialStore
 import dev.dimension.flare.data.network.discourse.session.SessionOnlySecureCredentialStore
@@ -63,4 +76,75 @@ public val discourseModule: Module =
         }
         // A presenter has a screen lifecycle and must never be reused after close().
         factory { DiscourseForumPresenter(repository = get()) }
+    }
+
+/**
+ * Login state-machine definitions layered over [discourseModule].
+ *
+ * Platform hosts must bind a persistent [SecureCredentialStore], RSA generator/decryptor, and
+ * `DiscourseSessionStore` before resolving [DiscourseLoginService]. Android/Desktop additionally
+ * replace the memory attempt store with `RoomDiscourseAuthAttemptStore`. Keeping these definitions
+ * separate lets anonymous forum tests load the transport graph without initializing a native vault.
+ */
+public val discourseAuthenticationModule: Module =
+    module {
+        single<DiscourseAuthAttemptStore> { MemoryDiscourseAuthAttemptStore() }
+        single<DiscourseAuthTokenGenerator> { createPlatformDiscourseAuthTokenGenerator() }
+        single { DiscourseManualChallengeCoordinator() }
+        single<DiscourseManualChallengePresenter> { get<DiscourseManualChallengeCoordinator>() }
+        single<DiscourseCloudflareChallengeHandler> {
+            DiscourseCloudflareChallengeHandler { false }
+        }
+        single {
+            DiscourseAuthorizationCoordinator(
+                keyPairGenerator = get(),
+                tokenGenerator = get(),
+                credentialStore = get(),
+                attemptStore = get(),
+            )
+        }
+        single {
+            DiscourseAuthRedirectProcessor(
+                attemptStore = get(),
+                credentialStore = get(),
+                decryptor = get(),
+                nowEpochMillis = {
+                    kotlin.time.Clock.System
+                        .now()
+                        .toEpochMilliseconds()
+                },
+            )
+        }
+        single {
+            DiscourseOtpSessionExchangeTransport(
+                client = get(),
+                sessionManager = get(),
+                challengeHandler = get(),
+            )
+        }
+        single {
+            DiscourseSessionLifecycle(
+                sessionManager = get(),
+                sessionStore = get(),
+            )
+        }
+        single {
+            DiscourseLoginService(
+                authorizationCoordinator = get(),
+                redirectProcessor = get(),
+                exchangeTransport = get(),
+                sessionLifecycle = get(),
+                sessionManager = get(),
+                cookieBridge = get(),
+                api = get(),
+            )
+        }
+        single {
+            DiscourseWebSessionLogin(
+                cookieBridge = get(),
+                sessionManager = get(),
+                sessionLifecycle = get(),
+                api = get(),
+            )
+        }
     }

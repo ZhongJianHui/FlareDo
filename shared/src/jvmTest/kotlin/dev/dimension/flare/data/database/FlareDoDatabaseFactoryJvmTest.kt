@@ -40,6 +40,34 @@ class FlareDoDatabaseFactoryJvmTest {
             }
         }
 
+    @Test
+    fun vaultReferenceConsumeCannotDeleteAReplacement() =
+        runTest {
+            withTemporaryDatabase { database ->
+                val dao = database.secureVaultReferenceDao()
+                val first = vaultReference(reference = "vault:first", createdAt = 10L)
+                val replacement = vaultReference(reference = "vault:replacement", createdAt = 20L)
+
+                assertNull(dao.replace(first))
+                assertEquals(first, dao.replace(replacement))
+                assertNull(
+                    dao.consume(
+                        slot = PENDING_AUTH_SLOT,
+                        expectedCredentialRef = first.credentialRef,
+                    ),
+                )
+                assertEquals(replacement, dao.get(PENDING_AUTH_SLOT))
+                assertEquals(
+                    replacement,
+                    dao.consume(
+                        slot = PENDING_AUTH_SLOT,
+                        expectedCredentialRef = replacement.credentialRef,
+                    ),
+                )
+                assertNull(dao.get(PENDING_AUTH_SLOT))
+            }
+        }
+
     private suspend fun withTemporaryDatabase(block: suspend (FlareDoDatabase) -> Unit) {
         val directory = Files.createTempDirectory("flaredo-room-test-")
         val databasePath = directory.resolve("forum.db")
@@ -65,7 +93,19 @@ class FlareDoDatabaseFactoryJvmTest {
             updatedAtEpochMillis = updatedAt,
         )
 
+    private fun vaultReference(
+        reference: String,
+        createdAt: Long,
+    ): SecureVaultReferenceEntity =
+        SecureVaultReferenceEntity(
+            slot = PENDING_AUTH_SLOT,
+            credentialRef = reference,
+            createdAtEpochMillis = createdAt,
+            expiresAtEpochMillis = createdAt + 600_000L,
+        )
+
     private companion object {
         const val ANONYMOUS_ACCOUNT_ID: String = "anonymous"
+        const val PENDING_AUTH_SLOT: String = "pending-auth"
     }
 }

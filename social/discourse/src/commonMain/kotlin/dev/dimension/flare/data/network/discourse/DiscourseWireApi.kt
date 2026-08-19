@@ -101,6 +101,12 @@ internal interface DiscourseWireApi {
     @GET("session/csrf")
     suspend fun csrf(): DiscourseCsrfResponse
 
+    @DELETE("session/{username}")
+    suspend fun logout(
+        @Path("username") username: String,
+        @Header("X-CSRF-Token") csrfToken: String,
+    ): Unit
+
     @GET("u/{username}/bookmarks.json")
     suspend fun userBookmarks(
         @Path("username") username: String,

@@ -6,6 +6,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 internal class DiscourseCookieStorageTest {
@@ -129,6 +130,52 @@ internal class DiscourseCookieStorageTest {
         }
 
     @Test
+    fun rejectsNonRfc6265CookieOctetsWithoutReplacingValidCookies() =
+        runTest {
+            val storage = DiscourseCookieStorage()
+            val validCookies =
+                listOf(
+                    DiscourseCookieSnapshot(
+                        name = "_t",
+                        value = "session.AZaz09-_:+=/",
+                        httpOnly = true,
+                    ),
+                    DiscourseCookieSnapshot(
+                        name = "cf_clearance",
+                        value = "clearance.AZaz09-_:+=/",
+                        httpOnly = true,
+                    ),
+                )
+            storage.importSnapshot(validCookies)
+            assertEquals(validCookies, storage.snapshot())
+
+            val invalidValues =
+                listOf(
+                    "x; _t=attacker",
+                    "embedded space",
+                    "quoted\"value",
+                    "comma,value",
+                    "backslash\\value",
+                    "control\u0001value",
+                    "delete\u007fvalue",
+                    "non-ascii-\u00e9",
+                )
+            invalidValues.forEach { invalidValue ->
+                assertFailsWith<RejectedDiscourseCookieException> {
+                    storage.importSnapshot(
+                        listOf(
+                            DiscourseCookieSnapshot(
+                                name = "cf_clearance",
+                                value = invalidValue,
+                            ),
+                        ),
+                    )
+                }
+                assertEquals(validCookies, storage.snapshot())
+            }
+        }
+
+    @Test
     fun clearRejectsAWriteThatEnteredUnderThePreviousRevision() =
         runTest {
             lateinit var storage: DiscourseCookieStorage
@@ -147,6 +194,64 @@ internal class DiscourseCookieStorageTest {
 
             clearDuringClockRead = false
             assertTrue(storage.snapshot().isEmpty())
+        }
+
+    @Test
+    fun challengeMergePreservesItsLeaseAndRejectsAStaleRevision() =
+        runTest {
+            val storage = DiscourseCookieStorage()
+            storage.addCookie(
+                LINUX_DO_ROOT,
+                Cookie(name = "_t", value = "fresh-network-session", httpOnly = true),
+            )
+            val requestRevision = storage.currentRevision()
+
+            assertTrue(
+                storage.mergeSnapshotIfRevision(
+                    snapshot =
+                        listOf(
+                            DiscourseCookieSnapshot(
+                                name = "cf_clearance",
+                                value = "first-clearance",
+                                httpOnly = true,
+                            ),
+                        ),
+                    expectedRevision = requestRevision,
+                ),
+            )
+            val currentLeaseCookies =
+                requireNotNull(storage.captureForRequest(LINUX_DO_ROOT, requestRevision))
+                    .cookies
+                    .associate { cookie -> cookie.name to cookie.value }
+            assertEquals("fresh-network-session", currentLeaseCookies["_t"])
+            assertEquals("first-clearance", currentLeaseCookies["cf_clearance"])
+
+            storage.importSnapshot(
+                listOf(
+                    DiscourseCookieSnapshot(
+                        name = "_t",
+                        value = "replacement-account-session",
+                        httpOnly = true,
+                    ),
+                ),
+            )
+            assertFalse(
+                storage.mergeSnapshotIfRevision(
+                    snapshot =
+                        listOf(
+                            DiscourseCookieSnapshot(
+                                name = "cf_clearance",
+                                value = "stale-clearance",
+                                httpOnly = true,
+                            ),
+                        ),
+                    expectedRevision = requestRevision,
+                ),
+            )
+            assertEquals(
+                mapOf("_t" to "replacement-account-session"),
+                storage.snapshot().associate { cookie -> cookie.name to cookie.value },
+            )
         }
 
     private companion object {

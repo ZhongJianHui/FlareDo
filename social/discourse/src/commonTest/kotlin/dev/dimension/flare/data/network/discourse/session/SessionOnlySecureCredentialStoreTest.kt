@@ -11,6 +11,23 @@ import kotlin.test.assertNull
 
 internal class SessionOnlySecureCredentialStoreTest {
     @Test
+    fun referencesCannotResolveAcrossStoreInstances() =
+        runTest {
+            val firstStore = SessionOnlySecureCredentialStore()
+            val secondStore = SessionOnlySecureCredentialStore()
+            try {
+                val staleReference = firstStore.save("account", byteArrayOf(1))
+                val currentReference = secondStore.save("account", byteArrayOf(2))
+
+                kotlin.test.assertNotEquals(staleReference, currentReference)
+                assertNull(secondStore.load(staleReference))
+            } finally {
+                firstStore.close()
+                secondStore.close()
+            }
+        }
+
+    @Test
     fun copiesAtBothBoundariesAndDeletesValues() =
         runTest {
             val store = SessionOnlySecureCredentialStore()

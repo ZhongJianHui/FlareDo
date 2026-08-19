@@ -179,6 +179,9 @@ public interface DiscourseApi {
 
     public suspend fun currentSession(): DiscourseCurrentSessionResponse
 
+    /** Invalidates the active web session on Linux.do before local fail-closed cleanup. */
+    public suspend fun logout(username: String)
+
     public suspend fun userBookmarks(
         username: String,
         page: DiscourseListPage = DiscourseListPage.Initial,

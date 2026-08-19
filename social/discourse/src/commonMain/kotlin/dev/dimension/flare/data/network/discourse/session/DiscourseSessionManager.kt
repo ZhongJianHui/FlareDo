@@ -107,6 +107,7 @@ public class DiscourseSessionManager(
         username: String? = null,
         credentialRef: SecureCredentialRef? = null,
         cookieSnapshot: List<DiscourseCookieSnapshot> = emptyList(),
+        expectedGeneration: Long? = null,
     ) {
         requireValidAccountId(accountId)
         requireValidUsername(username)
@@ -114,6 +115,12 @@ public class DiscourseSessionManager(
 
         transitionMutex.withLock {
             val previousState = mutableState.value
+            if (expectedGeneration != null && previousState.generation != expectedGeneration) {
+                throw StaleDiscourseSessionException(
+                    expectedGeneration = expectedGeneration,
+                    actualGeneration = previousState.generation,
+                )
+            }
             val nextGeneration = previousState.generation.nextGeneration()
             val previousJob = generationJob
             val nextJob = SupervisorJob()
@@ -135,18 +142,17 @@ public class DiscourseSessionManager(
     /** Logs out, cancels old requests, and removes all in-memory Cookie and CSRF material. */
     public suspend fun logout() {
         transitionMutex.withLock {
-            val previousState = mutableState.value
-            val nextGeneration = previousState.generation.nextGeneration()
-            val previousJob = generationJob
-            val nextJob = SupervisorJob()
-
-            previousJob.cancel(SessionGenerationCancellation(previousState.generation, nextGeneration))
-            cookieStorage.clear()
-            csrfTokenStore.clear()
-            generationJob = nextJob
-            mutableState.value = DiscourseSessionState.Guest(generation = nextGeneration)
+            logoutLocked()
         }
     }
+
+    /** Logs out only if the caller still owns [expectedGeneration]. */
+    internal suspend fun logoutIfGeneration(expectedGeneration: Long): Boolean =
+        transitionMutex.withLock {
+            if (mutableState.value.generation != expectedGeneration) return@withLock false
+            logoutLocked()
+            true
+        }
 
     /** Updates display metadata without replacing credentials or cancelling valid requests. */
     public suspend fun updateAuthenticatedUsername(username: String?) {
@@ -155,6 +161,66 @@ public class DiscourseSessionManager(
             val current = mutableState.value
             if (current is DiscourseSessionState.Authenticated) {
                 mutableState.value = current.copy(username = username)
+            }
+        }
+    }
+
+    /**
+     * Commits a checkpoint reference only while the exact authenticated session is still active.
+     *
+     * The generation and account checks prevent a delayed checkpoint from attaching its vault
+     * reference to a replacement account. [expectedCredentialRef] additionally rejects two
+     * concurrent checkpoints that both observed the same generation but persisted different jars.
+     */
+    internal suspend fun updateAuthenticatedCredentialRefIfMatches(
+        expectedGeneration: Long,
+        expectedAccountId: String,
+        expectedCredentialRef: SecureCredentialRef?,
+        credentialRef: SecureCredentialRef,
+    ): Boolean =
+        transitionMutex.withLock {
+            val current =
+                mutableState.value as? DiscourseSessionState.Authenticated
+                    ?: return@withLock false
+            if (
+                current.generation != expectedGeneration ||
+                current.accountId != expectedAccountId ||
+                current.credentialRef != expectedCredentialRef
+            ) {
+                return@withLock false
+            }
+            mutableState.value = current.copy(credentialRef = credentialRef)
+            true
+        }
+
+    /**
+     * Installs browser challenge cookies into the request lease that opened the challenge.
+     *
+     * A normal [DiscourseCookieStorage.importSnapshot] advances the cookie revision and intentionally
+     * invalidates old requests. A challenge retry is different: it must consume the newly bridged
+     * cookies while remaining bound to the same account generation. The coroutine context supplies
+     * both immutable lease identities, and the transition lock prevents a login or logout from being
+     * interleaved between the generation check and the revision-checked merge.
+     */
+    internal suspend fun mergeCookiesForCurrentRequest(snapshot: List<DiscourseCookieSnapshot>) {
+        val requestLease =
+            currentCoroutineContext()[DiscourseCookieRevisionContext]
+                ?: error("Discourse challenge cookies require an active request lease")
+        transitionMutex.withLock {
+            val actualGeneration = mutableState.value.generation
+            if (actualGeneration != requestLease.generation) {
+                throw StaleDiscourseSessionException(
+                    expectedGeneration = requestLease.generation,
+                    actualGeneration = actualGeneration,
+                )
+            }
+            check(
+                cookieStorage.mergeSnapshotIfRevision(
+                    snapshot = snapshot,
+                    expectedRevision = requestLease.revision,
+                ),
+            ) {
+                "Discourse cookie request lease is no longer current"
             }
         }
     }
@@ -185,7 +251,11 @@ public class DiscourseSessionManager(
                 }
             val operation =
                 async(
-                    context = DiscourseCookieRevisionContext(lease.cookieRevision),
+                    context =
+                        DiscourseCookieRevisionContext(
+                            generation = lease.state.generation,
+                            revision = lease.cookieRevision,
+                        ),
                     start = CoroutineStart.LAZY,
                 ) {
                     lease.state.block()
@@ -231,6 +301,19 @@ public class DiscourseSessionManager(
                 cancellationBridge.dispose()
             }
         }
+
+    private fun logoutLocked() {
+        val previousState = mutableState.value
+        val nextGeneration = previousState.generation.nextGeneration()
+        val previousJob = generationJob
+        val nextJob = SupervisorJob()
+
+        previousJob.cancel(SessionGenerationCancellation(previousState.generation, nextGeneration))
+        cookieStorage.clear()
+        csrfTokenStore.clear()
+        generationJob = nextJob
+        mutableState.value = DiscourseSessionState.Guest(generation = nextGeneration)
+    }
 }
 
 /**
@@ -241,6 +324,7 @@ public class DiscourseSessionManager(
  * an old generation from ever acquiring a replacement account's cookies.
  */
 internal class DiscourseCookieRevisionContext(
+    val generation: Long,
     val revision: Long,
 ) : CoroutineContext.Element {
     override val key: CoroutineContext.Key<*> = Key

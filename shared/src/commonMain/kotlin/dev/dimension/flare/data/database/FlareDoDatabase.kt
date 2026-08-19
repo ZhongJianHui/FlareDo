@@ -6,6 +6,7 @@ import androidx.room3.Dao
 import androidx.room3.Database
 import androidx.room3.Entity
 import androidx.room3.Index
+import androidx.room3.PrimaryKey
 import androidx.room3.Query
 import androidx.room3.RoomDatabase
 import androidx.room3.RoomDatabaseConstructor
@@ -138,20 +139,104 @@ public interface ForumCacheEntryDao {
     public suspend fun countForAccount(accountId: String): Int
 }
 
+/**
+ * Non-secret pointer to one value owned by a platform credential vault.
+ *
+ * This table is the only authentication persistence surface in Room. [credentialRef] is an opaque
+ * locator, not the credential itself. Cookie values, CSRF tokens, RSA key material, authorization
+ * nonces, User API Keys, OTPs, and serialized vault payloads are forbidden here. [accountId] and
+ * [username] are optional public display metadata for the single active-account slot; pending
+ * authorization and installation slots leave them null. [relatedCredentialRef] is used only when
+ * one logical record owns a second vault item, such as the one-use RSA private key belonging to an
+ * encrypted pending-authorization envelope. It remains an opaque locator and never contains key
+ * material itself.
+ */
+@Entity(tableName = "secure_vault_references")
+public data class SecureVaultReferenceEntity(
+    @PrimaryKey
+    val slot: String,
+    val credentialRef: String,
+    val relatedCredentialRef: String? = null,
+    val accountId: String? = null,
+    val username: String? = null,
+    val createdAtEpochMillis: Long,
+    val expiresAtEpochMillis: Long? = null,
+)
+
+/**
+ * Atomic reference ownership used by authentication restore and callback replay protection.
+ *
+ * The compare-and-delete operations include the observed opaque reference. A delayed callback or
+ * cleanup task can therefore never delete a newer pending authorization that reused the same
+ * logical [SecureVaultReferenceEntity.slot].
+ */
+@Dao
+public interface SecureVaultReferenceDao {
+    @Query("SELECT * FROM secure_vault_references WHERE slot = :slot")
+    public suspend fun get(slot: String): SecureVaultReferenceEntity?
+
+    @Upsert
+    public suspend fun upsert(entity: SecureVaultReferenceEntity)
+
+    @Query(
+        """
+        DELETE FROM secure_vault_references
+        WHERE slot = :slot AND credentialRef = :expectedCredentialRef
+        """,
+    )
+    public suspend fun deleteIfMatches(
+        slot: String,
+        expectedCredentialRef: String,
+    ): Int
+
+    @Query("DELETE FROM secure_vault_references WHERE slot = :slot")
+    public suspend fun delete(slot: String)
+
+    /** Replaces one logical slot and returns the previous reference for vault cleanup. */
+    @Transaction
+    public suspend fun replace(entity: SecureVaultReferenceEntity): SecureVaultReferenceEntity? {
+        val previous = get(entity.slot)
+        upsert(entity)
+        return previous
+    }
+
+    /**
+     * Consumes exactly the observed reference or returns null after a replay/replacement race.
+     */
+    @Transaction
+    public suspend fun consume(
+        slot: String,
+        expectedCredentialRef: String,
+    ): SecureVaultReferenceEntity? {
+        val current = get(slot) ?: return null
+        if (current.credentialRef != expectedCredentialRef) return null
+        return if (deleteIfMatches(slot, expectedCredentialRef) == 1) current else null
+    }
+}
+
 /** Current additive Room schema version. */
-public const val FLARE_DO_DATABASE_VERSION: Int = 2
+public const val FLARE_DO_DATABASE_VERSION: Int = 3
 
 @Database(
-    entities = [ForumCacheMetadataEntity::class, ForumCacheEntryEntity::class],
+    entities = [
+        ForumCacheMetadataEntity::class,
+        ForumCacheEntryEntity::class,
+        SecureVaultReferenceEntity::class,
+    ],
     version = FLARE_DO_DATABASE_VERSION,
     exportSchema = true,
-    autoMigrations = [AutoMigration(from = 1, to = FLARE_DO_DATABASE_VERSION)],
+    autoMigrations = [
+        AutoMigration(from = 1, to = 2),
+        AutoMigration(from = 2, to = FLARE_DO_DATABASE_VERSION),
+    ],
 )
 @ConstructedBy(FlareDoDatabaseConstructor::class)
 public abstract class FlareDoDatabase : RoomDatabase() {
     public abstract fun forumCacheMetadataDao(): ForumCacheMetadataDao
 
     public abstract fun forumCacheEntryDao(): ForumCacheEntryDao
+
+    public abstract fun secureVaultReferenceDao(): SecureVaultReferenceDao
 }
 
 // Room generates actual constructors for every KMP target during KSP compilation.

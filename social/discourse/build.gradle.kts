@@ -56,6 +56,9 @@ kotlin {
         getByName("androidJvmMain").dependencies {
             implementation(libs.ktor.client.okhttp)
         }
+        jvmMain.dependencies {
+            implementation(libs.jna.platform)
+        }
         getByName("appleMain").dependencies {
             implementation(libs.ktor.client.darwin)
         }
