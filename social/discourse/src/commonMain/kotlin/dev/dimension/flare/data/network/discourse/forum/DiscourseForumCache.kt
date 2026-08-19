@@ -262,8 +262,13 @@ public const val DEFAULT_FORUM_CACHE_ENTRY_LIMIT: Int = 32
 private const val MAX_FORUM_CACHE_ENTRY_LIMIT: Int = 512
 private const val MAX_FORUM_CACHE_PAYLOAD_CHARS: Int = 2_000_000
 private const val MAX_FORUM_CACHE_ACCOUNT_ID_CHARS: Int = 128
-private const val CATEGORIES_CACHE_KEY: String = "categories"
-private const val TAGS_CACHE_KEY: String = "tags"
+// Bumping this namespace makes every row written before authenticated cache isolation unreachable.
+// Old rows can expire naturally under the existing bounded-account pruning policy without a schema
+// migration or a risky eager delete during application startup.
+
+private const val PUBLIC_CACHE_KEY_PREFIX: String = "public-v2:"
+private const val CATEGORIES_CACHE_KEY: String = "${PUBLIC_CACHE_KEY_PREFIX}categories"
+private const val TAGS_CACHE_KEY: String = "${PUBLIC_CACHE_KEY_PREFIX}tags"
 
 private object ForumCacheCodec {
     fun encode(value: DiscourseForumFeedPage): String = discourseJson.encodeToString(value)
@@ -308,12 +313,12 @@ private fun feedCacheKey(
     page: Int,
 ): String {
     require(page >= 0) { "Forum cache page cannot be negative" }
-    return "feed:${feed.stableKey}:page:$page"
+    return "${PUBLIC_CACHE_KEY_PREFIX}feed:${feed.stableKey}:page:$page"
 }
 
 private fun topicCacheKey(topicId: Long): String {
     require(topicId > 0L) { "Forum cache topic id must be positive" }
-    return "topic:$topicId"
+    return "${PUBLIC_CACHE_KEY_PREFIX}topic:$topicId"
 }
 
 private fun requireNetworkSnapshot(

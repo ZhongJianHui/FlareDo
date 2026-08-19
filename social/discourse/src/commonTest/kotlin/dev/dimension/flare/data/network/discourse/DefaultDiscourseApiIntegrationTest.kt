@@ -93,10 +93,15 @@ internal class DefaultDiscourseApiIntegrationTest {
                 }
             val cookieStorage = DiscourseCookieStorage()
             val client = createDiscourseHttpClient(engine, cookieStorage)
+            val sessionManager = DiscourseSessionManager(cookieStorage = cookieStorage)
+            sessionManager.startAuthenticatedSession(
+                accountId = "fixture-account",
+                username = "fixture-member",
+            )
             val api =
                 DefaultDiscourseApi(
                     wire = createDiscourseWireTransport(client),
-                    sessionManager = DiscourseSessionManager(cookieStorage = cookieStorage),
+                    sessionManager = sessionManager,
                 )
 
             try {

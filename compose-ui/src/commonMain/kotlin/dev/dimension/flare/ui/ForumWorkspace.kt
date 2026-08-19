@@ -63,24 +63,29 @@ import compose.icons.FontAwesomeIcons
 import compose.icons.fontawesomeicons.Solid
 import compose.icons.fontawesomeicons.solid.ArrowLeft
 import compose.icons.fontawesomeicons.solid.ArrowsRotate
+import compose.icons.fontawesomeicons.solid.Bell
 import compose.icons.fontawesomeicons.solid.Comment
 import compose.icons.fontawesomeicons.solid.Eye
 import compose.icons.fontawesomeicons.solid.Fire
-import compose.icons.fontawesomeicons.solid.Folder
 import compose.icons.fontawesomeicons.solid.House
+import compose.icons.fontawesomeicons.solid.MagnifyingGlass
 import compose.icons.fontawesomeicons.solid.Tag
+import compose.icons.fontawesomeicons.solid.User
 import dev.dimension.flare.compose.ui.Res
 import dev.dimension.flare.compose.ui.forum_back
 import dev.dimension.flare.compose.ui.forum_browse
 import dev.dimension.flare.compose.ui.forum_categories
 import dev.dimension.flare.compose.ui.forum_latest
 import dev.dimension.flare.compose.ui.forum_load_more
+import dev.dimension.flare.compose.ui.forum_notifications
 import dev.dimension.flare.compose.ui.forum_open_topic
 import dev.dimension.flare.compose.ui.forum_original_post
 import dev.dimension.flare.compose.ui.forum_popular
 import dev.dimension.flare.compose.ui.forum_post_number
+import dev.dimension.flare.compose.ui.forum_profile
 import dev.dimension.flare.compose.ui.forum_refresh
 import dev.dimension.flare.compose.ui.forum_replies
+import dev.dimension.flare.compose.ui.forum_search
 import dev.dimension.flare.compose.ui.forum_selected_topic
 import dev.dimension.flare.compose.ui.forum_tag_count
 import dev.dimension.flare.compose.ui.forum_tags
@@ -93,6 +98,7 @@ import dev.dimension.flare.compose.ui.product_name
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumAction
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumCategoryOption
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumContentSource
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumDestination
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumFeed
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumState
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumTagOption
@@ -108,16 +114,8 @@ internal val ForumSupportingPaneWidth = 244.dp
 internal val ForumPaneDividerWidth = 1.dp
 internal val ForumActiveSpineWidth = 3.dp
 
-/** Anonymous browsing roots available before account features are introduced. */
-internal enum class ForumRootDestination {
-    Latest,
-    Hot,
-    Categories,
-    Tags,
-}
-
 private data class ForumRootDestinationItem(
-    val destination: ForumRootDestination,
+    val destination: DiscourseForumDestination,
     val label: String,
     val icon: ImageVector,
 )
@@ -170,7 +168,7 @@ private fun ForumManualPanes(
     when (layoutClass) {
         ForumLayoutClass.Compact -> {
             if (state.selectedTopicId == null) {
-                ForumTopicListPane(state, onAction, Modifier.fillMaxSize())
+                ForumPrimaryPane(state, onAction, Modifier.fillMaxSize())
             } else {
                 ForumTopicDetailPane(
                     state = state,
@@ -184,7 +182,7 @@ private fun ForumManualPanes(
 
         ForumLayoutClass.Medium -> {
             Row(modifier = Modifier.fillMaxSize()) {
-                ForumTopicListPane(
+                ForumPrimaryPane(
                     state,
                     onAction,
                     Modifier.width(ForumMediumListPaneWidth),
@@ -202,7 +200,7 @@ private fun ForumManualPanes(
 
         ForumLayoutClass.Expanded -> {
             Row(modifier = Modifier.fillMaxSize()) {
-                ForumTopicListPane(
+                ForumPrimaryPane(
                     state,
                     onAction,
                     Modifier.width(ForumExpandedListPaneWidth),
@@ -235,16 +233,17 @@ internal fun ForumNavigationFrame(
     content: @Composable () -> Unit,
 ) {
     val destinations = forumDestinations()
-    val selectedDestination = state.selection.destination
-    val selectDestination: (ForumRootDestination) -> Unit = { destination ->
+    val selectedDestination = state.destination
+    val selectDestination: (DiscourseForumDestination) -> Unit = { destination ->
         destination.navigationAction(state)?.let(onAction)
     }
+    val unreadCount = state.notifications.snapshot?.unreadCount ?: 0
 
     when (layoutClass) {
         ForumLayoutClass.Compact -> {
             Column(modifier = Modifier.fillMaxSize()) {
                 Box(modifier = Modifier.weight(1f)) { content() }
-                ForumBottomBar(destinations, selectedDestination, selectDestination)
+                ForumBottomBar(destinations, selectedDestination, unreadCount, selectDestination)
             }
         }
 
@@ -252,7 +251,7 @@ internal fun ForumNavigationFrame(
         ForumLayoutClass.Expanded,
         -> {
             Row(modifier = Modifier.fillMaxSize()) {
-                ForumNavigationRail(destinations, selectedDestination, selectDestination)
+                ForumNavigationRail(destinations, selectedDestination, unreadCount, selectDestination)
                 ForumPaneDivider()
                 Box(modifier = Modifier.weight(1f)) { content() }
             }
@@ -264,32 +263,38 @@ internal fun ForumNavigationFrame(
 private fun forumDestinations(): List<ForumRootDestinationItem> =
     listOf(
         ForumRootDestinationItem(
-            ForumRootDestination.Latest,
+            DiscourseForumDestination.Latest,
             stringResource(Res.string.forum_latest),
             FontAwesomeIcons.Solid.House,
         ),
         ForumRootDestinationItem(
-            ForumRootDestination.Hot,
+            DiscourseForumDestination.Hot,
             stringResource(Res.string.forum_popular),
             FontAwesomeIcons.Solid.Fire,
         ),
         ForumRootDestinationItem(
-            ForumRootDestination.Categories,
-            stringResource(Res.string.forum_categories),
-            FontAwesomeIcons.Solid.Folder,
+            DiscourseForumDestination.Search,
+            stringResource(Res.string.forum_search),
+            FontAwesomeIcons.Solid.MagnifyingGlass,
         ),
         ForumRootDestinationItem(
-            ForumRootDestination.Tags,
-            stringResource(Res.string.forum_tags),
-            FontAwesomeIcons.Solid.Tag,
+            DiscourseForumDestination.Notifications,
+            stringResource(Res.string.forum_notifications),
+            FontAwesomeIcons.Solid.Bell,
+        ),
+        ForumRootDestinationItem(
+            DiscourseForumDestination.Profile,
+            stringResource(Res.string.forum_profile),
+            FontAwesomeIcons.Solid.User,
         ),
     )
 
 @Composable
 private fun ForumBottomBar(
     destinations: List<ForumRootDestinationItem>,
-    selectedDestination: ForumRootDestination,
-    onDestinationSelected: (ForumRootDestination) -> Unit,
+    selectedDestination: DiscourseForumDestination,
+    unreadCount: Int,
+    onDestinationSelected: (DiscourseForumDestination) -> Unit,
 ) {
     NavigationBar(
         modifier = Modifier.fillMaxWidth().height(72.dp),
@@ -301,7 +306,14 @@ private fun ForumBottomBar(
                 selected = selectedDestination == item.destination,
                 onClick = { onDestinationSelected(item.destination) },
                 icon = {
-                    Icon(item.icon, item.label, Modifier.size(20.dp))
+                    ForumNavigationIcon(
+                        icon = item.icon,
+                        label = item.label,
+                        unreadCount =
+                            unreadCount.takeIf {
+                                item.destination == DiscourseForumDestination.Notifications
+                            } ?: 0,
+                    )
                 },
                 label = {
                     Text(item.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -314,8 +326,9 @@ private fun ForumBottomBar(
 @Composable
 private fun ForumNavigationRail(
     destinations: List<ForumRootDestinationItem>,
-    selectedDestination: ForumRootDestination,
-    onDestinationSelected: (ForumRootDestination) -> Unit,
+    selectedDestination: DiscourseForumDestination,
+    unreadCount: Int,
+    onDestinationSelected: (DiscourseForumDestination) -> Unit,
 ) {
     NavigationRail(
         modifier = Modifier.width(ForumNavigationWidth).fillMaxHeight(),
@@ -338,13 +351,71 @@ private fun ForumNavigationRail(
                     modifier = Modifier.align(Alignment.Center),
                     selected = selectedDestination == item.destination,
                     onClick = { onDestinationSelected(item.destination) },
-                    icon = { Icon(item.icon, item.label, Modifier.size(20.dp)) },
+                    icon = {
+                        ForumNavigationIcon(
+                            icon = item.icon,
+                            label = item.label,
+                            unreadCount =
+                                unreadCount.takeIf {
+                                    item.destination == DiscourseForumDestination.Notifications
+                                } ?: 0,
+                        )
+                    },
                     label = {
                         Text(item.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     },
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ForumNavigationIcon(
+    icon: ImageVector,
+    label: String,
+    unreadCount: Int,
+) {
+    Box(modifier = Modifier.size(width = 30.dp, height = 24.dp), contentAlignment = Alignment.Center) {
+        Icon(icon, label, Modifier.size(20.dp))
+        if (unreadCount > 0) {
+            Box(
+                modifier =
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .size(16.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.error),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    unreadCount.coerceAtMost(99).toString(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onError,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+/** Routes the stable workspace destination to its independently paged primary pane. */
+@Composable
+internal fun ForumPrimaryPane(
+    state: DiscourseForumState,
+    onAction: (DiscourseForumAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    when (state.destination) {
+        DiscourseForumDestination.Latest,
+        DiscourseForumDestination.Hot,
+        -> ForumTopicListPane(state, onAction, modifier)
+
+        DiscourseForumDestination.Search -> ForumSearchPane(state, onAction, modifier)
+
+        DiscourseForumDestination.Notifications -> ForumNotificationsPane(state, onAction, modifier)
+
+        DiscourseForumDestination.Profile -> ForumProfilePane(state, onAction, modifier)
     }
 }
 
@@ -450,57 +521,34 @@ private fun ForumTaxonomyStrip(
     state: DiscourseForumState,
     onAction: (DiscourseForumAction) -> Unit,
 ) {
-    when (state.selection.destination) {
-        ForumRootDestination.Categories -> {
-            if (state.categories.isNotEmpty()) {
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(state.categories, key = DiscourseForumCategoryOption::id) { category ->
-                        FilterChip(
-                            selected =
-                                (state.selection as? DiscourseForumFeed.Category)?.id == category.id,
-                            onClick = {
-                                onAction(DiscourseForumAction.SelectFeed(category.asForumFeed()))
-                            },
-                            label = {
-                                Text(category.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            },
-                            leadingIcon = { ForumCategorySwatch(category.colorHex) },
-                            shape = RoundedCornerShape(6.dp),
-                        )
-                    }
-                }
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            }
+    if (state.categories.isEmpty() && state.tags.isEmpty()) return
+    LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        items(state.categories, key = { "category:${it.id}" }) { category ->
+            FilterChip(
+                selected = (state.selection as? DiscourseForumFeed.Category)?.id == category.id,
+                onClick = { onAction(DiscourseForumAction.SelectFeed(category.asForumFeed())) },
+                label = { Text(category.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                leadingIcon = { ForumCategorySwatch(category.colorHex) },
+                shape = RoundedCornerShape(6.dp),
+            )
         }
-
-        ForumRootDestination.Tags -> {
-            if (state.tags.isNotEmpty()) {
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(state.tags, key = DiscourseForumTagOption::id) { tag ->
-                        FilterChip(
-                            selected = (state.selection as? DiscourseForumFeed.Tag)?.slug == tag.slug,
-                            onClick = { onAction(DiscourseForumAction.SelectFeed(tag.asForumFeed())) },
-                            label = { Text("#${tag.name}", maxLines = 1) },
-                            shape = RoundedCornerShape(6.dp),
-                        )
-                    }
-                }
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            }
+        items(state.tags, key = { "tag:${it.id}" }) { tag ->
+            FilterChip(
+                selected = (state.selection as? DiscourseForumFeed.Tag)?.slug == tag.slug,
+                onClick = { onAction(DiscourseForumAction.SelectFeed(tag.asForumFeed())) },
+                label = { Text("#${tag.name}", maxLines = 1) },
+                leadingIcon = {
+                    Icon(FontAwesomeIcons.Solid.Tag, contentDescription = null, Modifier.size(13.dp))
+                },
+                shape = RoundedCornerShape(6.dp),
+            )
         }
-
-        ForumRootDestination.Latest,
-        ForumRootDestination.Hot,
-        -> {}
     }
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 }
 
 @Composable
@@ -743,7 +791,7 @@ internal fun ForumTopicDetailPane(
             }
 
             selectedTopic != null -> {
-                ForumTopicDocument(selectedTopic)
+                ForumTopicDocument(selectedTopic, state.selectedPostNumber)
             }
 
             else -> {
@@ -789,8 +837,20 @@ private fun ForumTopicPaneHeader(
 }
 
 @Composable
-private fun ForumTopicDocument(topic: DiscourseForumTopic) {
+private fun ForumTopicDocument(
+    topic: DiscourseForumTopic,
+    selectedPostNumber: Int?,
+) {
+    val listState = rememberLazyListState()
+    LaunchedEffect(topic.topicId, selectedPostNumber) {
+        val articleIndex =
+            selectedPostNumber?.let { target ->
+                topic.articles.indexOfFirst { it.discourse?.postNumber == target }
+            } ?: -1
+        if (articleIndex >= 0) listState.scrollToItem(articleIndex + 1)
+    }
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 20.dp),
     ) {
@@ -1055,73 +1115,9 @@ private fun DiscourseForumFeed.displayLabel(): String =
         is DiscourseForumFeed.Tag -> "#$name"
     }
 
-internal val DiscourseForumFeed.destination: ForumRootDestination
-    get() =
-        when (this) {
-            DiscourseForumFeed.Latest -> ForumRootDestination.Latest
-            DiscourseForumFeed.Hot -> ForumRootDestination.Hot
-            is DiscourseForumFeed.Category -> ForumRootDestination.Categories
-            is DiscourseForumFeed.Tag -> ForumRootDestination.Tags
-        }
-
-/**
- * Resolves a root-navigation click without silently trapping a failed taxonomy request.
- *
- * Categories and tags select their first available item because the feed model deliberately has no
- * synthetic "all categories" route. When discovery failed before producing any items, the same
- * familiar navigation control becomes the retry affordance on compact and medium windows, where
- * the expanded supporting pane is not present. A valid empty response remains inert so an empty
- * taxonomy cannot create an accidental retry loop.
- */
-internal fun ForumRootDestination.navigationAction(state: DiscourseForumState): DiscourseForumAction? {
-    val feed = feedOrNull(state)
-    if (feed != null) {
-        return if (feed.stableKey == state.selection.stableKey) {
-            null
-        } else {
-            DiscourseForumAction.SelectFeed(feed)
-        }
-    }
-    val isMissingTaxonomy =
-        when (this) {
-            ForumRootDestination.Categories -> state.categories.isEmpty()
-
-            ForumRootDestination.Tags -> state.tags.isEmpty()
-
-            ForumRootDestination.Latest,
-            ForumRootDestination.Hot,
-            -> false
-        }
-    return if (
-        isMissingTaxonomy &&
-        state.taxonomyFailure != null &&
-        !state.isTaxonomyLoading
-    ) {
-        DiscourseForumAction.RetryTaxonomy
-    } else {
-        null
-    }
-}
-
-private fun ForumRootDestination.feedOrNull(state: DiscourseForumState): DiscourseForumFeed? =
-    when (this) {
-        ForumRootDestination.Latest -> {
-            DiscourseForumFeed.Latest
-        }
-
-        ForumRootDestination.Hot -> {
-            DiscourseForumFeed.Hot
-        }
-
-        ForumRootDestination.Categories -> {
-            (state.selection as? DiscourseForumFeed.Category)
-                ?: state.categories.firstOrNull()?.asForumFeed()
-        }
-
-        ForumRootDestination.Tags -> {
-            (state.selection as? DiscourseForumFeed.Tag) ?: state.tags.firstOrNull()?.asForumFeed()
-        }
-    }
+/** Current destinations are inert; switching sends one semantic presenter action. */
+internal fun DiscourseForumDestination.navigationAction(state: DiscourseForumState): DiscourseForumAction? =
+    takeUnless { it == state.destination }?.let(DiscourseForumAction::SelectDestination)
 
 internal fun DiscourseForumCategoryOption.asForumFeed(): DiscourseForumFeed.Category =
     DiscourseForumFeed.Category(id, slug, parentSlug, name)

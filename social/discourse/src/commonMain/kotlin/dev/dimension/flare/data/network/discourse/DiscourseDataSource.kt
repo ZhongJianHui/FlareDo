@@ -3,12 +3,17 @@ package dev.dimension.flare.data.network.discourse
 import dev.dimension.flare.data.network.discourse.error.DiscourseSerializationException
 import dev.dimension.flare.data.network.discourse.error.DiscourseSerializationPhase
 import dev.dimension.flare.data.network.discourse.model.DiscourseCategoryListResponse
+import dev.dimension.flare.data.network.discourse.model.DiscourseNotificationResponse
 import dev.dimension.flare.data.network.discourse.model.DiscoursePost
 import dev.dimension.flare.data.network.discourse.model.DiscourseSearchResponse
 import dev.dimension.flare.data.network.discourse.model.DiscourseSiteResponse
 import dev.dimension.flare.data.network.discourse.model.DiscourseTagsResponse
 import dev.dimension.flare.data.network.discourse.model.DiscourseTopicDetail
 import dev.dimension.flare.data.network.discourse.model.DiscourseTopicListResponse
+import dev.dimension.flare.data.network.discourse.model.DiscourseUserActionsResponse
+import dev.dimension.flare.data.network.discourse.model.DiscourseUserResponse
+import dev.dimension.flare.data.network.discourse.model.DiscourseUserSummaryResponse
+import dev.dimension.flare.data.network.discourse.paging.DiscourseNotificationOffset
 import dev.dimension.flare.data.network.discourse.paging.DiscourseSearchPage
 import dev.dimension.flare.data.network.discourse.paging.DiscourseTopicStreamCursor
 import dev.dimension.flare.data.network.discourse.paging.DiscourseTopicStreamPager
@@ -109,6 +114,30 @@ public class DiscourseDataSource(
         page: DiscourseSearchPage = DiscourseSearchPage.Initial,
         type: DiscourseSearchType? = null,
     ): DiscourseSearchResponse = api.search(query = query, page = page, type = type)
+
+    public suspend fun user(username: String): DiscourseUserResponse = api.user(username)
+
+    public suspend fun userSummary(username: String): DiscourseUserSummaryResponse = api.userSummary(username)
+
+    public suspend fun userActions(
+        username: String,
+        offset: Int = 0,
+        filter: String? = null,
+    ): DiscourseUserActionsResponse =
+        api.userActions(
+            username = username,
+            offset = offset,
+            filter = filter,
+        )
+
+    public suspend fun notifications(
+        offset: DiscourseNotificationOffset = DiscourseNotificationOffset.Initial,
+        limit: Int = 60,
+    ): DiscourseNotificationResponse = api.notifications(offset = offset, limit = limit)
+
+    public suspend fun markNotificationsRead(notificationId: Long? = null) {
+        api.markNotificationsRead(notificationId)
+    }
 }
 
 private fun protocolFailure(): DiscourseSerializationException =

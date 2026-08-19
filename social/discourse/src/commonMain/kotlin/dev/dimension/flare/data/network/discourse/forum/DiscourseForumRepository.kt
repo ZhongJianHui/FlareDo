@@ -25,6 +25,8 @@ import dev.dimension.flare.data.network.discourse.model.DiscourseTopicListRespon
 import dev.dimension.flare.data.network.discourse.paging.DiscourseListPage
 import dev.dimension.flare.data.network.discourse.paging.DiscourseTopicStreamCursor
 import dev.dimension.flare.data.network.discourse.paging.DiscourseTopicStreamPager
+import dev.dimension.flare.data.network.discourse.session.DiscourseSessionManager
+import dev.dimension.flare.data.network.discourse.session.DiscourseSessionState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -45,26 +47,34 @@ public interface DiscourseForumRepository {
 }
 
 /**
- * Linux.do repository with deterministic paging, strict post-stream aggregation, and stale cache
- * fallback. Only typed [DiscourseException] failures may select a stale snapshot. Cancellation is
- * always rethrown, and local programming/database failures remain visible to their owner instead of
- * being mislabeled as an offline response.
+ * Linux.do repository with deterministic paging, strict post-stream aggregation, and guest-only
+ * stale cache fallback.
+ *
+ * Every remote request, mapping pass, and eligible cache access runs inside one immutable
+ * [DiscourseSessionManager] lease. Authenticated responses can contain permissions, unread state,
+ * and other account-specific fields, so they are never read from or written to the anonymous
+ * persistent cache. Only typed [DiscourseException] failures in a guest lease may select a stale
+ * public snapshot. Cancellation is always rethrown, and local programming/database failures remain
+ * visible to their owner instead of being mislabeled as an offline response.
  */
 public class DefaultDiscourseForumRepository internal constructor(
     private val remote: DiscourseForumRemoteDataSource,
     private val mapper: DiscourseForumMapper,
     private val cache: DiscourseForumCache,
+    private val sessionManager: DiscourseSessionManager,
     private val nowEpochMillis: () -> Long,
 ) : DiscourseForumRepository {
     public constructor(
         dataSource: DiscourseDataSource,
         mapper: DiscourseForumMapper,
         cache: DiscourseForumCache,
+        sessionManager: DiscourseSessionManager,
         nowEpochMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     ) : this(
         remote = DefaultDiscourseForumRemoteDataSource(dataSource),
         mapper = mapper,
         cache = cache,
+        sessionManager = sessionManager,
         nowEpochMillis = nowEpochMillis,
     )
 
@@ -73,84 +83,122 @@ public class DefaultDiscourseForumRepository internal constructor(
         page: Int,
     ): DiscourseForumFeedPage {
         require(page >= 0) { "Forum feed page cannot be negative" }
-        return try {
-            val categoryNames =
-                cache
-                    .getCategories()
-                    ?.items
-                    .orEmpty()
-                    .associate { it.id to it.name }
-            val response =
-                remote.topics(
-                    DiscourseTopicListRequest(
-                        feed =
-                            when (feed) {
-                                DiscourseForumFeed.Hot -> DiscourseTopicFeed.Hot
-                                else -> DiscourseTopicFeed.Latest
-                            },
-                        page = DiscourseListPage(page),
-                        category =
-                            (feed as? DiscourseForumFeed.Category)?.let {
-                                DiscourseCategoryRoute(
-                                    id = it.id,
-                                    slug = it.slug,
-                                    parentSlug = it.parentSlug,
-                                )
-                            },
-                        tags = (feed as? DiscourseForumFeed.Tag)?.let { listOf(it.slug) }.orEmpty(),
-                    ),
-                )
-            val fresh =
-                mapper.mapFeedPage(
-                    response = response,
-                    feed = feed,
-                    page = page,
-                    updatedAtEpochMillis = checkedNow(),
-                    categoryNames = categoryNames,
-                )
-            cache.putFeed(fresh)
-            fresh
-        } catch (cancellation: CancellationException) {
-            throw cancellation
-        } catch (failure: DiscourseException) {
-            cache.getFeed(feed, page)?.asStale(failure.toForumFailureKind()) ?: throw failure
+        return sessionManager.runForCurrentSession {
+            val mayUsePublicCache = this is DiscourseSessionState.Guest
+            try {
+                val categoryNames =
+                    if (mayUsePublicCache) {
+                        cache
+                            .getCategories()
+                            ?.items
+                            .orEmpty()
+                            .associate { it.id to it.name }
+                    } else {
+                        emptyMap()
+                    }
+                val response =
+                    remote.topics(
+                        DiscourseTopicListRequest(
+                            feed =
+                                when (feed) {
+                                    DiscourseForumFeed.Hot -> DiscourseTopicFeed.Hot
+                                    else -> DiscourseTopicFeed.Latest
+                                },
+                            page = DiscourseListPage(page),
+                            category =
+                                (feed as? DiscourseForumFeed.Category)?.let {
+                                    DiscourseCategoryRoute(
+                                        id = it.id,
+                                        slug = it.slug,
+                                        parentSlug = it.parentSlug,
+                                    )
+                                },
+                            tags = (feed as? DiscourseForumFeed.Tag)?.let { listOf(it.slug) }.orEmpty(),
+                        ),
+                    )
+                val fresh =
+                    mapper.mapFeedPage(
+                        response = response,
+                        feed = feed,
+                        page = page,
+                        updatedAtEpochMillis = checkedNow(),
+                        categoryNames = categoryNames,
+                    )
+                if (mayUsePublicCache) {
+                    // A hostile or faulty transport can swallow cancellation. Check the lease again
+                    // before any account-derived response is allowed to reach anonymous storage.
+                    currentCoroutineContext().ensureActive()
+                    cache.putFeed(fresh)
+                }
+                fresh
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (failure: DiscourseException) {
+                if (!mayUsePublicCache) throw failure
+                currentCoroutineContext().ensureActive()
+                cache.getFeed(feed, page)?.asStale(failure.toForumFailureKind()) ?: throw failure
+            }
         }
     }
 
     override suspend fun loadCategories(): DiscourseForumCategories =
-        try {
-            val fresh = mapper.mapCategories(remote.categories(), checkedNow())
-            cache.putCategories(fresh)
-            fresh
-        } catch (cancellation: CancellationException) {
-            throw cancellation
-        } catch (failure: DiscourseException) {
-            cache.getCategories()?.asStale(failure.toForumFailureKind()) ?: throw failure
+        sessionManager.runForCurrentSession {
+            val mayUsePublicCache = this is DiscourseSessionState.Guest
+            try {
+                val fresh = mapper.mapCategories(remote.categories(), checkedNow())
+                if (mayUsePublicCache) {
+                    currentCoroutineContext().ensureActive()
+                    cache.putCategories(fresh)
+                }
+                fresh
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (failure: DiscourseException) {
+                if (!mayUsePublicCache) throw failure
+                currentCoroutineContext().ensureActive()
+                cache.getCategories()?.asStale(failure.toForumFailureKind()) ?: throw failure
+            }
         }
 
     override suspend fun loadTags(): DiscourseForumTags =
-        try {
-            val fresh = mapper.mapTags(remote.tags(), checkedNow())
-            cache.putTags(fresh)
-            fresh
-        } catch (cancellation: CancellationException) {
-            throw cancellation
-        } catch (failure: DiscourseException) {
-            cache.getTags()?.asStale(failure.toForumFailureKind()) ?: throw failure
+        sessionManager.runForCurrentSession {
+            val mayUsePublicCache = this is DiscourseSessionState.Guest
+            try {
+                val fresh = mapper.mapTags(remote.tags(), checkedNow())
+                if (mayUsePublicCache) {
+                    currentCoroutineContext().ensureActive()
+                    cache.putTags(fresh)
+                }
+                fresh
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (failure: DiscourseException) {
+                if (!mayUsePublicCache) throw failure
+                currentCoroutineContext().ensureActive()
+                cache.getTags()?.asStale(failure.toForumFailureKind()) ?: throw failure
+            }
         }
 
     override suspend fun loadTopic(topicId: Long): DiscourseForumTopic {
         require(topicId > 0L) { "Forum topic id must be positive" }
-        return try {
-            val detail = remote.topic(topicId = topicId, trackVisit = false)
-            val orderedPosts = loadAuthoritativePostStream(topicId, detail)
-            val fresh = mapper.mapTopic(detail, orderedPosts, checkedNow())
-            cache.putTopic(fresh)
-            fresh
-        } catch (cancellation: CancellationException) {
-            throw cancellation
-        } catch (failure: DiscourseException) {
-            cache.getTopic(topicId)?.asStale(failure.toForumFailureKind()) ?: throw failure
+        return sessionManager.runForCurrentSession {
+            val mayUsePublicCache = this is DiscourseSessionState.Guest
+            try {
+                val detail = remote.topic(topicId = topicId, trackVisit = false)
+                val orderedPosts = loadAuthoritativePostStream(topicId, detail)
+                val fresh = mapper.mapTopic(detail, orderedPosts, checkedNow())
+                if (mayUsePublicCache) {
+                    currentCoroutineContext().ensureActive()
+                    cache.putTopic(fresh)
+                }
+                fresh
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (failure: DiscourseException) {
+                if (!mayUsePublicCache) throw failure
+                currentCoroutineContext().ensureActive()
+                cache.getTopic(topicId)?.asStale(failure.toForumFailureKind()) ?: throw failure
+            }
         }
     }
 

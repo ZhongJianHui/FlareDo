@@ -2,13 +2,29 @@ package dev.dimension.flare.ui
 
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumActivity
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumActivityKind
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumBadge
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumCategoryOption
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumContentSource
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumDestination
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumFailureKind
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumFeed
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumNotification
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumNotificationData
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumNotificationKind
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumNotificationSnapshot
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumNotificationsState
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumProfile
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumProfileState
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumSearchHit
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumSearchState
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumState
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumTagOption
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumTopic
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumUserSummary
+import dev.dimension.flare.data.network.discourse.paging.DiscourseNotificationOffset
+import dev.dimension.flare.data.network.discourse.paging.DiscourseSearchPage
 import dev.dimension.flare.ui.model.DiscoursePostMeta
 import dev.dimension.flare.ui.model.DiscourseTopicMeta
 import dev.dimension.flare.ui.model.DiscourseTopicRef
@@ -51,6 +67,9 @@ public object ForumTestTags {
     public const val FEED_EMPTY: String = "forum_feed_empty"
     public const val CACHED_NOTICE: String = "forum_cached_notice"
     public const val LOAD_MORE_PROGRESS: String = "forum_load_more_progress"
+    public const val SEARCH_RESULTS: String = "forum_search_results"
+    public const val NOTIFICATIONS: String = "forum_notifications"
+    public const val PROFILE: String = "forum_profile"
 
     public fun topic(topicId: Long): String = "forum_topic_$topicId"
 }
@@ -66,6 +85,8 @@ public object ForumPreviewFixtures {
     private val alex = UiAuthor(username = "alex", displayName = "Alex Chen")
     private val mina = UiAuthor(username = "mina", displayName = "Mina Zhou")
     private val robin = UiAuthor(username = "robin", displayName = "Robin Lin")
+    private val previewMember =
+        UiAuthor(username = "preview_member", displayName = "Preview Member")
 
     private val topics: List<UiTimelineV2.Topic> =
         listOf(
@@ -263,6 +284,164 @@ public object ForumPreviewFixtures {
             updatedAtEpochMillis = 1_786_910_400_000L,
         )
 
+    private val searchResults: List<DiscourseForumSearchHit> =
+        listOf(
+            searchHit(
+                postId = 9_201L,
+                topicId = 5_201L,
+                postNumber = 3,
+                title = "Compose workspace patterns for narrow windows",
+                excerpt = "A synthetic example comparing bottom navigation with a compact result list.",
+                author = mina,
+                likes = 24,
+                tags = listOf("compose", "adaptive"),
+            ),
+            searchHit(
+                postId = 9_202L,
+                topicId = 5_202L,
+                postNumber = 7,
+                title = "Testing a desktop package without production credentials",
+                excerpt = "Notes from a fully local fixture server and an unsigned test artifact.",
+                author = alex,
+                likes = 11,
+                tags = listOf("testing", "desktop"),
+            ),
+            searchHit(
+                postId = 9_203L,
+                topicId = 5_203L,
+                postNumber = 2,
+                title = "A small checklist for privacy-aware diagnostics",
+                excerpt = "Keep logs bounded, redact identifiers, and make export an explicit action.",
+                author = robin,
+                likes = 8,
+                tags = listOf("privacy", "logging"),
+            ),
+        )
+
+    private val previewProfile: DiscourseForumProfile =
+        DiscourseForumProfile(
+            userId = 91L,
+            username = previewMember.username,
+            displayName = previewMember.displayName,
+            avatarUrl = null,
+            title = "Fixture maintainer",
+            trustLevel = 2,
+            moderator = false,
+            admin = false,
+            staff = false,
+            active = true,
+            suspended = false,
+            canSendPrivateMessages = true,
+            canEdit = false,
+            createdAtEpochMillis = 1_767_225_600_000L,
+            lastPostedAtEpochMillis = 1_786_906_800_000L,
+            lastSeenAtEpochMillis = 1_786_910_400_000L,
+            websiteName = "Preview notebook",
+            websiteUrl = "https://preview.invalid/notebook",
+            location = "Local test environment",
+            primaryGroupName = "Preview contributors",
+            bio =
+                listOf(
+                    UiArticleBlock.Paragraph(
+                        "This profile is generated locally to exercise the account workspace.",
+                    ),
+                ),
+            badges =
+                listOf(
+                    DiscourseForumBadge(
+                        id = 701L,
+                        name = "Fixture author",
+                        description = "Created deterministic preview data",
+                        icon = null,
+                        imageUrl = null,
+                        count = 2,
+                    ),
+                    DiscourseForumBadge(
+                        id = 702L,
+                        name = "Careful reviewer",
+                        description = "Reviewed a synthetic test journey",
+                        icon = null,
+                        imageUrl = null,
+                        count = 1,
+                    ),
+                ),
+            summary =
+                DiscourseForumUserSummary(
+                    likesGiven = 37,
+                    likesReceived = 128,
+                    topicsEntered = 84,
+                    postsReadCount = 642,
+                    daysVisited = 56,
+                    topicCount = 9,
+                    postCount = 73,
+                    timeReadSeconds = 28_800L,
+                    recentTimeReadSeconds = 3_600L,
+                    solvedCount = 4,
+                ),
+        )
+
+    private val profileActivity: List<DiscourseForumActivity> =
+        listOf(
+            activity(
+                id = 801L,
+                kind = DiscourseForumActivityKind.TopicCreated,
+                topicId = 5_301L,
+                postId = 9_301L,
+                postNumber = 1,
+                title = "Building deterministic UI fixtures",
+                excerpt = "A local-only example for repeatable visual tests.",
+            ),
+            activity(
+                id = 802L,
+                kind = DiscourseForumActivityKind.Replied,
+                topicId = 5_302L,
+                postId = 9_302L,
+                postNumber = 4,
+                title = "Window-size checks for a forum workspace",
+                excerpt = "Compared compact, medium, and expanded pane behavior.",
+            ),
+            activity(
+                id = 803L,
+                kind = DiscourseForumActivityKind.Bookmarked,
+                topicId = 5_303L,
+                postId = 9_303L,
+                postNumber = 6,
+                title = "Keeping screenshot baselines reviewable",
+                excerpt = "Small focused images make layout regressions easier to inspect.",
+            ),
+        )
+
+    private val previewNotifications: List<DiscourseForumNotification> =
+        listOf(
+            notification(
+                id = 9_403L,
+                kind = DiscourseForumNotificationKind.Reply,
+                read = false,
+                title = "A reply arrived in the packaging checklist",
+                actor = mina,
+                topicId = 4_102L,
+                postNumber = 2,
+            ),
+            notification(
+                id = 9_402L,
+                kind = DiscourseForumNotificationKind.Like,
+                read = false,
+                title = "Your synthetic diagnostics note was liked",
+                actor = alex,
+                topicId = 5_203L,
+                postNumber = 2,
+            ),
+            notification(
+                id = 9_401L,
+                kind = DiscourseForumNotificationKind.Badge,
+                read = true,
+                title = "Fixture author badge awarded",
+                actor = null,
+                topicId = null,
+                postNumber = null,
+            ),
+        )
+
     /** Loaded latest feed with a selected topic, suitable for list-detail screenshots. */
     public fun loaded(withSelectedTopic: Boolean = true): DiscourseForumState =
         DiscourseForumState(
@@ -277,6 +456,54 @@ public object ForumPreviewFixtures {
             feedSource = DiscourseForumContentSource.Network,
             topicSource =
                 if (withSelectedTopic) DiscourseForumContentSource.Network else null,
+        )
+
+    /** Compact, public search result state with a one-based continuation cursor. */
+    public fun search(): DiscourseForumState =
+        loaded(withSelectedTopic = false).copy(
+            destination = DiscourseForumDestination.Search,
+            search =
+                DiscourseForumSearchState(
+                    query = "adaptive workspace",
+                    submittedQuery = "adaptive workspace",
+                    items = searchResults,
+                    nextPage = DiscourseSearchPage(2),
+                ),
+        )
+
+    /** Authenticated notification state with both unread and already-read synthetic rows. */
+    public fun notifications(): DiscourseForumState =
+        loaded().copy(
+            destination = DiscourseForumDestination.Notifications,
+            sessionGeneration = 6L,
+            isAuthenticated = true,
+            accountUsername = previewMember.username,
+            notifications =
+                DiscourseForumNotificationsState(
+                    snapshot =
+                        DiscourseForumNotificationSnapshot(
+                            items = previewNotifications,
+                            totalRows = 7,
+                            seenNotificationId = 9_401L,
+                        ),
+                    nextOffset = DiscourseNotificationOffset(3),
+                ),
+        )
+
+    /** Authenticated profile and activity state containing only local presentation-safe values. */
+    public fun profile(): DiscourseForumState =
+        loaded().copy(
+            destination = DiscourseForumDestination.Profile,
+            sessionGeneration = 6L,
+            isAuthenticated = true,
+            accountUsername = previewMember.username,
+            profile =
+                DiscourseForumProfileState(
+                    username = previewMember.username,
+                    value = previewProfile,
+                    activity = profileActivity,
+                    nextOffset = 30,
+                ),
         )
 
     /** Initial loading state with stable taxonomy options for layout coverage. */
@@ -376,6 +603,87 @@ public object ForumPreviewFixtures {
     private fun listItem(text: String): UiArticleListItem =
         UiArticleListItem(
             blocks = listOf(UiArticleBlock.Paragraph(text)),
+        )
+
+    private fun searchHit(
+        postId: Long,
+        topicId: Long,
+        postNumber: Int,
+        title: String,
+        excerpt: String,
+        author: UiAuthor,
+        likes: Int,
+        tags: List<String>,
+    ): DiscourseForumSearchHit =
+        DiscourseForumSearchHit(
+            itemKey = "discourse-search-post:$postId",
+            postId = postId,
+            topic = DiscourseTopicRef(topicId = topicId, postNumber = postNumber),
+            topicSlug = "fixture-search-topic-$topicId",
+            title = title,
+            excerpt = excerpt,
+            author = author,
+            createdAtEpochMillis = 1_786_910_400_000L - postId * 1_000L,
+            likeCount = likes,
+            categoryId = 7L,
+            tags = tags,
+        )
+
+    private fun activity(
+        id: Long,
+        kind: DiscourseForumActivityKind,
+        topicId: Long,
+        postId: Long,
+        postNumber: Int,
+        title: String,
+        excerpt: String,
+    ): DiscourseForumActivity =
+        DiscourseForumActivity(
+            itemKey = "fixture-activity-$id",
+            actionType = id.toInt(),
+            kind = kind,
+            createdAtEpochMillis = 1_786_910_400_000L - id * 60_000L,
+            user = previewMember,
+            actingUser = null,
+            topic = DiscourseTopicRef(topicId = topicId, postNumber = postNumber),
+            postId = postId,
+            topicSlug = "fixture-activity-topic-$topicId",
+            title = title,
+            excerpt = excerpt,
+            categoryId = 7L,
+            closed = false,
+            archived = false,
+            hidden = false,
+            deleted = false,
+        )
+
+    private fun notification(
+        id: Long,
+        kind: DiscourseForumNotificationKind,
+        read: Boolean,
+        title: String,
+        actor: UiAuthor?,
+        topicId: Long?,
+        postNumber: Int?,
+    ): DiscourseForumNotification =
+        DiscourseForumNotification(
+            id = id,
+            recipientUserId = previewProfile.userId,
+            kind = kind,
+            read = read,
+            highPriority = !read,
+            createdAtEpochMillis = 1_786_910_400_000L - id * 60_000L,
+            topic = topicId?.let { DiscourseTopicRef(topicId = it, postNumber = postNumber) },
+            topicSlug = topicId?.let { "fixture-notification-topic-$it" },
+            title = title,
+            actingUser = actor,
+            data =
+                DiscourseForumNotificationData(
+                    topicTitle = title,
+                    displayUsername = actor?.displayName,
+                    username = actor?.username,
+                    badgeName = title.takeIf { kind == DiscourseForumNotificationKind.Badge },
+                ),
         )
 
     private const val SELECTED_TOPIC_TITLE: String =

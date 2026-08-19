@@ -16,12 +16,17 @@ import dev.dimension.flare.data.network.discourse.model.DiscourseTopicListRespon
 import dev.dimension.flare.data.network.discourse.model.DiscourseTopicSummary
 import dev.dimension.flare.data.network.discourse.paging.DiscourseTopicStreamCursor
 import dev.dimension.flare.data.network.discourse.paging.DiscourseTopicStreamPager
+import dev.dimension.flare.data.network.discourse.session.DiscourseSessionManager
+import dev.dimension.flare.data.network.discourse.session.StaleDiscourseSessionException
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertSame
 
 internal class DiscourseForumRepositoryTest {
     private val mapper = DiscourseForumMapper(DiscourseCookedHtmlParser())
@@ -138,20 +143,136 @@ internal class DiscourseForumRepositoryTest {
                     repository(remote).loadFeed(DiscourseForumFeed.Latest)
                 }
 
-            assertSame(cancellation, thrown)
+            assertEquals(cancellation.message, thrown.message)
+        }
+
+    @Test
+    fun authenticatedResponsesNeverReadOrWriteTheAnonymousCache() =
+        runTest {
+            val sessionManager = DiscourseSessionManager()
+            sessionManager.startAuthenticatedSession(accountId = "account-42")
+            val cache = RecordingForumCache()
+            val remote = RecordingForumRemote()
+            val repository = repository(remote, cache, sessionManager = sessionManager)
+
+            repository.loadFeed(DiscourseForumFeed.Latest)
+            repository.loadCategories()
+            repository.loadTags()
+            repository.loadTopic(topicId = 42L)
+
+            assertEquals(0, cache.readCount)
+            assertEquals(0, cache.writeCount)
+
+            remote.topicsBlock = {
+                throw DiscourseNetworkException(DiscourseNetworkFailureKind.Connection)
+            }
+            assertFailsWith<DiscourseNetworkException> {
+                repository.loadFeed(DiscourseForumFeed.Latest)
+            }
+            assertEquals(0, cache.readCount)
+            assertEquals(0, cache.writeCount)
+        }
+
+    @Test
+    fun generationReplacementCannotLateWriteAResponseFromTheOldGuestLease() =
+        runTest {
+            supervisorScope {
+                val sessionManager = DiscourseSessionManager()
+                val requestStarted = CompletableDeferred<Unit>()
+                val cache = RecordingForumCache()
+                val remote = RecordingForumRemote()
+                remote.topicsBlock = {
+                    requestStarted.complete(Unit)
+                    try {
+                        awaitCancellation()
+                    } catch (_: CancellationException) {
+                        // Simulate a faulty transport which swallows the generation cancellation and
+                        // still returns account-derived response data to its caller.
+                        topicListResponse(
+                            topics = listOf(DiscourseTopicSummary(42L, "Private state", "private-state")),
+                        )
+                    }
+                }
+                val repository = repository(remote, cache, sessionManager = sessionManager)
+                val loading = async { repository.loadFeed(DiscourseForumFeed.Latest) }
+                requestStarted.await()
+
+                sessionManager.startAuthenticatedSession(accountId = "replacement-account")
+
+                assertFailsWith<StaleDiscourseSessionException> { loading.await() }
+                assertEquals(0, cache.writeCount)
+            }
         }
 
     private fun repository(
         remote: DiscourseForumRemoteDataSource,
         cache: DiscourseForumCache = MemoryDiscourseForumCache(),
         now: Long = 100L,
+        sessionManager: DiscourseSessionManager = DiscourseSessionManager(),
     ): DefaultDiscourseForumRepository =
         DefaultDiscourseForumRepository(
             remote = remote,
             mapper = mapper,
             cache = cache,
+            sessionManager = sessionManager,
             nowEpochMillis = { now },
         )
+}
+
+private class RecordingForumCache(
+    private val delegate: DiscourseForumCache = MemoryDiscourseForumCache(),
+) : DiscourseForumCache {
+    var readCount: Int = 0
+        private set
+    var writeCount: Int = 0
+        private set
+
+    override suspend fun getFeed(
+        feed: DiscourseForumFeed,
+        page: Int,
+    ): DiscourseForumFeedPage? {
+        readCount += 1
+        return delegate.getFeed(feed, page)
+    }
+
+    override suspend fun putFeed(value: DiscourseForumFeedPage) {
+        writeCount += 1
+        delegate.putFeed(value)
+    }
+
+    override suspend fun getCategories(): DiscourseForumCategories? {
+        readCount += 1
+        return delegate.getCategories()
+    }
+
+    override suspend fun putCategories(value: DiscourseForumCategories) {
+        writeCount += 1
+        delegate.putCategories(value)
+    }
+
+    override suspend fun getTags(): DiscourseForumTags? {
+        readCount += 1
+        return delegate.getTags()
+    }
+
+    override suspend fun putTags(value: DiscourseForumTags) {
+        writeCount += 1
+        delegate.putTags(value)
+    }
+
+    override suspend fun getTopic(topicId: Long): DiscourseForumTopic? {
+        readCount += 1
+        return delegate.getTopic(topicId)
+    }
+
+    override suspend fun putTopic(value: DiscourseForumTopic) {
+        writeCount += 1
+        delegate.putTopic(value)
+    }
+
+    override suspend fun clear() {
+        delegate.clear()
+    }
 }
 
 private class RecordingForumRemote : DiscourseForumRemoteDataSource {

@@ -30,6 +30,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumAction
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumDestination
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumFeed
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumPresenter
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumState
@@ -41,12 +42,21 @@ internal sealed interface ForumNavKey : NavKey
 @Serializable
 internal data class ForumFeedRoute(
     val feed: DiscourseForumFeed,
+    val destination: DiscourseForumDestination,
 ) : ForumNavKey
 
 @Serializable
 internal data class ForumTopicRoute(
     val topicId: Long,
-) : ForumNavKey
+    val postNumber: Int? = null,
+) : ForumNavKey {
+    init {
+        require(topicId > 0L) { "Forum topic route id must be positive" }
+        require(postNumber == null || postNumber > 0) {
+            "Forum topic route post number must be positive"
+        }
+    }
+}
 
 @Serializable
 internal data object ForumEmptyDetailRoute : ForumNavKey
@@ -94,18 +104,25 @@ internal fun AndroidForumShell(
         ) {
             val layoutClass = forumLayoutClassFor(maxWidth)
             val activity = LocalContext.current.findActivity()
-            val backStack = rememberNavBackStack(ForumFeedRoute(state.selection))
+            val backStack =
+                rememberNavBackStack(
+                    ForumFeedRoute(
+                        feed = state.selection,
+                        destination = state.destination,
+                    ),
+                )
             val sceneStrategy = rememberListDetailSceneStrategy<NavKey>()
-            val restoredFeed = remember { backStack.filterIsInstance<ForumFeedRoute>().first().feed }
-            val restoredTopicId =
-                remember { backStack.filterIsInstance<ForumTopicRoute>().lastOrNull()?.topicId }
+            val restoredRoot = remember { backStack.filterIsInstance<ForumFeedRoute>().first() }
+            val restoredTopic = remember { backStack.filterIsInstance<ForumTopicRoute>().lastOrNull() }
             var restorationDispatched by remember { mutableStateOf(false) }
             var restorationComplete by remember { mutableStateOf(false) }
 
             fun desiredRoutes(): List<ForumNavKey> =
                 forumRoutesFor(
+                    destination = state.destination,
                     feed = state.selection,
                     selectedTopicId = state.selectedTopicId,
+                    selectedPostNumber = state.selectedPostNumber,
                     layoutClass = layoutClass,
                 )
 
@@ -116,11 +133,30 @@ internal fun AndroidForumShell(
 
             fun dispatchAndNavigate(action: DiscourseForumAction) {
                 when (action) {
+                    is DiscourseForumAction.SelectDestination -> {
+                        replaceRoutes(
+                            forumRoutesFor(
+                                destination = action.destination,
+                                feed = state.selection,
+                                selectedTopicId = null,
+                                selectedPostNumber = null,
+                                layoutClass = layoutClass,
+                            ),
+                        )
+                    }
+
                     is DiscourseForumAction.SelectFeed -> {
                         replaceRoutes(
                             forumRoutesFor(
+                                destination =
+                                    if (action.feed == DiscourseForumFeed.Hot) {
+                                        DiscourseForumDestination.Hot
+                                    } else {
+                                        DiscourseForumDestination.Latest
+                                    },
                                 feed = action.feed,
                                 selectedTopicId = null,
+                                selectedPostNumber = null,
                                 layoutClass = layoutClass,
                             ),
                         )
@@ -129,8 +165,10 @@ internal fun AndroidForumShell(
                     is DiscourseForumAction.OpenTopic -> {
                         replaceRoutes(
                             forumRoutesFor(
+                                destination = state.destination,
                                 feed = state.selection,
                                 selectedTopicId = action.topicId,
+                                selectedPostNumber = action.postNumber,
                                 layoutClass = layoutClass,
                             ),
                         )
@@ -139,17 +177,30 @@ internal fun AndroidForumShell(
                     DiscourseForumAction.CloseTopic -> {
                         replaceRoutes(
                             forumRoutesFor(
+                                destination = state.destination,
                                 feed = state.selection,
                                 selectedTopicId = null,
+                                selectedPostNumber = null,
                                 layoutClass = layoutClass,
                             ),
                         )
                     }
 
                     DiscourseForumAction.Refresh,
+                    DiscourseForumAction.RefreshNotifications,
+                    DiscourseForumAction.RetryNotifications,
+                    DiscourseForumAction.RetryProfile,
+                    DiscourseForumAction.RetrySearch,
                     DiscourseForumAction.LoadNextPage,
+                    DiscourseForumAction.LoadNextActivityPage,
+                    DiscourseForumAction.LoadNextNotificationsPage,
+                    DiscourseForumAction.LoadNextSearchPage,
+                    is DiscourseForumAction.MarkNotificationsRead,
+                    is DiscourseForumAction.OpenProfile,
                     DiscourseForumAction.RetryTaxonomy,
                     DiscourseForumAction.RetryTopic,
+                    DiscourseForumAction.SubmitSearch,
+                    is DiscourseForumAction.UpdateSearchQuery,
                     -> {}
                 }
                 onAction(action)
@@ -164,28 +215,36 @@ internal fun AndroidForumShell(
             LaunchedEffect(Unit) {
                 restoredForumActions(
                     state = state,
-                    restoredFeed = restoredFeed,
-                    restoredTopicId = restoredTopicId,
+                    restoredDestination = restoredRoot.destination,
+                    restoredFeed = restoredRoot.feed,
+                    restoredTopicId = restoredTopic?.topicId,
+                    restoredPostNumber = restoredTopic?.postNumber,
                 ).forEach(onAction)
                 restorationDispatched = true
             }
 
             LaunchedEffect(
                 restorationDispatched,
+                state.destination,
                 state.selection.stableKey,
                 state.selectedTopicId,
+                state.selectedPostNumber,
             ) {
                 if (
                     restorationDispatched &&
-                    state.selection.stableKey == restoredFeed.stableKey &&
-                    state.selectedTopicId == restoredTopicId
+                    state.destination == restoredRoot.destination &&
+                    state.selection.stableKey == restoredRoot.feed.stableKey &&
+                    state.selectedTopicId == restoredTopic?.topicId &&
+                    state.selectedPostNumber == restoredTopic?.postNumber
                 ) {
                     restorationComplete = true
                 }
             }
             LaunchedEffect(
+                state.destination,
                 state.selection.stableKey,
                 state.selectedTopicId,
+                state.selectedPostNumber,
                 layoutClass,
                 restorationComplete,
             ) {
@@ -214,7 +273,7 @@ internal fun AndroidForumShell(
                                             width = ForumExpandedListPaneWidth,
                                         ),
                             ) {
-                                ForumTopicListPane(
+                                ForumPrimaryPane(
                                     state = state,
                                     onAction = ::dispatchAndNavigate,
                                     modifier = Modifier.fillMaxSize(),
@@ -275,17 +334,22 @@ internal fun AndroidForumShell(
 
 /** Builds pane routes from current semantic state; static panes never become user history. */
 internal fun forumRoutesFor(
+    destination: DiscourseForumDestination,
     feed: DiscourseForumFeed,
     selectedTopicId: Long?,
+    selectedPostNumber: Int?,
     layoutClass: ForumLayoutClass,
 ): List<ForumNavKey> =
     buildList {
-        add(ForumFeedRoute(feed))
+        require(selectedTopicId != null || selectedPostNumber == null) {
+            "A forum post route requires a topic id"
+        }
+        add(ForumFeedRoute(feed, destination))
         if (layoutClass == ForumLayoutClass.Expanded) {
             add(ForumSupportingRoute)
         }
         if (selectedTopicId != null) {
-            add(ForumTopicRoute(selectedTopicId))
+            add(ForumTopicRoute(selectedTopicId, selectedPostNumber))
         } else if (layoutClass != ForumLayoutClass.Compact) {
             add(ForumEmptyDetailRoute)
         }
@@ -294,15 +358,37 @@ internal fun forumRoutesFor(
 /** Rehydrates presenter semantics before its initial state can replace a restored Nav3 stack. */
 internal fun restoredForumActions(
     state: DiscourseForumState,
+    restoredDestination: DiscourseForumDestination,
     restoredFeed: DiscourseForumFeed,
     restoredTopicId: Long?,
+    restoredPostNumber: Int?,
 ): List<DiscourseForumAction> =
     buildList {
-        if (state.selection.stableKey != restoredFeed.stableKey) {
+        require(restoredTopicId != null || restoredPostNumber == null) {
+            "A restored forum post requires a topic id"
+        }
+        val feedChanged = state.selection.stableKey != restoredFeed.stableKey
+        if (feedChanged) {
             add(DiscourseForumAction.SelectFeed(restoredFeed))
         }
-        if (restoredTopicId != null && state.selectedTopicId != restoredTopicId) {
-            add(DiscourseForumAction.OpenTopic(restoredTopicId))
+        val destinationAfterFeed =
+            if (feedChanged) {
+                if (restoredFeed == DiscourseForumFeed.Hot) {
+                    DiscourseForumDestination.Hot
+                } else {
+                    DiscourseForumDestination.Latest
+                }
+            } else {
+                state.destination
+            }
+        if (destinationAfterFeed != restoredDestination) {
+            add(DiscourseForumAction.SelectDestination(restoredDestination))
+        }
+        if (
+            restoredTopicId != null &&
+            (state.selectedTopicId != restoredTopicId || state.selectedPostNumber != restoredPostNumber)
+        ) {
+            add(DiscourseForumAction.OpenTopic(restoredTopicId, restoredPostNumber))
         } else if (restoredTopicId == null && state.selectedTopicId != null) {
             add(DiscourseForumAction.CloseTopic)
         }

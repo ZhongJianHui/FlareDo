@@ -70,22 +70,92 @@ internal class DiscourseForumCacheTest {
             val dao = FakeForumCacheEntryDao()
             val cache = RoomDiscourseForumCache(dao)
 
-            dao.upsert(rawEntry("categories", "{"))
+            dao.upsert(rawEntry("public-v2:categories", "{"))
             assertNull(cache.getCategories())
-            assertNull(dao.get(ANONYMOUS_FORUM_CACHE_ACCOUNT_ID, "categories"))
+            assertNull(dao.get(ANONYMOUS_FORUM_CACHE_ACCOUNT_ID, "public-v2:categories"))
 
-            dao.upsert(rawEntry("categories", "x".repeat(2_000_001)))
+            dao.upsert(rawEntry("public-v2:categories", "x".repeat(2_000_001)))
             assertNull(cache.getCategories())
-            assertNull(dao.get(ANONYMOUS_FORUM_CACHE_ACCOUNT_ID, "categories"))
+            assertNull(dao.get(ANONYMOUS_FORUM_CACHE_ACCOUNT_ID, "public-v2:categories"))
 
             dao.upsert(
                 rawEntry(
-                    cacheKey = "topic:99",
+                    cacheKey = "public-v2:topic:99",
                     payload = discourseJson.encodeToString(forumTopic(topicId = 1L)),
                 ),
             )
             assertNull(cache.getTopic(99L))
-            assertNull(dao.get(ANONYMOUS_FORUM_CACHE_ACCOUNT_ID, "topic:99"))
+            assertNull(dao.get(ANONYMOUS_FORUM_CACHE_ACCOUNT_ID, "public-v2:topic:99"))
+        }
+
+    @Test
+    fun legacyUnversionedRowsAreUnreadableAndNewWritesUseThePublicV2Namespace() =
+        runTest {
+            val dao = FakeForumCacheEntryDao()
+            val cache = RoomDiscourseForumCache(dao)
+            val oldFeed = forumFeedPage(topicIds = listOf(7L))
+            val oldTopic = forumTopic(topicId = 7L)
+            val oldCategories =
+                DiscourseForumCategories(
+                    items = emptyList(),
+                    source = DiscourseForumContentSource.Network,
+                    updatedAtEpochMillis = 1L,
+                )
+            val oldTags =
+                DiscourseForumTags(
+                    items = emptyList(),
+                    source = DiscourseForumContentSource.Network,
+                    updatedAtEpochMillis = 1L,
+                )
+
+            dao.upsert(
+                rawEntry(
+                    cacheKey = "feed:latest:page:0",
+                    payload = discourseJson.encodeToString(oldFeed),
+                ),
+            )
+            dao.upsert(
+                rawEntry(
+                    cacheKey = "topic:7",
+                    payload = discourseJson.encodeToString(oldTopic),
+                ),
+            )
+            dao.upsert(
+                rawEntry(
+                    cacheKey = "categories",
+                    payload = discourseJson.encodeToString(oldCategories),
+                ),
+            )
+            dao.upsert(
+                rawEntry(
+                    cacheKey = "tags",
+                    payload = discourseJson.encodeToString(oldTags),
+                ),
+            )
+
+            assertNull(cache.getFeed(DiscourseForumFeed.Latest, page = 0))
+            assertNull(cache.getTopic(7L))
+            assertNull(cache.getCategories())
+            assertNull(cache.getTags())
+            assertNotNull(dao.get(ANONYMOUS_FORUM_CACHE_ACCOUNT_ID, "feed:latest:page:0"))
+            assertNotNull(dao.get(ANONYMOUS_FORUM_CACHE_ACCOUNT_ID, "topic:7"))
+            assertNotNull(dao.get(ANONYMOUS_FORUM_CACHE_ACCOUNT_ID, "categories"))
+            assertNotNull(dao.get(ANONYMOUS_FORUM_CACHE_ACCOUNT_ID, "tags"))
+
+            cache.putFeed(oldFeed)
+            cache.putTopic(oldTopic)
+            cache.putCategories(oldCategories)
+            cache.putTags(oldTags)
+
+            assertNotNull(
+                dao.get(
+                    ANONYMOUS_FORUM_CACHE_ACCOUNT_ID,
+                    "public-v2:feed:latest:page:0",
+                ),
+            )
+            assertNotNull(dao.get(ANONYMOUS_FORUM_CACHE_ACCOUNT_ID, "public-v2:topic:7"))
+            assertNotNull(dao.get(ANONYMOUS_FORUM_CACHE_ACCOUNT_ID, "public-v2:categories"))
+            assertNotNull(dao.get(ANONYMOUS_FORUM_CACHE_ACCOUNT_ID, "public-v2:tags"))
         }
 }
 

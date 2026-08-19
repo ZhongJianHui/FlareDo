@@ -64,3 +64,10 @@ kotlin {
         }
     }
 }
+
+// AGP's host-test lint tasks read KSP output but do not currently wire the producer task.
+tasks.matching {
+    it.name.contains("AndroidHostTest") && it.name.contains("lint", ignoreCase = true)
+}.configureEach {
+    dependsOn(tasks.matching { it.name == "kspAndroidHostTest" })
+}

@@ -8,7 +8,7 @@ import dev.dimension.flare.ui.ForumPreviewFixtures
 import dev.dimension.flare.ui.ForumWorkspace
 import dev.dimension.flare.ui.theme.FlareDoTheme
 
-/** Initial Stage 4 baselines; the exhaustive size and font-scale matrix belongs to Stage 9. */
+/** Network-free Stage 4 and Stage 6 baselines; the exhaustive matrix belongs to Stage 9. */
 @PreviewTest
 @Preview(name = "compact-list-light", widthDp = 400, heightDp = 800, showBackground = true)
 @Composable
@@ -49,6 +49,27 @@ public fun expandedWorkspaceScreenshot() {
 @Composable
 public fun compactErrorScreenshot() {
     ForumScreenshot(state = ForumPreviewFixtures.error())
+}
+
+@PreviewTest
+@Preview(name = "compact-search-results", widthDp = 400, heightDp = 800, showBackground = true)
+@Composable
+public fun compactSearchResultsScreenshot() {
+    ForumScreenshot(state = ForumPreviewFixtures.search())
+}
+
+@PreviewTest
+@Preview(name = "medium-notifications", widthDp = 610, heightDp = 800, showBackground = true)
+@Composable
+public fun mediumNotificationsScreenshot() {
+    ForumScreenshot(state = ForumPreviewFixtures.notifications())
+}
+
+@PreviewTest
+@Preview(name = "expanded-profile", widthDp = 900, heightDp = 800, showBackground = true)
+@Composable
+public fun expandedProfileScreenshot() {
+    ForumScreenshot(state = ForumPreviewFixtures.profile())
 }
 
 @Composable

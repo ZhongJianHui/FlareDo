@@ -1,8 +1,20 @@
 package dev.dimension.flare.data.network.discourse.forum
 
+import dev.dimension.flare.data.network.discourse.paging.DiscourseNotificationOffset
+import dev.dimension.flare.data.network.discourse.paging.DiscourseSearchPage
 import dev.dimension.flare.ui.model.UiArticle
 import dev.dimension.flare.ui.model.UiTimelineV2
 import kotlinx.serialization.Serializable
+
+/** Stable top-level workspace destinations shared by Compose and SwiftUI navigation. */
+@Serializable
+public enum class DiscourseForumDestination {
+    Latest,
+    Hot,
+    Search,
+    Notifications,
+    Profile,
+}
 
 /** Anonymous Linux.do topic-list selection shared by Compose and SwiftUI hosts. */
 @Serializable
@@ -202,12 +214,21 @@ public data class DiscourseForumTopic(
 
 /** Immutable Molecule state consumed directly by Compose and SwiftUI. */
 public data class DiscourseForumState(
+    val destination: DiscourseForumDestination = DiscourseForumDestination.Latest,
     val selection: DiscourseForumFeed = DiscourseForumFeed.Latest,
     val topics: List<UiTimelineV2.Topic> = emptyList(),
     val categories: List<DiscourseForumCategoryOption> = emptyList(),
     val tags: List<DiscourseForumTagOption> = emptyList(),
     val selectedTopicId: Long? = null,
+    /** Post number requested by search/notification navigation; null opens the topic normally. */
+    val selectedPostNumber: Int? = null,
     val selectedTopic: DiscourseForumTopic? = null,
+    val sessionGeneration: Long = -1L,
+    val isAuthenticated: Boolean = false,
+    val accountUsername: String? = null,
+    val search: DiscourseForumSearchState = DiscourseForumSearchState(),
+    val profile: DiscourseForumProfileState = DiscourseForumProfileState(),
+    val notifications: DiscourseForumNotificationsState = DiscourseForumNotificationsState(),
     val nextPage: Int? = null,
     val isFeedLoading: Boolean = true,
     val isAppending: Boolean = false,
@@ -226,8 +247,50 @@ public data class DiscourseForumState(
         get() = nextPage != null && appendFailure == null
 }
 
+/** Search input, results, cursor, and failures kept independent from topic-list paging. */
+public data class DiscourseForumSearchState(
+    val query: String = "",
+    val submittedQuery: String = "",
+    val items: List<DiscourseForumSearchHit> = emptyList(),
+    val nextPage: DiscourseSearchPage? = null,
+    val isLoading: Boolean = false,
+    val isAppending: Boolean = false,
+    val failure: DiscourseForumFailureKind? = null,
+    val appendFailure: DiscourseForumFailureKind? = null,
+)
+
+/** Profile and activity paging state for either the active account or a public username. */
+public data class DiscourseForumProfileState(
+    val username: String? = null,
+    val value: DiscourseForumProfile? = null,
+    val activity: List<DiscourseForumActivity> = emptyList(),
+    val nextOffset: Int? = null,
+    val isLoading: Boolean = false,
+    val isActivityLoading: Boolean = false,
+    val isAppendingActivity: Boolean = false,
+    val failure: DiscourseForumFailureKind? = null,
+    val activityFailure: DiscourseForumFailureKind? = null,
+    val activityAppendFailure: DiscourseForumFailureKind? = null,
+)
+
+/** Authenticated notification snapshot and its offset cursor. */
+public data class DiscourseForumNotificationsState(
+    val snapshot: DiscourseForumNotificationSnapshot? = null,
+    val nextOffset: DiscourseNotificationOffset? = null,
+    val isLoading: Boolean = false,
+    val isAppending: Boolean = false,
+    val isMarkingRead: Boolean = false,
+    val failure: DiscourseForumFailureKind? = null,
+    val appendFailure: DiscourseForumFailureKind? = null,
+    val markFailure: DiscourseForumFailureKind? = null,
+)
+
 /** Commands accepted by [DiscourseForumPresenter]. */
 public sealed interface DiscourseForumAction {
+    public data class SelectDestination(
+        val destination: DiscourseForumDestination,
+    ) : DiscourseForumAction
+
     public data class SelectFeed(
         val feed: DiscourseForumFeed,
     ) : DiscourseForumAction
@@ -241,19 +304,70 @@ public sealed interface DiscourseForumAction {
 
     public data class OpenTopic(
         val topicId: Long,
+        val postNumber: Int? = null,
     ) : DiscourseForumAction {
         init {
             require(topicId > 0L) { "Opened forum topic id must be positive" }
+            require(postNumber == null || postNumber > 0) {
+                "Opened forum post number must be positive"
+            }
         }
     }
 
     public data object CloseTopic : DiscourseForumAction
 
     public data object RetryTopic : DiscourseForumAction
+
+    public data class UpdateSearchQuery(
+        val query: String,
+    ) : DiscourseForumAction {
+        init {
+            require(query.length <= MAX_FORUM_SEARCH_QUERY_LENGTH) { "Forum search query is too long" }
+            require(query.none(Char::isForumControlCharacter)) {
+                "Forum search query contains control characters"
+            }
+        }
+    }
+
+    public data object SubmitSearch : DiscourseForumAction
+
+    public data object LoadNextSearchPage : DiscourseForumAction
+
+    public data object RetrySearch : DiscourseForumAction
+
+    public data class OpenProfile(
+        val username: String,
+    ) : DiscourseForumAction {
+        init {
+            requireForumRouteValue(username, "Forum profile username")
+        }
+    }
+
+    public data object RetryProfile : DiscourseForumAction
+
+    public data object LoadNextActivityPage : DiscourseForumAction
+
+    public data object RefreshNotifications : DiscourseForumAction
+
+    public data object RetryNotifications : DiscourseForumAction
+
+    public data object LoadNextNotificationsPage : DiscourseForumAction
+
+    /** Null marks every current notification read; a positive id marks one row. */
+    public data class MarkNotificationsRead(
+        val notificationId: Long? = null,
+    ) : DiscourseForumAction {
+        init {
+            require(notificationId == null || notificationId > 0L) {
+                "Marked notification id must be positive"
+            }
+        }
+    }
 }
 
 private const val MAX_FORUM_ROUTE_VALUE_LENGTH: Int = 256
 private const val MAX_FORUM_DISPLAY_VALUE_LENGTH: Int = 1_000
+private const val MAX_FORUM_SEARCH_QUERY_LENGTH: Int = 2_000
 
 private fun requireForumRouteValue(
     value: String,

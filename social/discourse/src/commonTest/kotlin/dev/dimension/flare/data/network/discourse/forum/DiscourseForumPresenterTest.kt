@@ -2,6 +2,9 @@ package dev.dimension.flare.data.network.discourse.forum
 
 import dev.dimension.flare.data.network.discourse.error.DiscourseNetworkException
 import dev.dimension.flare.data.network.discourse.error.DiscourseNetworkFailureKind
+import dev.dimension.flare.data.network.discourse.paging.DiscourseNotificationOffset
+import dev.dimension.flare.data.network.discourse.paging.DiscourseSearchPage
+import dev.dimension.flare.data.network.discourse.session.DiscourseSessionManager
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
@@ -32,6 +35,9 @@ internal class DiscourseForumPresenterTest {
             val presenter =
                 DiscourseForumPresenter(
                     repository = repository,
+                    searchRepository = repository,
+                    accountRepository = repository,
+                    sessionManager = DiscourseSessionManager(),
                     dispatcher = StandardTestDispatcher(testScheduler),
                 )
             val models = presenter.models
@@ -84,6 +90,9 @@ internal class DiscourseForumPresenterTest {
             val presenter =
                 DiscourseForumPresenter(
                     repository = repository,
+                    searchRepository = repository,
+                    accountRepository = repository,
+                    sessionManager = DiscourseSessionManager(),
                     dispatcher = StandardTestDispatcher(testScheduler),
                 )
             val models = presenter.models
@@ -120,6 +129,9 @@ internal class DiscourseForumPresenterTest {
             val presenter =
                 DiscourseForumPresenter(
                     repository = repository,
+                    searchRepository = repository,
+                    accountRepository = repository,
+                    sessionManager = DiscourseSessionManager(),
                     dispatcher = StandardTestDispatcher(testScheduler),
                 )
             val models = presenter.models
@@ -161,6 +173,9 @@ internal class DiscourseForumPresenterTest {
             val presenter =
                 DiscourseForumPresenter(
                     repository = repository,
+                    searchRepository = repository,
+                    accountRepository = repository,
+                    sessionManager = DiscourseSessionManager(),
                     dispatcher = StandardTestDispatcher(testScheduler),
                 )
             val models = presenter.models
@@ -203,6 +218,9 @@ internal class DiscourseForumPresenterTest {
             val presenter =
                 DiscourseForumPresenter(
                     repository = repository,
+                    searchRepository = repository,
+                    accountRepository = repository,
+                    sessionManager = DiscourseSessionManager(),
                     dispatcher = StandardTestDispatcher(testScheduler),
                 )
             val models = presenter.models
@@ -254,6 +272,9 @@ internal class DiscourseForumPresenterTest {
             val presenter =
                 DiscourseForumPresenter(
                     repository = repository,
+                    searchRepository = repository,
+                    accountRepository = repository,
+                    sessionManager = DiscourseSessionManager(),
                     dispatcher = StandardTestDispatcher(testScheduler),
                 )
             val models = presenter.models
@@ -282,7 +303,10 @@ internal class DiscourseForumPresenterTest {
         }
 }
 
-private class FakeForumRepository : DiscourseForumRepository {
+private class FakeForumRepository :
+    DiscourseForumRepository,
+    DiscourseForumSearchRepository,
+    DiscourseForumAccountRepository {
     val feedCalls = mutableListOf<Pair<DiscourseForumFeed, Int>>()
     val topicCalls = mutableListOf<Long>()
     var categoryCalls: Int = 0
@@ -323,6 +347,32 @@ private class FakeForumRepository : DiscourseForumRepository {
         topicCalls += topicId
         return topicHandler(topicId)
     }
+
+    override suspend fun search(
+        query: String,
+        page: DiscourseSearchPage,
+        knownPostIds: Set<Long>,
+    ): DiscourseForumSearchPage = error("Search is not expected in the legacy presenter tests")
+
+    override suspend fun loadProfile(username: String): DiscourseForumProfile =
+        error("Profiles are not expected in the legacy presenter tests")
+
+    override suspend fun loadActivity(
+        username: String,
+        offset: Int,
+        knownItemKeys: Set<String>,
+    ): DiscourseForumActivityPage = error("Activity is not expected in the legacy presenter tests")
+
+    override suspend fun loadNotifications(
+        offset: DiscourseNotificationOffset,
+        knownIds: Set<Long>,
+        limit: Int,
+    ): DiscourseForumNotificationPage = error("Notifications are not expected in the legacy presenter tests")
+
+    override suspend fun markNotificationsRead(
+        current: DiscourseForumNotificationSnapshot,
+        notificationId: Long?,
+    ): DiscourseForumNotificationSnapshot = error("Notification mutations are not expected in the legacy presenter tests")
 }
 
 private fun List<dev.dimension.flare.ui.model.UiTimelineV2.Topic>.topicIds(): List<Long> = map { requireNotNull(it.discourse).ref.topicId }

@@ -13,11 +13,17 @@ import dev.dimension.flare.data.network.discourse.auth.DiscourseWebSessionLogin
 import dev.dimension.flare.data.network.discourse.auth.MemoryDiscourseAuthAttemptStore
 import dev.dimension.flare.data.network.discourse.auth.createPlatformDiscourseAuthTokenGenerator
 import dev.dimension.flare.data.network.discourse.content.DiscourseCookedHtmlParser
+import dev.dimension.flare.data.network.discourse.forum.DefaultDiscourseForumAccountRepository
 import dev.dimension.flare.data.network.discourse.forum.DefaultDiscourseForumRepository
+import dev.dimension.flare.data.network.discourse.forum.DefaultDiscourseForumSearchRepository
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumAccountMapper
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumAccountRepository
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumCache
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumMapper
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumPresenter
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumRepository
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumSearchMapper
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumSearchRepository
 import dev.dimension.flare.data.network.discourse.forum.MemoryDiscourseForumCache
 import dev.dimension.flare.data.network.discourse.session.DiscourseCookieStorage
 import dev.dimension.flare.data.network.discourse.session.DiscourseCsrfTokenStore
@@ -65,6 +71,22 @@ public val discourseModule: Module =
         single { DiscourseDataSource(api = get()) }
         single { DiscourseCookedHtmlParser() }
         single { DiscourseForumMapper(cookedHtmlParser = get()) }
+        single { DiscourseForumSearchMapper(cookedHtmlParser = get()) }
+        single<DiscourseForumSearchRepository> {
+            DefaultDiscourseForumSearchRepository(
+                dataSource = get(),
+                mapper = get(),
+                sessionManager = get(),
+            )
+        }
+        single { DiscourseForumAccountMapper(cookedHtmlParser = get()) }
+        single<DiscourseForumAccountRepository> {
+            DefaultDiscourseForumAccountRepository(
+                dataSource = get(),
+                mapper = get(),
+                sessionManager = get(),
+            )
+        }
         // Platform hosts replace this with roomDiscourseForumCache(...) after opening their DB.
         single<DiscourseForumCache> { MemoryDiscourseForumCache() }
         single<DiscourseForumRepository> {
@@ -72,10 +94,18 @@ public val discourseModule: Module =
                 dataSource = get(),
                 mapper = get(),
                 cache = get(),
+                sessionManager = get(),
             )
         }
         // A presenter has a screen lifecycle and must never be reused after close().
-        factory { DiscourseForumPresenter(repository = get()) }
+        factory {
+            DiscourseForumPresenter(
+                repository = get(),
+                searchRepository = get(),
+                accountRepository = get(),
+                sessionManager = get(),
+            )
+        }
     }
 
 /**

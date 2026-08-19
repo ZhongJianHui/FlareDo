@@ -1,5 +1,6 @@
 package dev.dimension.flare.data.network.discourse
 
+import dev.dimension.flare.data.network.discourse.error.DiscourseAuthenticationException
 import dev.dimension.flare.data.network.discourse.error.DiscourseCsrfException
 import dev.dimension.flare.data.network.discourse.error.DiscourseException
 import dev.dimension.flare.data.network.discourse.error.DiscourseNetworkException
@@ -33,6 +34,7 @@ import dev.dimension.flare.data.network.discourse.paging.DiscourseListPage
 import dev.dimension.flare.data.network.discourse.paging.DiscourseNotificationOffset
 import dev.dimension.flare.data.network.discourse.paging.DiscourseSearchPage
 import dev.dimension.flare.data.network.discourse.session.DiscourseSessionManager
+import dev.dimension.flare.data.network.discourse.session.DiscourseSessionState
 import io.ktor.client.network.sockets.ConnectTimeoutException
 import io.ktor.client.network.sockets.SocketTimeoutException
 import io.ktor.client.plugins.HttpRequestTimeoutException
@@ -150,7 +152,7 @@ internal class DefaultDiscourseApi(
         limit: Int,
     ): DiscourseNotificationResponse {
         require(limit in 1..60) { "Notification limit must be between 1 and 60" }
-        return read {
+        return read(requiresAuthentication = true) {
             wire.notifications(
                 offset = offset.queryValueOrNull(),
                 limit = limit,
@@ -221,7 +223,7 @@ internal class DefaultDiscourseApi(
 
     override suspend fun markNotificationsRead(notificationId: Long?) {
         notificationId?.let { requirePositiveId(it, "Notification id") }
-        mutate { csrfToken ->
+        mutate(requiresAuthentication = true) { csrfToken ->
             wire.markNotificationsRead(
                 csrfToken = csrfToken,
                 notificationId = notificationId,
@@ -289,18 +291,30 @@ internal class DefaultDiscourseApi(
             )
         }
 
-    private suspend fun <T> read(block: suspend () -> T): T =
+    private suspend fun <T> read(
+        requiresAuthentication: Boolean = false,
+        block: suspend () -> T,
+    ): T =
         translateTransportFailures {
-            sessionManager.runForCurrentSession { block() }
+            sessionManager.runForCurrentSession {
+                requireAuthenticatedBeforeWireAccess(requiresAuthentication)
+                block()
+            }
         }
 
     /**
      * Runs an unsafe request with an in-memory token and one explicit-CSRF replay at most.
      * Cloudflare, permission, rate-limit, and every other failure leave the request untouched.
      */
-    private suspend fun <T> mutate(block: suspend (csrfToken: String) -> T): T =
+    private suspend fun <T> mutate(
+        requiresAuthentication: Boolean = false,
+        block: suspend (csrfToken: String) -> T,
+    ): T =
         translateTransportFailures {
             sessionManager.runForCurrentSession {
+                // The guard belongs to this lease and runs before even the CSRF fetch. Checking the
+                // observable state outside runForCurrentSession would race with login and logout.
+                requireAuthenticatedBeforeWireAccess(requiresAuthentication)
                 val firstToken =
                     sessionManager.csrfTokenStore.getOrFetch {
                         wire.csrf().csrf
@@ -317,6 +331,12 @@ internal class DefaultDiscourseApi(
                 }
             }
         }
+}
+
+private fun DiscourseSessionState.requireAuthenticatedBeforeWireAccess(required: Boolean) {
+    if (required && this !is DiscourseSessionState.Authenticated) {
+        throw DiscourseAuthenticationException()
+    }
 }
 
 private suspend fun <T> translateTransportFailures(block: suspend () -> T): T =
