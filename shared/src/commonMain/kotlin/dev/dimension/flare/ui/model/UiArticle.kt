@@ -11,6 +11,29 @@ public data class UiArticle(
     val createdAtEpochMillis: Long,
     val blocks: List<UiArticleBlock>,
     val canReply: Boolean = false,
+    val discourse: DiscoursePostMeta? = null,
+)
+
+/**
+ * Discourse permissions and action state belonging to one rendered post.
+ *
+ * [postId] is used by mutation endpoints, whereas [postNumber] and [replyToPostNumber] describe
+ * the visible reply graph. They intentionally remain separate to enforce Discourse's API
+ * contract when loading or editing content.
+ */
+@Serializable
+public data class DiscoursePostMeta(
+    val topicId: Long,
+    val postId: Long,
+    val postNumber: Int,
+    val replyToPostNumber: Int? = null,
+    val canEdit: Boolean = false,
+    val canDelete: Boolean = false,
+    val liked: Boolean = false,
+    val likeCount: Int = 0,
+    val bookmarked: Boolean = false,
+    val bookmarkId: Long? = null,
+    val currentReaction: String? = null,
 )
 
 /**

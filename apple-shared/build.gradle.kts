@@ -23,6 +23,7 @@ kotlin {
                 baseName = "KotlinSharedUI"
                 isStatic = true
                 export(projects.shared)
+                export(projects.social.discourse)
 
                 if (appleTarget.name.startsWith("macos")) {
                     linkerOpts.add("-lsqlite3")
@@ -33,6 +34,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(projects.shared)
+            api(projects.social.discourse)
         }
     }
 }

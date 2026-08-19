@@ -26,6 +26,7 @@ public sealed interface UiTimelineV2 {
         val unread: Boolean = false,
         val categoryName: String? = null,
         val tags: List<String> = emptyList(),
+        val discourse: DiscourseTopicMeta? = null,
     ) : UiTimelineV2
 
     /** Inline status row for loading failures or intentionally empty forum sections. */
@@ -42,4 +43,37 @@ public data class UiAuthor(
     val username: String,
     val displayName: String,
     val avatarUrl: String? = null,
+)
+
+/**
+ * Stable navigation target for a Discourse topic or a particular numbered post.
+ *
+ * Discourse distinguishes a database post id from the user-visible post number. Deep links use
+ * the latter, while post-stream pagination uses the former. Keeping only the navigation pair in
+ * this type prevents callers from accidentally treating those identifiers as interchangeable.
+ */
+@Serializable
+public data class DiscourseTopicRef(
+    val topicId: Long,
+    val postNumber: Int? = null,
+)
+
+/**
+ * Forum-specific state attached to a compact topic row.
+ *
+ * Counts are copied from a single server response and are therefore a snapshot, not local
+ * counters. Mutations in later stages replace the complete value after server confirmation.
+ */
+@Serializable
+public data class DiscourseTopicMeta(
+    val ref: DiscourseTopicRef,
+    val slug: String,
+    val categoryId: Long? = null,
+    val unreadPostCount: Int = 0,
+    val newPostCount: Int = 0,
+    val highestPostNumber: Int? = null,
+    val lastReadPostNumber: Int? = null,
+    val canCreatePost: Boolean = false,
+    val liked: Boolean = false,
+    val bookmarked: Boolean = false,
 )

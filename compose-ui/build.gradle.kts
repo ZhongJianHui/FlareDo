@@ -27,6 +27,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(projects.shared)
+            implementation(projects.social.discourse)
             implementation(compose("org.jetbrains.compose.runtime:runtime"))
             implementation(compose("org.jetbrains.compose.foundation:foundation"))
             implementation(compose("org.jetbrains.compose.ui:ui"))

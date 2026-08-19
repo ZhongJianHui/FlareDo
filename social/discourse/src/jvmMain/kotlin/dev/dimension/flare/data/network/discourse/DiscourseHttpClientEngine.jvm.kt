@@ -1,0 +1,13 @@
+package dev.dimension.flare.data.network.discourse
+
+import dev.dimension.flare.data.network.discourse.session.DiscourseCookieStorage
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.okhttp.OkHttp
+
+internal actual fun createDiscourseHttpClient(cookieStorage: DiscourseCookieStorage): HttpClient {
+    val client =
+        HttpClient(OkHttp) {
+            configureDiscourseHttpClient(cookieStorage)
+        }
+    return client
+}

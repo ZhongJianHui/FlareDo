@@ -22,6 +22,7 @@ dependencyResolutionManagement {
 rootProject.name = "FlareDo"
 include(":app")
 include(":shared")
+include(":social:discourse")
 include(":compose-ui")
 include(":apple-shared")
 include(":desktopApp")
