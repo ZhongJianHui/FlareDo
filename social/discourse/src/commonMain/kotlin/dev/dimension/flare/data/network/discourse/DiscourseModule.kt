@@ -12,6 +12,13 @@ import dev.dimension.flare.data.network.discourse.auth.DiscourseOtpSessionExchan
 import dev.dimension.flare.data.network.discourse.auth.DiscourseWebSessionLogin
 import dev.dimension.flare.data.network.discourse.auth.MemoryDiscourseAuthAttemptStore
 import dev.dimension.flare.data.network.discourse.auth.createPlatformDiscourseAuthTokenGenerator
+import dev.dimension.flare.data.network.discourse.composer.DefaultDiscourseComposerRepository
+import dev.dimension.flare.data.network.discourse.composer.DefaultDiscoursePostActionRepository
+import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerPresenter
+import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerRepository
+import dev.dimension.flare.data.network.discourse.composer.DiscourseDraftStore
+import dev.dimension.flare.data.network.discourse.composer.DiscoursePostActionRepository
+import dev.dimension.flare.data.network.discourse.composer.MemoryDiscourseDraftStore
 import dev.dimension.flare.data.network.discourse.content.DiscourseCookedHtmlParser
 import dev.dimension.flare.data.network.discourse.forum.DefaultDiscourseForumAccountRepository
 import dev.dimension.flare.data.network.discourse.forum.DefaultDiscourseForumRepository
@@ -66,9 +73,25 @@ public val discourseModule: Module =
             DefaultDiscourseApi(
                 wire = get(),
                 sessionManager = get(),
+                client = get(),
             )
         }
         single { DiscourseDataSource(api = get()) }
+        // Platform hosts override this with Room so unfinished text survives process restarts.
+        single<DiscourseDraftStore> { MemoryDiscourseDraftStore() }
+        single<DiscourseComposerRepository> {
+            DefaultDiscourseComposerRepository(
+                dataSource = get(),
+                draftStore = get(),
+                sessionManager = get(),
+            )
+        }
+        single<DiscoursePostActionRepository> {
+            DefaultDiscoursePostActionRepository(
+                dataSource = get(),
+                sessionManager = get(),
+            )
+        }
         single { DiscourseCookedHtmlParser() }
         single { DiscourseForumMapper(cookedHtmlParser = get()) }
         single { DiscourseForumSearchMapper(cookedHtmlParser = get()) }
@@ -103,6 +126,16 @@ public val discourseModule: Module =
                 repository = get(),
                 searchRepository = get(),
                 accountRepository = get(),
+                sessionManager = get(),
+            )
+        }
+        // Composer actors own bounded channels and generation-bound child jobs, so each screen
+        // receives a fresh lifecycle instance just like the forum presenter above.
+        factory {
+            DiscourseComposerPresenter(
+                repository = get(),
+                draftStore = get(),
+                postActionRepository = get(),
                 sessionManager = get(),
             )
         }

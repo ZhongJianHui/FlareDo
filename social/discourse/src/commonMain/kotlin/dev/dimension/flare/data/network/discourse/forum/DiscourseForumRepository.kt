@@ -17,6 +17,7 @@ import dev.dimension.flare.data.network.discourse.error.DiscourseRateLimitExcept
 import dev.dimension.flare.data.network.discourse.error.DiscourseSerializationException
 import dev.dimension.flare.data.network.discourse.error.DiscourseSerializationPhase
 import dev.dimension.flare.data.network.discourse.error.DiscourseServerException
+import dev.dimension.flare.data.network.discourse.error.DiscourseValidationException
 import dev.dimension.flare.data.network.discourse.model.DiscourseCategoryListResponse
 import dev.dimension.flare.data.network.discourse.model.DiscoursePost
 import dev.dimension.flare.data.network.discourse.model.DiscourseTagsResponse
@@ -331,7 +332,7 @@ internal fun DiscourseException.toForumFailureKind(): DiscourseForumFailureKind 
             DiscourseForumFailureKind.InvalidResponse
         }
 
-        is DiscourseHttpException -> {
+        is DiscourseHttpException, is DiscourseValidationException -> {
             DiscourseForumFailureKind.Http
         }
     }

@@ -68,6 +68,27 @@ class FlareDoDatabaseFactoryJvmTest {
             }
         }
 
+    @Test
+    fun persistsBoundedComposerDraftsAndConditionallyDeletesOnlyObservedRevision() =
+        runTest {
+            withTemporaryDatabase { database ->
+                val dao = database.composerDraftDao()
+                val first = composerDraft(key = "topic:1:reply:root", revision = 1L, updatedAt = 10L)
+                val replacement = first.copy(payload = "newer", revision = 2L, updatedAtEpochMillis = 20L)
+                val second = composerDraft(key = "topic:2:reply:root", revision = 1L, updatedAt = 30L)
+
+                dao.upsertBounded(first, maxEntries = 2)
+                dao.upsertBounded(replacement, maxEntries = 2)
+                assertEquals(0, dao.deleteIfRevisionMatches(ANONYMOUS_ACCOUNT_ID, first.draftKey, 1L))
+                assertEquals(replacement, dao.get(ANONYMOUS_ACCOUNT_ID, first.draftKey))
+
+                dao.upsertBounded(second, maxEntries = 1)
+                assertNull(dao.get(ANONYMOUS_ACCOUNT_ID, first.draftKey))
+                assertEquals(second, dao.get(ANONYMOUS_ACCOUNT_ID, second.draftKey))
+                assertEquals(1, dao.countForAccount(ANONYMOUS_ACCOUNT_ID))
+            }
+        }
+
     private suspend fun withTemporaryDatabase(block: suspend (FlareDoDatabase) -> Unit) {
         val directory = Files.createTempDirectory("flaredo-room-test-")
         val databasePath = directory.resolve("forum.db")
@@ -102,6 +123,19 @@ class FlareDoDatabaseFactoryJvmTest {
             credentialRef = reference,
             createdAtEpochMillis = createdAt,
             expiresAtEpochMillis = createdAt + 600_000L,
+        )
+
+    private fun composerDraft(
+        key: String,
+        revision: Long,
+        updatedAt: Long,
+    ): ComposerDraftEntity =
+        ComposerDraftEntity(
+            accountId = ANONYMOUS_ACCOUNT_ID,
+            draftKey = key,
+            payload = "payload-$revision",
+            revision = revision,
+            updatedAtEpochMillis = updatedAt,
         )
 
     private companion object {

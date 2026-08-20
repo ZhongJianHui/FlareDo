@@ -9,13 +9,16 @@ import dev.dimension.flare.data.network.discourse.error.DiscoursePostEnqueuedExc
 import dev.dimension.flare.data.network.discourse.error.DiscourseSerializationException
 import dev.dimension.flare.data.network.discourse.error.DiscourseSerializationPhase
 import dev.dimension.flare.data.network.discourse.model.DiscourseActionResponse
+import dev.dimension.flare.data.network.discourse.model.DiscourseActionResponseKind
 import dev.dimension.flare.data.network.discourse.model.DiscourseBookmarkResponse
 import dev.dimension.flare.data.network.discourse.model.DiscourseCategoryListResponse
 import dev.dimension.flare.data.network.discourse.model.DiscourseCreateBookmarkRequest
 import dev.dimension.flare.data.network.discourse.model.DiscourseCreatePostRequest
 import dev.dimension.flare.data.network.discourse.model.DiscourseCurrentSessionResponse
+import dev.dimension.flare.data.network.discourse.model.DiscourseEditablePost
 import dev.dimension.flare.data.network.discourse.model.DiscourseNotificationResponse
 import dev.dimension.flare.data.network.discourse.model.DiscoursePostActionRequest
+import dev.dimension.flare.data.network.discourse.model.DiscoursePostActionWireResponse
 import dev.dimension.flare.data.network.discourse.model.DiscoursePostMutationResponse
 import dev.dimension.flare.data.network.discourse.model.DiscoursePostStream
 import dev.dimension.flare.data.network.discourse.model.DiscourseSearchResponse
@@ -35,14 +38,22 @@ import dev.dimension.flare.data.network.discourse.paging.DiscourseNotificationOf
 import dev.dimension.flare.data.network.discourse.paging.DiscourseSearchPage
 import dev.dimension.flare.data.network.discourse.session.DiscourseSessionManager
 import dev.dimension.flare.data.network.discourse.session.DiscourseSessionState
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
 import io.ktor.client.network.sockets.ConnectTimeoutException
 import io.ktor.client.network.sockets.SocketTimeoutException
 import io.ktor.client.plugins.HttpRequestTimeoutException
+import io.ktor.client.plugins.onUpload
 import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.client.request.forms.formData
+import io.ktor.client.request.header
+import io.ktor.client.request.parameter
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.URLBuilder
 import io.ktor.http.encodeURLPathPart
 import io.ktor.serialization.ContentConvertException
@@ -57,6 +68,8 @@ private const val MAX_USER_ACTION_OFFSET: Int = Int.MAX_VALUE
 internal class DefaultDiscourseApi(
     private val wire: DiscourseWireApi,
     private val sessionManager: DiscourseSessionManager,
+    /** Raw client is used only for requests that need Ktor request-builder hooks such as progress. */
+    private val client: HttpClient? = null,
 ) : DiscourseApi {
     override suspend fun site(): DiscourseSiteResponse = read { wire.site() }
 
@@ -174,7 +187,7 @@ internal class DefaultDiscourseApi(
     ): DiscourseUserBookmarkListResponse {
         requireUsername(username)
         require(limit in 1..20) { "Bookmark limit must be between 1 and 20" }
-        return read {
+        return read(requiresAuthentication = true) {
             wire.userBookmarks(
                 username = username,
                 page = page.queryValueOrNull(),
@@ -184,7 +197,7 @@ internal class DefaultDiscourseApi(
     }
 
     override suspend fun bookmarkedTopics(page: DiscourseListPage): DiscourseTopicListResponse =
-        read { wire.bookmarkedTopics(page.queryValueOrNull()) }
+        read(requiresAuthentication = true) { wire.bookmarkedTopics(page.queryValueOrNull()) }
 
     override suspend fun createPost(request: DiscourseCreatePostRequest): DiscoursePostMutationResponse {
         request.validateForCreation()
@@ -201,8 +214,14 @@ internal class DefaultDiscourseApi(
                     tags = request.tags,
                 )
             }
-        response.throwIfEnqueued()
-        return response
+        return response.requirePublishedMutationIdentity(expectedTopicId = request.topicId)
+    }
+
+    override suspend fun editablePost(postId: Long): DiscourseEditablePost {
+        requirePositiveId(postId, "Post id")
+        return read(requiresAuthentication = true) {
+            wire.editablePost(postId)
+        }.requireEditablePostIdentity(expectedPostId = postId)
     }
 
     override suspend fun updatePost(
@@ -218,12 +237,12 @@ internal class DefaultDiscourseApi(
                 raw = request.raw,
                 editReason = request.editReason,
             )
-        }
+        }.requirePublishedMutationIdentity(expectedPostId = postId)
     }
 
     override suspend fun markNotificationsRead(notificationId: Long?) {
         notificationId?.let { requirePositiveId(it, "Notification id") }
-        mutate(requiresAuthentication = true) { csrfToken ->
+        mutate { csrfToken ->
             wire.markNotificationsRead(
                 csrfToken = csrfToken,
                 notificationId = notificationId,
@@ -234,15 +253,21 @@ internal class DefaultDiscourseApi(
     override suspend fun createPostAction(request: DiscoursePostActionRequest): DiscourseActionResponse {
         requirePositiveId(request.id, "Post id")
         requirePositiveId(request.postActionTypeId, "Post action type id")
-        return mutate { csrfToken ->
-            wire.createPostAction(
-                csrfToken = csrfToken,
-                postId = request.id,
-                actionTypeId = request.postActionTypeId,
-                flagTopic = request.flagTopic,
-                message = request.message,
-            )
-        }
+        val post =
+            mutate { csrfToken ->
+                wire.createPostAction(
+                    csrfToken = csrfToken,
+                    postId = request.id,
+                    actionTypeId = request.postActionTypeId,
+                    flagTopic = request.flagTopic,
+                    message = request.message,
+                )
+            }
+        return post.requirePostActionState(
+            expectedPostId = request.id,
+            expectedActionTypeId = request.postActionTypeId,
+            expectedActed = true,
+        )
     }
 
     override suspend fun deletePostAction(
@@ -251,12 +276,38 @@ internal class DefaultDiscourseApi(
     ): DiscourseActionResponse {
         requirePositiveId(postId, "Post id")
         requirePositiveId(actionTypeId, "Post action type id")
-        return mutate { csrfToken ->
-            wire.deletePostAction(
-                postId = postId,
-                csrfToken = csrfToken,
-                actionTypeId = actionTypeId,
-            )
+        val response =
+            mutate { csrfToken ->
+                wire.deletePostAction(
+                    postId = postId,
+                    csrfToken = csrfToken,
+                    actionTypeId = actionTypeId,
+                )
+            }
+        return when (response.status) {
+            HttpStatusCode.NoContent -> {
+                DiscourseActionResponse(
+                    postId = postId,
+                    postActionTypeId = actionTypeId,
+                    acted = false,
+                    kind = DiscourseActionResponseKind.NoContent,
+                    count = null,
+                    canAct = null,
+                    canUndo = null,
+                )
+            }
+
+            HttpStatusCode.OK -> {
+                response.body()?.requirePostActionState(
+                    expectedPostId = postId,
+                    expectedActionTypeId = actionTypeId,
+                    expectedActed = false,
+                ) ?: throwInvalidMutationResponse()
+            }
+
+            else -> {
+                throwInvalidMutationResponse()
+            }
         }
     }
 
@@ -274,7 +325,7 @@ internal class DefaultDiscourseApi(
                 reminderAt = request.reminderAt,
                 autoDeletePreference = request.autoDeletePreference,
             )
-        }
+        }.requireBookmarkIdentity()
     }
 
     override suspend fun deleteBookmark(bookmarkId: Long) {
@@ -282,14 +333,31 @@ internal class DefaultDiscourseApi(
         mutate { csrfToken -> wire.deleteBookmark(bookmarkId, csrfToken) }
     }
 
-    override suspend fun upload(request: DiscourseUploadRequest): DiscourseUploadResponse =
+    override suspend fun upload(
+        request: DiscourseUploadRequest,
+        progressListener: DiscourseUploadProgressListener?,
+    ): DiscourseUploadResponse =
         mutate { csrfToken ->
-            wire.upload(
-                csrfToken = csrfToken,
-                clientId = request.messageBusClientId,
-                body = request.toMultipartBody(),
-            )
-        }
+            if (progressListener == null) {
+                wire.upload(
+                    csrfToken = csrfToken,
+                    clientId = request.messageBusClientId,
+                    body = request.toMultipartBody(),
+                )
+            } else {
+                val progressClient =
+                    checkNotNull(client) {
+                        "A progress-capable Discourse upload requires the protected HTTP client"
+                    }
+                progressClient
+                    .post("$DISCOURSE_ORIGIN/uploads.json") {
+                        header("X-CSRF-Token", csrfToken)
+                        request.messageBusClientId?.let { parameter("client_id", it) }
+                        setBody(request.toMultipartBody())
+                        onUpload(progressListener::onProgress)
+                    }.body()
+            }
+        }.requireUploadResponseInvariant()
 
     private suspend fun <T> read(
         requiresAuthentication: Boolean = false,
@@ -303,18 +371,17 @@ internal class DefaultDiscourseApi(
         }
 
     /**
-     * Runs an unsafe request with an in-memory token and one explicit-CSRF replay at most.
-     * Cloudflare, permission, rate-limit, and every other failure leave the request untouched.
+     * Runs an authenticated unsafe request with an in-memory token and one explicit-CSRF replay at
+     * most. Authentication is intentionally not configurable: every current and future mutation
+     * must fail before the CSRF fetch while the session is a guest. Cloudflare, permission,
+     * rate-limit, and every other failure leave the request untouched.
      */
-    private suspend fun <T> mutate(
-        requiresAuthentication: Boolean = false,
-        block: suspend (csrfToken: String) -> T,
-    ): T =
+    private suspend fun <T> mutate(block: suspend (String) -> T): T =
         translateTransportFailures {
             sessionManager.runForCurrentSession {
                 // The guard belongs to this lease and runs before even the CSRF fetch. Checking the
                 // observable state outside runForCurrentSession would race with login and logout.
-                requireAuthenticatedBeforeWireAccess(requiresAuthentication)
+                requireAuthenticatedBeforeWireAccess(required = true)
                 val firstToken =
                     sessionManager.csrfTokenStore.getOrFetch {
                         wire.csrf().csrf
@@ -399,7 +466,7 @@ private fun DiscourseCreatePostRequest.validateForCreation() {
     if (isTopic) {
         require(title.orEmpty().isNotBlank()) { "Topic title must not be blank" }
         require(title.orEmpty().length <= 1_000) { "Topic title is too long" }
-        require(category != null && category > 0L) { "A new topic requires a positive category id" }
+        category?.let { require(it > 0L) { "Topic category id must be positive" } }
         require(replyToPostNumber == null) { "A new topic cannot target a reply number" }
     } else {
         requirePositiveId(checkNotNull(topicId), "Topic id")
@@ -408,14 +475,152 @@ private fun DiscourseCreatePostRequest.validateForCreation() {
     }
 }
 
-private fun DiscoursePostMutationResponse.throwIfEnqueued() {
+private fun DiscoursePostMutationResponse.throwIfEnqueued(expectedTopicId: Long?) {
     if (!isEnqueued) return
+    val safePendingCount = pendingCount ?: 0
+    val safePendingPostId = pendingPost?.id
+    val safeTopicId = pendingPost?.topicId ?: topicId
+    if (
+        safePendingCount < 0 ||
+        (pendingPost?.topicId != null && topicId != null && pendingPost.topicId != topicId) ||
+        (safePendingPostId != null && safePendingPostId <= 0L) ||
+        (pendingPost?.postNumber != null && pendingPost.postNumber <= 0) ||
+        (safeTopicId != null && safeTopicId <= 0L) ||
+        (expectedTopicId != null && safeTopicId != null && safeTopicId != expectedTopicId)
+    ) {
+        throwInvalidMutationResponse()
+    }
     throw DiscoursePostEnqueuedException(
-        pendingCount = pendingCount ?: 0,
-        pendingPostId = pendingPost?.id,
-        topicId = pendingPost?.topicId ?: topicId,
+        pendingCount = safePendingCount,
+        pendingPostId = safePendingPostId,
+        topicId = safeTopicId,
     )
 }
+
+/**
+ * Rejects a successful HTTP response that cannot authoritatively identify the requested mutation.
+ *
+ * Discourse has both direct-post and wrapped-post response shapes. Their envelope fields can differ,
+ * but the durable post identity must remain internally consistent and must match every identity the
+ * client already knew. Treating a mismatched response as success could update or cache the wrong
+ * topic after a proxy, plugin, or server bug, so it becomes a sanitized decoding failure instead.
+ */
+private fun DiscoursePostMutationResponse.requirePublishedMutationIdentity(
+    expectedPostId: Long? = null,
+    expectedTopicId: Long? = null,
+): DiscoursePostMutationResponse {
+    throwIfEnqueued(expectedTopicId)
+    val publishedPost = post ?: throwInvalidMutationResponse()
+    if (
+        publishedPost.id <= 0L ||
+        publishedPost.topicId <= 0L ||
+        publishedPost.postNumber <= 0 ||
+        topicId != publishedPost.topicId ||
+        (expectedPostId != null && publishedPost.id != expectedPostId) ||
+        (expectedTopicId != null && publishedPost.topicId != expectedTopicId)
+    ) {
+        throwInvalidMutationResponse()
+    }
+    return this
+}
+
+/**
+ * Validates the official full-Post action response against both the route and requested action.
+ *
+ * Create always requires this shape. Delete may instead return HTTP 204, which is handled before
+ * this helper; an empty JSON object is never an authoritative action acknowledgement. A full Post
+ * after deletion may omit that action summary when `acted`, `count`, and `can_act` are all empty, so
+ * absence is authoritative only for delete. Duplicate matching summaries remain invalid.
+ */
+private fun DiscoursePostActionWireResponse.requirePostActionState(
+    expectedPostId: Long,
+    expectedActionTypeId: Long,
+    expectedActed: Boolean,
+): DiscourseActionResponse {
+    val matchingActions = actionsSummary.filter { it.id == expectedActionTypeId }
+    if (matchingActions.size > 1) throwInvalidMutationResponse()
+    val action = matchingActions.singleOrNull()
+    if (
+        id != expectedPostId ||
+        topicId <= 0L ||
+        postNumber <= 0 ||
+        (
+            expectedActed &&
+                (action == null || !action.acted || action.count <= 0)
+        ) ||
+        (
+            !expectedActed &&
+                action != null &&
+                (action.acted || action.count < 0)
+        )
+    ) {
+        throwInvalidMutationResponse()
+    }
+    return DiscourseActionResponse(
+        postId = expectedPostId,
+        postActionTypeId = expectedActionTypeId,
+        acted = expectedActed,
+        kind = DiscourseActionResponseKind.FullPost,
+        count = action?.count ?: 0,
+        canAct = action?.canAct ?: false,
+        canUndo = action?.canUndo ?: false,
+    )
+}
+
+private fun DiscourseBookmarkResponse.requireBookmarkIdentity(): DiscourseBookmarkResponse {
+    if (id <= 0L) throwInvalidMutationResponse()
+    return this
+}
+
+private fun DiscourseEditablePost.requireEditablePostIdentity(expectedPostId: Long): DiscourseEditablePost {
+    if (id != expectedPostId || topicId <= 0L || postNumber <= 0) {
+        throwInvalidMutationResponse()
+    }
+    return this
+}
+
+/**
+ * Applies the same response contract to the generated route and the raw progress-capable route.
+ *
+ * Ktor's `body<T>()` guarantees only that fields have the expected JSON types. Optional numeric
+ * identities and metadata can still carry impossible values, while bounded strings are required
+ * before the response may become an attachment shown by a composer. Any violation is reported as a
+ * fixed decoding failure so arbitrary server values never enter an exception message.
+ */
+private fun DiscourseUploadResponse.requireUploadResponseInvariant(): DiscourseUploadResponse {
+    val reference = shortUrl?.takeIf(String::isNotBlank) ?: url?.takeIf(String::isNotBlank)
+    val invalidHumanFilesize =
+        humanFilesize?.let {
+            it.length > MAX_UPLOAD_RESPONSE_HUMAN_SIZE_CHARS || it.any(Char::isControlCharacter)
+        } == true
+    val invalidExtension =
+        extension?.let {
+            it.length > MAX_UPLOAD_RESPONSE_EXTENSION_CHARS || it.any(Char::isControlCharacter)
+        } == true
+    if (
+        reference == null ||
+        (id != null && id <= 0L) ||
+        !reference.isSafeDiscourseUploadReference() ||
+        listOfNotNull(shortUrl, url).any { it.isNotBlank() && !it.isSafeDiscourseUploadReference() } ||
+        originalFilename.length > MAX_UPLOAD_RESPONSE_FILENAME_CHARS ||
+        originalFilename.any(Char::isControlCharacter) ||
+        (width != null && width < 0) ||
+        (height != null && height < 0) ||
+        (thumbnailWidth != null && thumbnailWidth < 0) ||
+        (thumbnailHeight != null && thumbnailHeight < 0) ||
+        (filesize != null && filesize < 0L) ||
+        invalidHumanFilesize ||
+        invalidExtension
+    ) {
+        throwInvalidMutationResponse()
+    }
+    return this
+}
+
+private fun throwInvalidMutationResponse(): Nothing =
+    throw DiscourseSerializationException(
+        DiscourseSerializationPhase.ResponseDecoding,
+    )
 
 private fun DiscourseUploadRequest.toMultipartBody(): MultiPartFormDataContent {
     val safeFileName =
@@ -430,7 +635,7 @@ private fun DiscourseUploadRequest.toMultipartBody(): MultiPartFormDataContent {
         contentType
             ?.let { value -> runCatching { ContentType.parse(value) }.getOrNull() }
             ?: ContentType.Application.OctetStream
-    val ownedBytes = bytes.copyOf()
+    val ownedBytes = borrowOwnedBytesForTransport()
     return MultiPartFormDataContent(
         formData {
             append("upload_type", "composer")
@@ -467,3 +672,7 @@ private fun requireContent(raw: String) {
 }
 
 private fun Char.isControlCharacter(): Boolean = code < 0x20 || code == 0x7f
+
+private const val MAX_UPLOAD_RESPONSE_FILENAME_CHARS: Int = 512
+private const val MAX_UPLOAD_RESPONSE_HUMAN_SIZE_CHARS: Int = 64
+private const val MAX_UPLOAD_RESPONSE_EXTENSION_CHARS: Int = 32

@@ -1,9 +1,14 @@
 package dev.dimension.flare.data.network.discourse.error
 
+import dev.dimension.flare.data.network.discourse.model.discourseJson
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.Month
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.longOrNull
 import kotlin.time.Clock
 
 /**
@@ -48,6 +53,7 @@ public object DiscourseErrorClassifier {
         return when (statusCode) {
             401 -> DiscourseAuthenticationException()
             403 -> DiscoursePermissionException()
+            422 -> DiscourseValidationException(DiscourseValidationField.Unknown, DiscourseValidationReason.Unknown)
             in 500..599 -> DiscourseServerException(statusCode)
             else -> DiscourseHttpException(statusCode)
         }
@@ -83,6 +89,10 @@ public fun mapDiscourseResponseException(
         return DiscourseCsrfException()
     }
 
+    if (statusCode == 422) {
+        return DiscourseValidationResponseParser.parse(bodyPrefix)
+    }
+
     val retryAfter =
         headers.entries
             .firstOrNull { (name, _) -> name.equals("retry-after", ignoreCase = true) }
@@ -92,6 +102,110 @@ public fun mapDiscourseResponseException(
         retryAfterHeader = retryAfter,
         nowEpochSeconds = nowEpochSeconds,
     )
+}
+
+/**
+ * Extracts only a fixed allowlist from a bounded HTTP 422 body.
+ *
+ * The free-form `errors` array is never read. Unknown strings, string-encoded numbers, malformed
+ * JSON, out-of-range scalars, and truncated prefixes all collapse to absent/Unknown metadata.
+ */
+public object DiscourseValidationResponseParser {
+    private const val MAX_BODY_PREFIX_CHARS: Int = 4_096
+    private const val MAX_VALIDATION_BOUND: Long = Int.MAX_VALUE.toLong()
+    private const val MAX_RETRY_AFTER_SECONDS: Long = 86_400L
+
+    public fun parse(bodyPrefix: String?): DiscourseValidationException {
+        val root =
+            bodyPrefix
+                ?.take(MAX_BODY_PREFIX_CHARS)
+                ?.let(::parseBoundedObject)
+        val extras = root?.get("extras") as? JsonObject
+        val field =
+            allowlistedString(root, "field", "attribute")
+                ?.toValidationField()
+                ?: DiscourseValidationField.Unknown
+        val reason =
+            allowlistedString(root, "error_type")
+                ?.toValidationReason()
+                ?: DiscourseValidationReason.Unknown
+        val minimum = allowlistedScalar(root, extras, "minimum", "min", upperBound = MAX_VALIDATION_BOUND)
+        val maximum = allowlistedScalar(root, extras, "maximum", "max", "limit", upperBound = MAX_VALIDATION_BOUND)
+        val validMinimum = minimum.takeIf { maximum == null || it == null || it <= maximum }
+        val retryAfter =
+            allowlistedScalar(
+                root,
+                extras,
+                "wait_seconds",
+                "retry_after_seconds",
+                upperBound = MAX_RETRY_AFTER_SECONDS,
+            )
+        return DiscourseValidationException(
+            field = field,
+            reason = reason,
+            minimum = validMinimum,
+            maximum = maximum,
+            retryAfterSeconds = retryAfter,
+        )
+    }
+
+    private fun parseBoundedObject(value: String): JsonObject? =
+        try {
+            discourseJson.parseToJsonElement(value) as? JsonObject
+        } catch (_: SerializationException) {
+            null
+        } catch (_: IllegalArgumentException) {
+            null
+        }
+
+    private fun allowlistedString(
+        root: JsonObject?,
+        vararg keys: String,
+    ): String? =
+        keys.firstNotNullOfOrNull { key ->
+            val primitive = root?.get(key) as? JsonPrimitive
+            primitive?.takeIf(JsonPrimitive::isString)?.content?.takeIf { it.length <= 64 }
+        }
+
+    private fun allowlistedScalar(
+        root: JsonObject?,
+        extras: JsonObject?,
+        vararg keys: String,
+        upperBound: Long,
+    ): Long? =
+        keys.firstNotNullOfOrNull { key ->
+            (root?.get(key) as? JsonPrimitive).boundedLong(upperBound)
+                ?: (extras?.get(key) as? JsonPrimitive).boundedLong(upperBound)
+        }
+
+    private fun JsonPrimitive?.boundedLong(upperBound: Long): Long? =
+        this
+            ?.takeUnless(JsonPrimitive::isString)
+            ?.longOrNull
+            ?.takeIf { it in 0L..upperBound }
+
+    private fun String.toValidationField(): DiscourseValidationField =
+        when (lowercase()) {
+            "title", "topic_title" -> DiscourseValidationField.Title
+            "raw", "post[raw]", "body" -> DiscourseValidationField.Raw
+            "tags", "tags[]" -> DiscourseValidationField.Tags
+            "category", "category_id" -> DiscourseValidationField.Category
+            "upload", "file", "files" -> DiscourseValidationField.Upload
+            "post", "post_id" -> DiscourseValidationField.Post
+            else -> DiscourseValidationField.Unknown
+        }
+
+    private fun String.toValidationReason(): DiscourseValidationReason =
+        when (lowercase()) {
+            "invalid_parameters", "unprocessable_entity", "invalid_input" -> DiscourseValidationReason.InvalidInput
+            "required", "blank" -> DiscourseValidationReason.Required
+            "too_short" -> DiscourseValidationReason.TooShort
+            "too_long" -> DiscourseValidationReason.TooLong
+            "invalid_access", "forbidden" -> DiscourseValidationReason.Forbidden
+            "not_found" -> DiscourseValidationReason.NotFound
+            "rate_limit", "rate_limited" -> DiscourseValidationReason.RateLimited
+            else -> DiscourseValidationReason.Unknown
+        }
 }
 
 /** Parses the delta-seconds and IMF-fixdate forms allowed by the HTTP Retry-After header. */

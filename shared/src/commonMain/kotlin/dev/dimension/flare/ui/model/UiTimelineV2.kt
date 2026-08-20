@@ -74,6 +74,10 @@ public data class DiscourseTopicMeta(
     val highestPostNumber: Int? = null,
     val lastReadPostNumber: Int? = null,
     val canCreatePost: Boolean = false,
+    /** True only when this response exposes account-specific bookmark capability. */
+    val canBookmark: Boolean = false,
     val liked: Boolean = false,
     val bookmarked: Boolean = false,
+    /** Required by Discourse's delete-bookmark endpoint; absent in compact list serializers. */
+    val bookmarkId: Long? = null,
 )

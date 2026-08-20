@@ -29,8 +29,12 @@ public data class DiscoursePostMeta(
     val replyToPostNumber: Int? = null,
     val canEdit: Boolean = false,
     val canDelete: Boolean = false,
+    /** Server-advertised ability to add or remove the core like action. */
+    val canLike: Boolean = false,
     val liked: Boolean = false,
     val likeCount: Int = 0,
+    /** True only when the authenticated serializer exposes bookmark state for this post. */
+    val canBookmark: Boolean = false,
     val bookmarked: Boolean = false,
     val bookmarkId: Long? = null,
     val currentReaction: String? = null,

@@ -69,6 +69,7 @@ import compose.icons.fontawesomeicons.solid.Eye
 import compose.icons.fontawesomeicons.solid.Fire
 import compose.icons.fontawesomeicons.solid.House
 import compose.icons.fontawesomeicons.solid.MagnifyingGlass
+import compose.icons.fontawesomeicons.solid.Plus
 import compose.icons.fontawesomeicons.solid.Tag
 import compose.icons.fontawesomeicons.solid.User
 import dev.dimension.flare.compose.ui.Res
@@ -77,6 +78,7 @@ import dev.dimension.flare.compose.ui.forum_browse
 import dev.dimension.flare.compose.ui.forum_categories
 import dev.dimension.flare.compose.ui.forum_latest
 import dev.dimension.flare.compose.ui.forum_load_more
+import dev.dimension.flare.compose.ui.forum_new_topic
 import dev.dimension.flare.compose.ui.forum_notifications
 import dev.dimension.flare.compose.ui.forum_open_topic
 import dev.dimension.flare.compose.ui.forum_original_post
@@ -95,6 +97,7 @@ import dev.dimension.flare.compose.ui.forum_topic_posts
 import dev.dimension.flare.compose.ui.forum_unread
 import dev.dimension.flare.compose.ui.forum_views
 import dev.dimension.flare.compose.ui.product_name
+import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerState
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumAction
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumCategoryOption
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumContentSource
@@ -132,6 +135,26 @@ public fun ForumWorkspace(
     onAction: (DiscourseForumAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    ForumWorkspaceWithComposer(
+        state = state,
+        onAction = onAction,
+        composerState = DiscourseComposerState(),
+        onComposerAction = {},
+        attachmentPicker = ForumAttachmentPicker.Unavailable,
+        modifier = modifier,
+    )
+}
+
+/** Production workspace variant that overlays the authenticated composer and optimistic actions. */
+@Composable
+internal fun ForumWorkspaceWithComposer(
+    state: DiscourseForumState,
+    onAction: (DiscourseForumAction) -> Unit,
+    composerState: DiscourseComposerState,
+    onComposerAction: (ForumComposerAction) -> Unit,
+    attachmentPicker: ForumAttachmentPicker,
+    modifier: Modifier = Modifier,
+) {
     Surface(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
@@ -153,8 +176,16 @@ public fun ForumWorkspace(
                     layoutClass = layoutClass,
                     state = state,
                     onAction = onAction,
+                    composerState = composerState,
+                    onComposerAction = onComposerAction,
                 )
             }
+            ForumComposerLayer(
+                layoutClass = layoutClass,
+                state = composerState,
+                onAction = onComposerAction,
+                attachmentPicker = attachmentPicker,
+            )
         }
     }
 }
@@ -164,17 +195,27 @@ private fun ForumManualPanes(
     layoutClass: ForumLayoutClass,
     state: DiscourseForumState,
     onAction: (DiscourseForumAction) -> Unit,
+    composerState: DiscourseComposerState,
+    onComposerAction: (ForumComposerAction) -> Unit,
 ) {
     when (layoutClass) {
         ForumLayoutClass.Compact -> {
             if (state.selectedTopicId == null) {
-                ForumPrimaryPane(state, onAction, Modifier.fillMaxSize())
+                ForumPrimaryPane(
+                    state,
+                    onAction,
+                    composerState,
+                    onComposerAction,
+                    Modifier.fillMaxSize(),
+                )
             } else {
                 ForumTopicDetailPane(
                     state = state,
                     showBackButton = true,
                     onBack = { onAction(DiscourseForumAction.CloseTopic) },
                     onRetry = { onAction(DiscourseForumAction.RetryTopic) },
+                    composerState = composerState,
+                    onComposerAction = onComposerAction,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -185,6 +226,8 @@ private fun ForumManualPanes(
                 ForumPrimaryPane(
                     state,
                     onAction,
+                    composerState,
+                    onComposerAction,
                     Modifier.width(ForumMediumListPaneWidth),
                 )
                 ForumPaneDivider()
@@ -193,6 +236,8 @@ private fun ForumManualPanes(
                     showBackButton = false,
                     onBack = { onAction(DiscourseForumAction.CloseTopic) },
                     onRetry = { onAction(DiscourseForumAction.RetryTopic) },
+                    composerState = composerState,
+                    onComposerAction = onComposerAction,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -203,6 +248,8 @@ private fun ForumManualPanes(
                 ForumPrimaryPane(
                     state,
                     onAction,
+                    composerState,
+                    onComposerAction,
                     Modifier.width(ForumExpandedListPaneWidth),
                 )
                 ForumPaneDivider()
@@ -211,6 +258,8 @@ private fun ForumManualPanes(
                     showBackButton = false,
                     onBack = { onAction(DiscourseForumAction.CloseTopic) },
                     onRetry = { onAction(DiscourseForumAction.RetryTopic) },
+                    composerState = composerState,
+                    onComposerAction = onComposerAction,
                     modifier = Modifier.weight(1f),
                 )
                 ForumPaneDivider()
@@ -404,12 +453,14 @@ private fun ForumNavigationIcon(
 internal fun ForumPrimaryPane(
     state: DiscourseForumState,
     onAction: (DiscourseForumAction) -> Unit,
+    composerState: DiscourseComposerState,
+    onComposerAction: (ForumComposerAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (state.destination) {
         DiscourseForumDestination.Latest,
         DiscourseForumDestination.Hot,
-        -> ForumTopicListPane(state, onAction, modifier)
+        -> ForumTopicListPane(state, onAction, composerState, onComposerAction, modifier)
 
         DiscourseForumDestination.Search -> ForumSearchPane(state, onAction, modifier)
 
@@ -438,6 +489,8 @@ private fun ForumBrandMark() {
 internal fun ForumTopicListPane(
     state: DiscourseForumState,
     onAction: (DiscourseForumAction) -> Unit,
+    composerState: DiscourseComposerState,
+    onComposerAction: (ForumComposerAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -448,7 +501,15 @@ internal fun ForumTopicListPane(
                 .testTag(ForumTestTags.TOPIC_LIST),
     ) {
         val feedFailure = state.feedFailure
-        ForumFeedHeader(state) { onAction(DiscourseForumAction.Refresh) }
+        ForumFeedHeader(
+            state = state,
+            composerState = composerState,
+            onRefresh = { onAction(DiscourseForumAction.Refresh) },
+            onNewTopic = {
+                val categoryId = (state.selection as? DiscourseForumFeed.Category)?.id
+                onComposerAction(ForumComposerAction.OpenNewTopic(categoryId))
+            },
+        )
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         if (state.feedSource == DiscourseForumContentSource.StaleCache) {
             ForumCachedContentNotice()
@@ -484,7 +545,9 @@ internal fun ForumTopicListPane(
 @Composable
 private fun ForumFeedHeader(
     state: DiscourseForumState,
+    composerState: DiscourseComposerState,
     onRefresh: () -> Unit,
+    onNewTopic: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().height(72.dp).padding(start = 18.dp, end = 8.dp),
@@ -504,6 +567,20 @@ private fun ForumFeedHeader(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+        }
+        if (forumCanCreateTopic(state)) {
+            val newTopicLabel = stringResource(Res.string.forum_new_topic)
+            IconButton(
+                onClick = onNewTopic,
+                enabled = forumCanOpenComposer(composerState),
+                modifier = Modifier.testTag(ForumTestTags.NEW_TOPIC),
+            ) {
+                Icon(
+                    FontAwesomeIcons.Solid.Plus,
+                    newTopicLabel,
+                    Modifier.size(18.dp),
+                )
+            }
         }
         val refreshLabel = stringResource(Res.string.forum_refresh)
         IconButton(onClick = onRefresh, enabled = !state.isFeedLoading) {
@@ -761,6 +838,8 @@ internal fun ForumTopicDetailPane(
     showBackButton: Boolean,
     onBack: () -> Unit,
     onRetry: () -> Unit,
+    composerState: DiscourseComposerState,
+    onComposerAction: (ForumComposerAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -791,7 +870,12 @@ internal fun ForumTopicDetailPane(
             }
 
             selectedTopic != null -> {
-                ForumTopicDocument(selectedTopic, state.selectedPostNumber)
+                ForumTopicDocument(
+                    topic = selectedTopic,
+                    selectedPostNumber = state.selectedPostNumber,
+                    composerState = composerState,
+                    onComposerAction = onComposerAction,
+                )
             }
 
             else -> {
@@ -840,8 +924,15 @@ private fun ForumTopicPaneHeader(
 private fun ForumTopicDocument(
     topic: DiscourseForumTopic,
     selectedPostNumber: Int?,
+    composerState: DiscourseComposerState,
+    onComposerAction: (ForumComposerAction) -> Unit,
 ) {
     val listState = rememberLazyListState()
+    LaunchedEffect(topic.topicId, topic.discourse, composerState.sessionGeneration) {
+        if (topic.discourse != null) {
+            onComposerAction(ForumComposerAction.SynchronizeTopic(topic))
+        }
+    }
     LaunchedEffect(topic.topicId, selectedPostNumber) {
         val articleIndex =
             selectedPostNumber?.let { target ->
@@ -870,16 +961,32 @@ private fun ForumTopicDocument(
                         items(topic.tags, key = { it }) { ForumTagLabel(it) }
                     }
                 }
+                ForumTopicActionBar(topic, composerState, onComposerAction)
                 Spacer(Modifier.height(12.dp))
             }
         }
-        items(topic.articles, key = UiArticle::itemKey) { ForumArticle(it) }
+        items(topic.articles, key = UiArticle::itemKey) { article ->
+            ForumArticle(
+                article = article,
+                composerState = composerState,
+                onComposerAction = onComposerAction,
+            )
+        }
     }
 }
 
 @Composable
-private fun ForumArticle(article: UiArticle) {
+private fun ForumArticle(
+    article: UiArticle,
+    composerState: DiscourseComposerState,
+    onComposerAction: (ForumComposerAction) -> Unit,
+) {
     val postNumber = article.discourse?.postNumber
+    LaunchedEffect(article.itemKey, article.discourse, composerState.sessionGeneration) {
+        if (article.discourse != null) {
+            onComposerAction(ForumComposerAction.SynchronizePost(article))
+        }
+    }
     Column(
         modifier = Modifier.fillMaxWidth().widthIn(max = 780.dp).padding(bottom = 22.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -907,6 +1014,7 @@ private fun ForumArticle(article: UiArticle) {
             }
         }
         ForumRichText(article.blocks)
+        ForumPostActionBar(article, composerState, onComposerAction)
         HorizontalDivider(
             modifier = Modifier.padding(top = 8.dp),
             color = MaterialTheme.colorScheme.outlineVariant,

@@ -2,6 +2,7 @@ package dev.dimension.flare.data.network.discourse.model
 
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlin.test.Test
@@ -236,7 +237,6 @@ class DiscourseModelSerializationTest {
     fun customJsonSerializersRejectArrayAndPrimitiveTopLevelsAsSerializationFailures() {
         assertNonObjectTopLevelsFail<DiscourseUserResponse>()
         assertNonObjectTopLevelsFail<DiscoursePostMutationResponse>()
-        assertNonObjectTopLevelsFail<DiscourseActionResponse>()
         assertNonObjectTopLevelsFail<DiscoursePostStream>()
         assertFailsWith<SerializationException> {
             discourseJson.decodeFromString<DiscoursePostStream>("""{"post_stream":[]}""")
@@ -395,9 +395,22 @@ class DiscourseModelSerializationTest {
                 {
                   "action": "enqueued",
                   "pending_count": 2,
+                  "post": {
+                    "id": 999,
+                    "topic_id": 998,
+                    "post_number": 97,
+                    "raw": "Top-level private review source must be discarded",
+                    "cooked": "<p>Top-level private review preview must be discarded</p>",
+                    "username": "top-level-private-review-author"
+                  },
                   "pending_post": {
-                    "raw": "A reviewable reply without a durable post identity",
-                    "topic_id": 501
+                    "id": 601,
+                    "topic_id": 501,
+                    "post_number": 3,
+                    "raw": "Private review source must be discarded",
+                    "cooked": "<p>Private review preview must be discarded</p>",
+                    "title": "Private review title must be discarded",
+                    "username": "private-review-author"
                   },
                   "future_review_field": "ignored"
                 }
@@ -406,12 +419,22 @@ class DiscourseModelSerializationTest {
 
         assertTrue(response.isEnqueued)
         assertEquals(2, response.pendingCount)
+        assertEquals(601L, response.pendingPost?.id)
         assertEquals(501L, response.pendingPost?.topicId)
+        assertEquals(3, response.pendingPost?.postNumber)
         assertNull(response.post)
+        val encoded = discourseJson.encodeToString(response)
+        assertFalse(encoded.contains("Private review"))
+        assertFalse(encoded.contains("private-review-author"))
+        assertFalse(encoded.contains("top-level-private-review-author"))
+        assertFalse(encoded.contains("\"raw\""))
+        assertFalse(encoded.contains("\"cooked\""))
+        assertFalse(encoded.contains("\"title\""))
+        assertFalse(encoded.contains("\"username\""))
     }
 
     @Test
-    fun uploadActionAndBookmarkEnvelopesPreserveServerIdentity() {
+    fun uploadAndBookmarkEnvelopesPreserveServerIdentity() {
         val upload =
             discourseJson.decodeFromString<DiscourseUploadResponse>(
                 """
@@ -429,30 +452,12 @@ class DiscourseModelSerializationTest {
             discourseJson.decodeFromString<DiscourseUploadResponse>(
                 """{"url":"/uploads/default/url-only.bin"}""",
             )
-        val action =
-            discourseJson.decodeFromString<DiscourseActionResponse>(
-                """
-                {
-                  "post_action": {
-                    "id": 701,
-                    "post_id": 401,
-                    "post_action_type_id": 2
-                  }
-                }
-                """.trimIndent(),
-            )
-        val directAction =
-            discourseJson.decodeFromString<DiscourseActionResponse>(
-                """{"id":702,"post_id":402,"post_action_type_id":2}""",
-            )
         val bookmark =
             discourseJson.decodeFromString<DiscourseBookmarkResponse>("""{"id":801}""")
 
         assertEquals(601L, upload.id)
         assertEquals("upload://redacted-token", upload.resolvedReference)
         assertEquals("/uploads/default/url-only.bin", urlOnlyUpload.resolvedReference)
-        assertEquals(401L, action.postAction?.postId)
-        assertEquals(402L, directAction.postAction?.postId)
         assertEquals(801L, bookmark.id)
         assertFailsWith<SerializationException> {
             discourseJson.decodeFromString<DiscourseUploadResponse>("{}")

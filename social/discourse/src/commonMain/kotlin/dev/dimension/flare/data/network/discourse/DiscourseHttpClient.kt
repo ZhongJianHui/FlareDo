@@ -6,6 +6,7 @@ import dev.dimension.flare.data.network.discourse.session.DiscourseCookieStorage
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.engine.HttpClientEngine
+import io.ktor.client.plugins.BodyProgress
 import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.ResponseException
@@ -112,6 +113,9 @@ internal fun HttpClientConfig<*>.configureDiscourseHttpClient(cookieStorage: Dis
             contentType = ContentType.Application.Json,
         )
     }
+    // Required for request-level `onUpload` listeners used by the composer upload task. The plugin
+    // stays inert for ordinary requests and executes callbacks in the request coroutine.
+    install(BodyProgress)
     install(HttpTimeout) {
         connectTimeoutMillis = CONNECT_TIMEOUT_MILLIS
         requestTimeoutMillis = REQUEST_TIMEOUT_MILLIS

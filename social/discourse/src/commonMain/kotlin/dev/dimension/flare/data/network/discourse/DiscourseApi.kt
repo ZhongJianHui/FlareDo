@@ -6,6 +6,7 @@ import dev.dimension.flare.data.network.discourse.model.DiscourseCategoryListRes
 import dev.dimension.flare.data.network.discourse.model.DiscourseCreateBookmarkRequest
 import dev.dimension.flare.data.network.discourse.model.DiscourseCreatePostRequest
 import dev.dimension.flare.data.network.discourse.model.DiscourseCurrentSessionResponse
+import dev.dimension.flare.data.network.discourse.model.DiscourseEditablePost
 import dev.dimension.flare.data.network.discourse.model.DiscourseNotificationResponse
 import dev.dimension.flare.data.network.discourse.model.DiscoursePostActionRequest
 import dev.dimension.flare.data.network.discourse.model.DiscoursePostMutationResponse
@@ -90,15 +91,27 @@ public data class DiscourseTopicListRequest(
     }
 }
 
-/** Bytes and non-secret metadata for one composer upload. */
-public data class DiscourseUploadRequest(
-    public val bytes: ByteArray,
+/**
+ * Owned bytes and non-secret metadata for one composer upload.
+ *
+ * Both the constructor and [bytes] accessor copy the array. Callers therefore cannot mutate an
+ * already validated or in-flight upload through either their source array or a returned view.
+ * [copy], equality, and hashing retain data-class-like content semantics without exposing the
+ * private backing array.
+ */
+public class DiscourseUploadRequest(
+    bytes: ByteArray,
     public val fileName: String,
     public val contentType: String? = null,
     public val messageBusClientId: String? = null,
 ) {
+    private val ownedBytes: ByteArray = bytes.toOwnedUploadSnapshot()
+
+    /** Returns an independent snapshot; changing it cannot affect this request. */
+    public val bytes: ByteArray
+        get() = ownedBytes.copyOf()
+
     init {
-        require(bytes.isNotEmpty()) { "Upload must not be empty" }
         require(fileName.isNotBlank()) { "Upload file name must not be blank" }
         require(fileName.length <= 512) { "Upload file name is too long" }
         require(fileName.none(Char::isControlCharacter)) {
@@ -114,19 +127,84 @@ public data class DiscourseUploadRequest(
 
     override fun equals(other: Any?): Boolean =
         other is DiscourseUploadRequest &&
-            bytes.contentEquals(other.bytes) &&
+            ownedBytes.contentEquals(other.ownedBytes) &&
             fileName == other.fileName &&
             contentType == other.contentType &&
             messageBusClientId == other.messageBusClientId
 
     override fun hashCode(): Int {
-        var result = bytes.contentHashCode()
+        var result = ownedBytes.contentHashCode()
         result = 31 * result + fileName.hashCode()
         result = 31 * result + (contentType?.hashCode() ?: 0)
         result = 31 * result + (messageBusClientId?.hashCode() ?: 0)
         return result
     }
+
+    /** Data-class-compatible copy that independently owns its byte argument. */
+    public fun copy(
+        bytes: ByteArray = ownedBytes,
+        fileName: String = this.fileName,
+        contentType: String? = this.contentType,
+        messageBusClientId: String? = this.messageBusClientId,
+    ): DiscourseUploadRequest =
+        DiscourseUploadRequest(
+            bytes = bytes,
+            fileName = fileName,
+            contentType = contentType,
+            messageBusClientId = messageBusClientId,
+        )
+
+    public operator fun component1(): ByteArray = bytes
+
+    public operator fun component2(): String = fileName
+
+    public operator fun component3(): String? = contentType
+
+    public operator fun component4(): String? = messageBusClientId
+
+    override fun toString(): String =
+        "DiscourseUploadRequest(bytes=<${ownedBytes.size} bytes>, " +
+            "fileName=<redacted>, contentType=$contentType, " +
+            "messageBusClientId=${if (messageBusClientId == null) "absent" else "present"})"
+
+    /**
+     * Borrows the validated backing array for the trusted multipart transport only.
+     *
+     * The returned array must never be mutated or exposed outside the request body. Unlike the
+     * public [bytes] accessor, this internal path deliberately avoids a second full-file copy: the
+     * request already owns an immutable snapshot, and uploads are capped because the multipart
+     * writer retains that snapshot until the request completes.
+     */
+    internal fun borrowOwnedBytesForTransport(): ByteArray = ownedBytes
 }
+
+private fun ByteArray.toOwnedUploadSnapshot(): ByteArray {
+    require(isNotEmpty()) { "Upload must not be empty" }
+    require(size <= MAX_DISCOURSE_UPLOAD_BYTES) { "Upload exceeds the client memory bound" }
+    return copyOf()
+}
+
+/**
+ * Monotonic progress reported while Ktor writes one multipart request body.
+ *
+ * The byte counts cover the complete multipart body, including its small protocol envelope. The
+ * listener executes in the request coroutine: throwing or cancelling it aborts the upload instead
+ * of leaving an unstructured writer running after the composer has closed.
+ */
+public fun interface DiscourseUploadProgressListener {
+    public suspend fun onProgress(
+        bytesSent: Long,
+        contentLength: Long?,
+    )
+}
+
+/**
+ * Allocation bound applied before a platform-selected file enters the all-in-memory upload path.
+ *
+ * The request owns one snapshot and Ktor retains it while building and writing multipart content;
+ * 16 MiB keeps that bounded on phones while leaving the server free to enforce a smaller limit.
+ */
+public const val MAX_DISCOURSE_UPLOAD_BYTES: Int = 16 * 1024 * 1024
 
 /**
  * Session-aware Linux.do API consumed by repositories and presenters.
@@ -192,6 +270,9 @@ public interface DiscourseApi {
 
     public suspend fun createPost(request: DiscourseCreatePostRequest): DiscoursePostMutationResponse
 
+    /** Loads authenticated, authoritative Markdown for an editor without using the public cache. */
+    public suspend fun editablePost(postId: Long): DiscourseEditablePost
+
     public suspend fun updatePost(
         postId: Long,
         request: DiscourseUpdatePostRequest,
@@ -210,7 +291,10 @@ public interface DiscourseApi {
 
     public suspend fun deleteBookmark(bookmarkId: Long)
 
-    public suspend fun upload(request: DiscourseUploadRequest): DiscourseUploadResponse
+    public suspend fun upload(
+        request: DiscourseUploadRequest,
+        progressListener: DiscourseUploadProgressListener? = null,
+    ): DiscourseUploadResponse
 }
 
 private fun requireSafeRouteSegment(

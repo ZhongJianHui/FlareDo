@@ -8,6 +8,7 @@ import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import dev.dimension.flare.data.network.discourse.auth.DiscourseLoginService
+import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerPresenter
 import dev.dimension.flare.data.network.discourse.discourseAuthenticationModule
 import dev.dimension.flare.data.network.discourse.discourseModule
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumPresenter
@@ -55,6 +56,7 @@ public fun main() {
         dependencies.koin.get<DiscourseLoginService>().restoreSession()
     }
     val presenter = dependencies.koin.get<DiscourseForumPresenter>()
+    val composerPresenter = dependencies.koin.get<DiscourseComposerPresenter>()
 
     try {
         application {
@@ -69,13 +71,37 @@ public fun main() {
                     ),
             ) {
                 FlareDoTheme {
-                    DesktopForumShell(presenter)
+                    DesktopForumShell(presenter, composerPresenter)
                 }
             }
         }
     } finally {
-        presenter.close()
-        dependencies.close()
+        // A JVM entry point is the one intentional blocking bridge: Room/Koin must outlive the
+        // presenter's final non-cancellable draft flush and any accepted post mutation.
+        runBlocking {
+            closeDesktopApplication(
+                closeComposer = composerPresenter::closeAndFlush,
+                closeForum = presenter::close,
+                closeDependencies = dependencies::close,
+            )
+        }
+    }
+}
+
+/** Preserves teardown order even when an earlier close reports a failure. */
+internal suspend fun closeDesktopApplication(
+    closeComposer: suspend () -> Unit,
+    closeForum: () -> Unit,
+    closeDependencies: () -> Unit,
+) {
+    try {
+        closeComposer()
+    } finally {
+        try {
+            closeForum()
+        } finally {
+            closeDependencies()
+        }
     }
 }
 

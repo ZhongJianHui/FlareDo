@@ -41,13 +41,14 @@ internal fun forumFeedPage(
     updatedAtEpochMillis: Long = 1L,
     source: DiscourseForumContentSource = DiscourseForumContentSource.Network,
     fallbackFailure: DiscourseForumFailureKind? = null,
+    canCreateTopic: Boolean = false,
 ): DiscourseForumFeedPage =
     DiscourseForumFeedPage(
         feed = feed,
         page = page,
         topics = topicIds.distinct().map(::forumTopicRow),
         nextPage = nextPage,
-        canCreateTopic = false,
+        canCreateTopic = canCreateTopic,
         source = source,
         updatedAtEpochMillis = updatedAtEpochMillis,
         fallbackFailure = fallbackFailure,

@@ -6,6 +6,7 @@ import dev.dimension.flare.auth.DiscourseAuthRedirectSinkOwner
 import dev.dimension.flare.auth.DiscourseAuthRedirectSinkResult
 import dev.dimension.flare.data.network.discourse.auth.DiscourseLoginResult
 import dev.dimension.flare.data.network.discourse.auth.DiscourseLoginService
+import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerPresenter
 import dev.dimension.flare.data.network.discourse.discourseAuthenticationModule
 import dev.dimension.flare.data.network.discourse.discourseModule
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumPresenter
@@ -66,6 +67,9 @@ class App :
 
     /** A presenter has an Activity lifecycle and is never retained after its `close()` call. */
     internal fun createForumPresenter(): DiscourseForumPresenter = koin.get()
+
+    /** Composer has the same retained Activity lifecycle as the read-only forum presenter. */
+    internal fun createComposerPresenter(): DiscourseComposerPresenter = koin.get()
 
     override fun onTerminate() {
         applicationScope.cancel()

@@ -70,8 +70,30 @@ public object ForumTestTags {
     public const val SEARCH_RESULTS: String = "forum_search_results"
     public const val NOTIFICATIONS: String = "forum_notifications"
     public const val PROFILE: String = "forum_profile"
+    public const val NEW_TOPIC: String = "forum_new_topic"
+    public const val COMPOSER: String = "forum_composer"
+    public const val COMPOSER_TITLE: String = "forum_composer_title"
+    public const val COMPOSER_BODY: String = "forum_composer_body"
+    public const val COMPOSER_TAGS: String = "forum_composer_tags"
+    public const val COMPOSER_ATTACH: String = "forum_composer_attach"
+    public const val COMPOSER_SUBMIT: String = "forum_composer_submit"
+    public const val COMPOSER_CLOSE: String = "forum_composer_close"
+    public const val COMPOSER_DISCARD: String = "forum_composer_discard"
+    public const val COMPOSER_UPLOAD: String = "forum_composer_upload"
+    public const val COMPOSER_CANCEL_UPLOAD: String = "forum_composer_cancel_upload"
+    public const val COMPOSER_RETRY_UPLOAD: String = "forum_composer_retry_upload"
 
     public fun topic(topicId: Long): String = "forum_topic_$topicId"
+
+    public fun postAction(
+        postId: Long,
+        action: String,
+    ): String = "forum_post_${postId}_$action"
+
+    public fun topicAction(
+        topicId: Long,
+        action: String,
+    ): String = "forum_topic_${topicId}_$action"
 }
 
 /**

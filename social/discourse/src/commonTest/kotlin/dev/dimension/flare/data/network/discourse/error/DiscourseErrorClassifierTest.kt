@@ -24,10 +24,10 @@ internal class DiscourseErrorClassifierTest {
             ).statusCode,
         )
         assertEquals(
-            422,
-            assertIs<DiscourseHttpException>(
+            DiscourseValidationField.Unknown,
+            assertIs<DiscourseValidationException>(
                 DiscourseErrorClassifier.classifyHttp(422),
-            ).statusCode,
+            ).field,
         )
         assertFailsWith<IllegalArgumentException> {
             mapDiscourseResponseException(statusCode = 200)
@@ -220,5 +220,61 @@ internal class DiscourseErrorClassifierTest {
         assertEquals(45L, failure.retryAfterSeconds)
         assertFalse(failure.toString().contains(secret))
         assertFalse(failure.toString().contains("cookie-secret"))
+    }
+
+    @Test
+    fun validationMapperRetainsOnlyAllowlistedEnumsAndBoundedNumericScalars() {
+        val unpublishedBody = "Never retain this unpublished fixture reply"
+        val failure =
+            assertIs<DiscourseValidationException>(
+                mapDiscourseResponseException(
+                    statusCode = 422,
+                    bodyPrefix =
+                        """
+                        {
+                          "errors":["$unpublishedBody"],
+                          "field":"post[raw]",
+                          "error_type":"too_short",
+                          "minimum":20,
+                          "extras":{"maximum":1000000,"retry_after_seconds":5},
+                          "plugin_debug":"_t=fixture-cookie"
+                        }
+                        """.trimIndent(),
+                ),
+            )
+
+        assertEquals(DiscourseValidationField.Raw, failure.field)
+        assertEquals(DiscourseValidationReason.TooShort, failure.reason)
+        assertEquals(20L, failure.minimum)
+        assertEquals(1_000_000L, failure.maximum)
+        assertEquals(5L, failure.retryAfterSeconds)
+        assertFalse(failure.toString().contains(unpublishedBody))
+        assertFalse(failure.toString().contains("fixture-cookie"))
+    }
+
+    @Test
+    fun validationMapperRejectsUnknownStringsStringScalarsAndInvalidBounds() {
+        val failure =
+            assertIs<DiscourseValidationException>(
+                mapDiscourseResponseException(
+                    statusCode = 422,
+                    bodyPrefix =
+                        """
+                        {
+                          "field":"private_plugin_field",
+                          "error_type":"private_plugin_reason",
+                          "minimum":"7",
+                          "maximum":-1,
+                          "extras":{"retry_after_seconds":86401}
+                        }
+                        """.trimIndent(),
+                ),
+            )
+
+        assertEquals(DiscourseValidationField.Unknown, failure.field)
+        assertEquals(DiscourseValidationReason.Unknown, failure.reason)
+        assertNull(failure.minimum)
+        assertNull(failure.maximum)
+        assertNull(failure.retryAfterSeconds)
     }
 }

@@ -123,6 +123,7 @@ public class DiscourseForumPresenter(
                         feedSource = if (clearExisting) null else current.feedSource,
                         feedFailure = null,
                         appendFailure = null,
+                        canCreateTopic = if (clearExisting) false else current.canCreateTopic,
                     )
                 }
                 feedJob =
@@ -458,6 +459,7 @@ public class DiscourseForumPresenter(
                     it.copy(
                         sessionGeneration = session.generation,
                         isAuthenticated = authenticated != null,
+                        canCreateTopic = false,
                         accountUsername = authenticated?.username,
                         selection = feed,
                         topics = emptyList(),
@@ -693,6 +695,7 @@ public class DiscourseForumPresenter(
                         is ForumPresenterEvent.FeedLoaded -> {
                             if (event.requestId != feedRequest) continue
                             update { current ->
+                                val activeSession = sessionManager.state.value
                                 val merged =
                                     if (event.append) {
                                         (current.topics + event.page.topics).distinctBy(UiTimelineV2.Topic::itemKey)
@@ -707,6 +710,12 @@ public class DiscourseForumPresenter(
                                     feedSource = event.page.source,
                                     feedFailure = event.page.fallbackFailure,
                                     appendFailure = null,
+                                    canCreateTopic =
+                                        activeSession is DiscourseSessionState.Authenticated &&
+                                            activeSession.generation == current.sessionGeneration &&
+                                            event.page.canCreateTopic &&
+                                            event.page.source == DiscourseForumContentSource.Network &&
+                                            event.page.fallbackFailure == null,
                                 )
                             }
                         }
@@ -719,6 +728,7 @@ public class DiscourseForumPresenter(
                                     isAppending = false,
                                     feedFailure = if (event.append) current.feedFailure else event.failure,
                                     appendFailure = if (event.append) event.failure else null,
+                                    canCreateTopic = false,
                                 )
                             }
                         }

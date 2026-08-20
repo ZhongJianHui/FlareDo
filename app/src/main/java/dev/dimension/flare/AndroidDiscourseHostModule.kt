@@ -13,6 +13,8 @@ import dev.dimension.flare.data.network.discourse.auth.DiscourseRsaPkcs1Decrypto
 import dev.dimension.flare.data.network.discourse.auth.DiscourseRsaPkcs1KeyPairGenerator
 import dev.dimension.flare.data.network.discourse.auth.DiscourseWebSessionCookieBridge
 import dev.dimension.flare.data.network.discourse.auth.RoomDiscourseAuthAttemptStore
+import dev.dimension.flare.data.network.discourse.composer.DiscourseDraftStore
+import dev.dimension.flare.data.network.discourse.composer.roomDiscourseDraftStore
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumCache
 import dev.dimension.flare.data.network.discourse.forum.roomDiscourseForumCache
 import dev.dimension.flare.data.network.discourse.session.AndroidKeystoreCredentialStore
@@ -50,6 +52,11 @@ internal fun createAndroidDiscourseHostModule(
         single<DiscourseForumCache> {
             roomDiscourseForumCache(
                 dao = get<FlareDoDatabase>().forumCacheEntryDao(),
+            )
+        }
+        single<DiscourseDraftStore> {
+            roomDiscourseDraftStore(
+                dao = get<FlareDoDatabase>().composerDraftDao(),
             )
         }
         single<SecureCredentialStore> {

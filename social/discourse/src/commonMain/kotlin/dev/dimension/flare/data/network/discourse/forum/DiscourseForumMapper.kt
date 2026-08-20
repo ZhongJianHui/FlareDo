@@ -165,6 +165,17 @@ public class DiscourseForumMapper(
                         )
                     },
                 canReply = canReply,
+                discourse =
+                    DiscourseTopicMeta(
+                        ref = DiscourseTopicRef(topicId = detail.id),
+                        slug = detail.slug.requiredRouteValue(),
+                        categoryId = detail.categoryId,
+                        highestPostNumber = detail.highestPostNumber.takeIf { it > 0 },
+                        canCreatePost = canReply,
+                        canBookmark = detail.bookmarked != null || detail.bookmarkId != null,
+                        bookmarked = detail.bookmarked == true || detail.bookmarkId != null,
+                        bookmarkId = detail.bookmarkId?.also { require(it > 0L) },
+                    ),
                 source = DiscourseForumContentSource.Network,
                 updatedAtEpochMillis = updatedAtEpochMillis,
             )
@@ -201,6 +212,7 @@ public class DiscourseForumMapper(
                     newPostCount = newPosts.coerceAtLeast(0),
                     highestPostNumber = highestPostNumber.takeIf { it > 0 },
                     lastReadPostNumber = lastReadPostNumber?.takeIf { it > 0 },
+                    canBookmark = bookmarked != null,
                     liked = liked == true,
                     bookmarked = bookmarked == true,
                 ),
@@ -217,6 +229,10 @@ public class DiscourseForumMapper(
         replyToPostNumber?.let { require(it > 0) }
         bookmarkId?.let { require(it > 0L) }
         val likeAction = actionsSummary.firstOrNull { it.id == LIKE_ACTION_ID }
+        val canToggleLike =
+            likeAction?.let { action ->
+                if (action.acted) action.canUndo else action.canAct
+            } == true
         return UiArticle(
             itemKey = postItemKey(id),
             title = topicTitle,
@@ -240,8 +256,10 @@ public class DiscourseForumMapper(
                     replyToPostNumber = replyToPostNumber,
                     canEdit = canEdit,
                     canDelete = canDelete,
+                    canLike = canToggleLike,
                     liked = likeAction?.acted == true,
                     likeCount = likeAction?.count?.coerceAtLeast(0) ?: 0,
+                    canBookmark = bookmarked != null || bookmarkId != null,
                     bookmarked = bookmarked == true || bookmarkId != null,
                     bookmarkId = bookmarkId,
                     currentReaction =

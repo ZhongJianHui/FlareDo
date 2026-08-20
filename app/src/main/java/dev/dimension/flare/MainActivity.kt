@@ -28,9 +28,10 @@ class MainActivity : ComponentActivity() {
         }
 
         val presenter = forumViewModel.presenter
+        val composerPresenter = forumViewModel.composerPresenter
         setContent {
             FlareDoTheme {
-                AndroidForumShell(presenter)
+                AndroidForumShell(presenter, composerPresenter)
             }
         }
     }

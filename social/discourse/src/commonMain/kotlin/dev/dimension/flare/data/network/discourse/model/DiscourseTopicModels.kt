@@ -486,6 +486,8 @@ public data class DiscoursePostActionSummary(
     public val acted: Boolean = false,
     @SerialName("can_act")
     public val canAct: Boolean = false,
+    @SerialName("can_undo")
+    public val canUndo: Boolean = false,
 )
 
 /** Reaction aggregate returned by the reactions plugin. */

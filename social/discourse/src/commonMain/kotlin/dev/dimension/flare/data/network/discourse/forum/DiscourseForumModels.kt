@@ -2,6 +2,7 @@ package dev.dimension.flare.data.network.discourse.forum
 
 import dev.dimension.flare.data.network.discourse.paging.DiscourseNotificationOffset
 import dev.dimension.flare.data.network.discourse.paging.DiscourseSearchPage
+import dev.dimension.flare.ui.model.DiscourseTopicMeta
 import dev.dimension.flare.ui.model.UiArticle
 import dev.dimension.flare.ui.model.UiTimelineV2
 import kotlinx.serialization.Serializable
@@ -193,6 +194,8 @@ public data class DiscourseForumTopic(
     val tags: List<String> = emptyList(),
     val articles: List<UiArticle>,
     val canReply: Boolean,
+    /** Account-specific topic permissions/action identity from the detail response. */
+    val discourse: DiscourseTopicMeta? = null,
     val source: DiscourseForumContentSource,
     val updatedAtEpochMillis: Long,
     val fallbackFailure: DiscourseForumFailureKind? = null,
@@ -225,6 +228,14 @@ public data class DiscourseForumState(
     val selectedTopic: DiscourseForumTopic? = null,
     val sessionGeneration: Long = -1L,
     val isAuthenticated: Boolean = false,
+    /**
+     * True only when the active authenticated feed response explicitly grants topic creation.
+     *
+     * Authentication is necessary but is not itself a permission. The presenter resets this bit
+     * while replacing the feed/session and after any feed failure, so a stale response can never
+     * leave a create control enabled for a different account or category.
+     */
+    val canCreateTopic: Boolean = false,
     val accountUsername: String? = null,
     val search: DiscourseForumSearchState = DiscourseForumSearchState(),
     val profile: DiscourseForumProfileState = DiscourseForumProfileState(),

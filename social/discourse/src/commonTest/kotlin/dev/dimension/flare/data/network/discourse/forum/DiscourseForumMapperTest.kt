@@ -98,7 +98,15 @@ internal class DiscourseForumMapperTest {
             ).copy(
                 replyToPostNumber = 1,
                 canEdit = true,
-                actionsSummary = listOf(DiscoursePostActionSummary(id = 2L, count = 4, acted = true)),
+                actionsSummary =
+                    listOf(
+                        DiscoursePostActionSummary(
+                            id = 2L,
+                            count = 4,
+                            acted = true,
+                            canUndo = true,
+                        ),
+                    ),
                 bookmarked = true,
                 bookmarkId = 88L,
                 currentUserReaction = DiscourseReaction(id = "heart", chosen = true),
@@ -111,6 +119,8 @@ internal class DiscourseForumMapperTest {
                 slug = "strict-stream-topic",
                 postStream = DiscoursePostStream(posts = emptyList(), stream = listOf(22L, 11L)),
                 postsCount = 2,
+                bookmarked = true,
+                bookmarkId = 77L,
                 canCreatePost = true,
             )
 
@@ -118,18 +128,38 @@ internal class DiscourseForumMapperTest {
 
         assertEquals(listOf("discourse-post:22", "discourse-post:11"), topic.articles.map { it.itemKey })
         assertTrue(topic.canReply)
+        assertTrue(requireNotNull(topic.discourse).canBookmark)
+        assertTrue(topic.discourse.bookmarked)
+        assertEquals(77L, topic.discourse.bookmarkId)
         val article = topic.articles.first()
         assertIs<UiArticleBlock.Paragraph>(article.blocks.single())
         assertEquals("Safe reply", (article.blocks.single() as UiArticleBlock.Paragraph).text)
         with(requireNotNull(article.discourse)) {
             assertEquals(1, replyToPostNumber)
             assertTrue(canEdit)
+            assertTrue(canLike)
             assertTrue(liked)
             assertEquals(4, likeCount)
             assertTrue(bookmarked)
+            assertTrue(canBookmark)
             assertEquals(88L, bookmarkId)
             assertEquals("heart", currentReaction)
         }
+
+        val cannotUndo =
+            second.copy(
+                actionsSummary =
+                    listOf(
+                        DiscoursePostActionSummary(
+                            id = 2L,
+                            count = 4,
+                            acted = true,
+                            canUndo = false,
+                        ),
+                    ),
+            )
+        val lockedTopic = mapper.mapTopic(detail, listOf(cannotUndo, first), 457L)
+        assertFalse(requireNotNull(lockedTopic.articles.first().discourse).canLike)
 
         assertFailsWith<DiscourseSerializationException> {
             mapper.mapTopic(

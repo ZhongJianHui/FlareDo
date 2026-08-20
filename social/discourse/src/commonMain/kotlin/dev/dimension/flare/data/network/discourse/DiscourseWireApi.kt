@@ -1,5 +1,6 @@
 package dev.dimension.flare.data.network.discourse
 
+import de.jensklingenberg.ktorfit.Response
 import de.jensklingenberg.ktorfit.converter.ResponseConverterFactory
 import de.jensklingenberg.ktorfit.http.Body
 import de.jensklingenberg.ktorfit.http.DELETE
@@ -13,12 +14,13 @@ import de.jensklingenberg.ktorfit.http.PUT
 import de.jensklingenberg.ktorfit.http.Path
 import de.jensklingenberg.ktorfit.http.Query
 import de.jensklingenberg.ktorfit.http.Url
-import dev.dimension.flare.data.network.discourse.model.DiscourseActionResponse
 import dev.dimension.flare.data.network.discourse.model.DiscourseBookmarkResponse
 import dev.dimension.flare.data.network.discourse.model.DiscourseCategoryListResponse
 import dev.dimension.flare.data.network.discourse.model.DiscourseCsrfResponse
 import dev.dimension.flare.data.network.discourse.model.DiscourseCurrentSessionResponse
+import dev.dimension.flare.data.network.discourse.model.DiscourseEditablePost
 import dev.dimension.flare.data.network.discourse.model.DiscourseNotificationResponse
+import dev.dimension.flare.data.network.discourse.model.DiscoursePostActionWireResponse
 import dev.dimension.flare.data.network.discourse.model.DiscoursePostMutationResponse
 import dev.dimension.flare.data.network.discourse.model.DiscoursePostStream
 import dev.dimension.flare.data.network.discourse.model.DiscourseSearchResponse
@@ -132,6 +134,11 @@ internal interface DiscourseWireApi {
         @Field("tags[]") tags: List<String> = emptyList(),
     ): DiscoursePostMutationResponse
 
+    @GET("posts/{postId}.json")
+    suspend fun editablePost(
+        @Path("postId") postId: Long,
+    ): DiscourseEditablePost
+
     @PUT("posts/{postId}.json")
     @FormUrlEncoded
     suspend fun updatePost(
@@ -156,14 +163,14 @@ internal interface DiscourseWireApi {
         @Field("post_action_type_id") actionTypeId: Long,
         @Field("flag_topic") flagTopic: Boolean,
         @Field("message") message: String? = null,
-    ): DiscourseActionResponse
+    ): DiscoursePostActionWireResponse
 
     @DELETE("post_actions/{postId}")
     suspend fun deletePostAction(
         @Path("postId") postId: Long,
         @Header("X-CSRF-Token") csrfToken: String,
         @Query("post_action_type_id") actionTypeId: Long,
-    ): DiscourseActionResponse
+    ): Response<DiscoursePostActionWireResponse>
 
     @POST("bookmarks.json")
     @FormUrlEncoded

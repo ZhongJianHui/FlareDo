@@ -10,6 +10,7 @@ import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonEncoder
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
 
@@ -34,6 +35,24 @@ public data class DiscourseUpdatePostRequest(
     public val raw: String,
     @SerialName("post[edit_reason]")
     public val editReason: String? = null,
+)
+
+/**
+ * Authenticated source used to edit one existing post.
+ *
+ * Topic streams commonly omit [raw], so an editor must request `/posts/{id}.json` instead of trying
+ * to reconstruct Markdown from sanitized cooked HTML. This narrow DTO keeps only durable routing
+ * identity and the authoritative Markdown source; callers must not place [raw] in shared public
+ * caches, diagnostics, or exception messages.
+ */
+@Serializable
+public data class DiscourseEditablePost(
+    public val id: Long,
+    @SerialName("topic_id")
+    public val topicId: Long,
+    @SerialName("post_number")
+    public val postNumber: Int,
+    public val raw: String,
 )
 
 /**
@@ -72,6 +91,24 @@ private data class DiscoursePostMutationWire(
     val topicId: Long? = null,
 )
 
+/**
+ * Numeric-only approval queue envelope selected before decoding a possible top-level `post`.
+ *
+ * Some plugins may add a preview-shaped `post` beside `action = "enqueued"`. It is deliberately an
+ * unknown field for this wire type, so private raw/cooked content and user metadata are discarded
+ * instead of constructing a full [DiscoursePost] that can escape the moderation branch.
+ */
+@Serializable
+private data class DiscourseEnqueuedPostMutationWire(
+    val action: String = DISCOURSE_ENQUEUED_ACTION,
+    @SerialName("pending_count")
+    val pendingCount: Int? = null,
+    @SerialName("pending_post")
+    val pendingPost: DiscoursePendingPost? = null,
+    @SerialName("topic_id")
+    val topicId: Long? = null,
+)
+
 /** Serializer for normal post and moderation-queue mutation variants. */
 public object DiscoursePostMutationResponseSerializer : KSerializer<DiscoursePostMutationResponse> {
     override val descriptor: SerialDescriptor = DiscoursePostMutationWire.serializer().descriptor
@@ -87,9 +124,22 @@ public object DiscoursePostMutationResponseSerializer : KSerializer<DiscoursePos
             element as? JsonObject
                 ?: throw SerializationException("Discourse post mutation response must be a JSON object")
 
-        return if ("post" in payload || "action" in payload) {
+        val actionDiscriminator =
+            (payload["action"] as? JsonPrimitive)
+                ?.takeIf(JsonPrimitive::isString)
+                ?.content
+        return if (actionDiscriminator == DISCOURSE_ENQUEUED_ACTION) {
+            val wire = jsonDecoder.json.decodeFromJsonElement<DiscourseEnqueuedPostMutationWire>(element)
+            DiscoursePostMutationResponse(
+                post = null,
+                action = DISCOURSE_ENQUEUED_ACTION,
+                pendingCount = wire.pendingCount,
+                pendingPost = wire.pendingPost,
+                topicId = wire.topicId,
+            )
+        } else if ("post" in payload || "action" in payload) {
             val wire = jsonDecoder.json.decodeFromJsonElement<DiscoursePostMutationWire>(element)
-            if (wire.post == null && wire.action != "enqueued") {
+            if (wire.post == null) {
                 throw SerializationException("Discourse post mutation response has no published post")
             }
             DiscoursePostMutationResponse(
@@ -97,7 +147,7 @@ public object DiscoursePostMutationResponseSerializer : KSerializer<DiscoursePos
                 action = wire.action,
                 pendingCount = wire.pendingCount,
                 pendingPost = wire.pendingPost,
-                topicId = wire.topicId ?: wire.post?.topicId,
+                topicId = wire.topicId ?: wire.post.topicId,
             )
         } else {
             val post = jsonDecoder.json.decodeFromJsonElement<DiscoursePost>(element)
@@ -114,24 +164,41 @@ public object DiscoursePostMutationResponseSerializer : KSerializer<DiscoursePos
                 ?: throw SerializationException(
                     "Discourse post mutation responses can only be encoded as JSON",
                 )
-        val wire =
-            DiscoursePostMutationWire(
-                post = value.post,
-                action = value.action,
-                pendingCount = value.pendingCount,
-                pendingPost = value.pendingPost,
-                topicId = value.topicId,
-            )
-        jsonEncoder.encodeJsonElement(jsonEncoder.json.encodeToJsonElement(wire))
+        val element =
+            if (value.isEnqueued) {
+                jsonEncoder.json.encodeToJsonElement(
+                    DiscourseEnqueuedPostMutationWire(
+                        pendingCount = value.pendingCount,
+                        pendingPost = value.pendingPost,
+                        topicId = value.topicId,
+                    ),
+                )
+            } else {
+                jsonEncoder.json.encodeToJsonElement(
+                    DiscoursePostMutationWire(
+                        post = value.post,
+                        action = value.action,
+                        pendingCount = value.pendingCount,
+                        pendingPost = value.pendingPost,
+                        topicId = value.topicId,
+                    ),
+                )
+            }
+        jsonEncoder.encodeJsonElement(element)
     }
 }
 
+private const val DISCOURSE_ENQUEUED_ACTION: String = "enqueued"
+
 /**
- * Non-durable post information included with an approval queue response.
+ * Minimal non-durable identity included with an approval queue response.
  *
- * Its ID is optional because some Discourse versions expose only preview content and queue count.
- * This type must never be inserted into the durable post cache until a later response supplies a
- * real [DiscoursePost] identity.
+ * Every field is optional because some Discourse versions expose only preview content and queue
+ * count. Free-form `raw`, `cooked`, title, and user fields are intentionally not modeled: unknown
+ * JSON is discarded during decoding so unapproved private content cannot survive in this response
+ * object, logs, or caches. These numeric hints are used only for bounded identity validation and
+ * must never be inserted into the durable post cache until a later response supplies a published
+ * [DiscoursePost].
  */
 @Serializable
 public data class DiscoursePendingPost(
@@ -140,10 +207,6 @@ public data class DiscoursePendingPost(
     public val topicId: Long? = null,
     @SerialName("post_number")
     public val postNumber: Int? = null,
-    public val raw: String? = null,
-    public val cooked: String? = null,
-    public val title: String? = null,
-    public val username: String? = null,
 )
 
 /**
@@ -256,95 +319,69 @@ public data class DiscoursePostActionRequest(
 )
 
 /**
- * Generic action response supporting core post actions and plugin reactions.
+ * Narrow wire projection of the official full-Post acknowledgement returned by action routes.
  *
- * Delete-action endpoints may return an empty object, so every result field is optional. HTTP status
- * remains authoritative for those endpoints.
+ * Discourse serializes the entire post after creating or deleting an action. The acknowledgement
+ * needs only route identity and `actions_summary`; decoding it as [DiscoursePost] would needlessly
+ * keep cooked/raw content, usernames, and plugin fields alive until the mutation completes. Unknown
+ * full-Post fields are still accepted by [discourseJson], but are discarded during decoding.
  */
-@Serializable(with = DiscourseActionResponseSerializer::class)
-public data class DiscourseActionResponse(
-    @SerialName("post_action")
-    public val postAction: DiscoursePostAction? = null,
-    public val reactions: List<DiscourseReaction> = emptyList(),
-    @SerialName("current_user_reaction")
-    public val currentUserReaction: DiscourseReaction? = null,
-    public val success: String? = null,
-)
-
 @Serializable
-private data class DiscourseActionWire(
-    @SerialName("post_action")
-    val postAction: DiscoursePostAction? = null,
-    val reactions: List<DiscourseReaction> = emptyList(),
-    @SerialName("current_user_reaction")
-    val currentUserReaction: DiscourseReaction? = null,
-    val success: String? = null,
+internal data class DiscoursePostActionWireResponse(
+    val id: Long,
+    @SerialName("topic_id")
+    val topicId: Long,
+    @SerialName("post_number")
+    val postNumber: Int,
+    @SerialName("actions_summary")
+    val actionsSummary: List<DiscoursePostActionSummary> = emptyList(),
 )
 
-/** Serializer accepting wrapped and direct core post-action records. */
-public object DiscourseActionResponseSerializer : KSerializer<DiscourseActionResponse> {
-    override val descriptor: SerialDescriptor = DiscourseActionWire.serializer().descriptor
+/** Which official success shape proved a post action mutation. */
+public enum class DiscourseActionResponseKind {
+    /** The endpoint returned a full PostSerializer payload with authoritative `actions_summary`. */
+    FullPost,
 
-    override fun deserialize(decoder: Decoder): DiscourseActionResponse {
-        val jsonDecoder =
-            decoder as? JsonDecoder
-                ?: throw SerializationException("Discourse action responses can only be decoded from JSON")
-        val element = jsonDecoder.decodeJsonElement()
-        val payload =
-            element as? JsonObject
-                ?: throw SerializationException("Discourse action response must be a JSON object")
-        return if (
-            "post_action" in payload ||
-            "reactions" in payload ||
-            "current_user_reaction" in payload ||
-            "success" in payload ||
-            payload.isEmpty()
-        ) {
-            val wire = jsonDecoder.json.decodeFromJsonElement<DiscourseActionWire>(element)
-            DiscourseActionResponse(
-                postAction = wire.postAction,
-                reactions = wire.reactions,
-                currentUserReaction = wire.currentUserReaction,
-                success = wire.success,
-            )
-        } else {
-            DiscourseActionResponse(
-                postAction = jsonDecoder.json.decodeFromJsonElement<DiscoursePostAction>(element),
-            )
-        }
-    }
-
-    override fun serialize(
-        encoder: Encoder,
-        value: DiscourseActionResponse,
-    ) {
-        val jsonEncoder =
-            encoder as? JsonEncoder
-                ?: throw SerializationException("Discourse action responses can only be encoded as JSON")
-        val wire =
-            DiscourseActionWire(
-                postAction = value.postAction,
-                reactions = value.reactions,
-                currentUserReaction = value.currentUserReaction,
-                success = value.success,
-            )
-        jsonEncoder.encodeJsonElement(jsonEncoder.json.encodeToJsonElement(wire))
-    }
+    /** Action deletion returned an explicit HTTP 204 with no response body. */
+    NoContent,
 }
 
-/** Durable post-action record returned by core action creation. */
-@Serializable
-public data class DiscoursePostAction(
-    public val id: Long,
-    @SerialName("post_id")
+/**
+ * Sanitized acknowledgement constructed only after validating the official endpoint response.
+ *
+ * `POST /post_actions` must return a full post; `DELETE /post_actions/{id}` returns either the full
+ * post or HTTP 204. The transport never deserializes legacy `{post_action: ...}` or empty JSON into
+ * this type, so repositories cannot accidentally treat an unrelated or body-less create as success.
+ */
+public data class DiscourseActionResponse(
     public val postId: Long,
-    @SerialName("post_action_type_id")
     public val postActionTypeId: Long,
-    @SerialName("user_id")
-    public val userId: Long? = null,
-    @SerialName("created_at")
-    public val createdAt: String? = null,
-)
+    public val acted: Boolean,
+    public val kind: DiscourseActionResponseKind,
+    /** Authoritative aggregate from a full Post response; null only for HTTP 204. */
+    public val count: Int?,
+    /** Whether the server permits creating this action next; null only for HTTP 204. */
+    public val canAct: Boolean?,
+    /** Whether the server permits undoing this action next; null only for HTTP 204. */
+    public val canUndo: Boolean?,
+) {
+    init {
+        require(postId > 0L) { "Action response post id must be positive" }
+        require(postActionTypeId > 0L) { "Action response type id must be positive" }
+        require(count == null || count >= 0) { "Action response count cannot be negative" }
+        require(kind != DiscourseActionResponseKind.NoContent || !acted) {
+            "A no-content response can only confirm action deletion"
+        }
+        require(
+            when (kind) {
+                DiscourseActionResponseKind.FullPost -> count != null && canAct != null && canUndo != null
+                DiscourseActionResponseKind.NoContent -> count == null && canAct == null && canUndo == null
+            },
+        ) {
+            "Only a full Post response can carry authoritative action state"
+        }
+    }
+}
 
 /** Request body for creating a topic or post bookmark. */
 @Serializable

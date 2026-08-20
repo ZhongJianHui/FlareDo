@@ -1,11 +1,18 @@
 package dev.dimension.flare.ui
 
+import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerMode
+import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerState
+import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerSubmitStatus
+import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerTarget
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumAction
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumDestination
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumFeed
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 internal class AndroidForumShellTest {
     @Test
@@ -201,5 +208,41 @@ internal class AndroidForumShellTest {
                 layoutClass = ForumLayoutClass.Compact,
             )
         }
+    }
+
+    @Test
+    fun cancelledAttachmentCapabilityIsANonErrorResult() {
+        var result: ForumAttachmentPickResult? = null
+
+        ForumAttachmentPicker.Unavailable.launch { result = it }
+
+        assertIs<ForumAttachmentPickResult.Cancelled>(result)
+    }
+
+    @Test
+    fun backIsConsumedWithoutClosingComposerDuringSubmission() {
+        val openState =
+            DiscourseComposerState(
+                mode = DiscourseComposerMode.Reply,
+                sessionGeneration = 3L,
+                accountId = "fixture-account",
+                target = DiscourseComposerTarget.Reply(topicId = 42L),
+            )
+
+        assertTrue(shouldCloseComposerOnAndroidBack(openState))
+        val submitting = openState.copy(submitStatus = DiscourseComposerSubmitStatus.Submitting)
+        assertTrue(shouldConsumeComposerAndroidBack(submitting))
+        assertFalse(shouldCloseComposerOnAndroidBack(submitting))
+        assertFalse(shouldConsumeComposerAndroidBack(DiscourseComposerState()))
+        assertFalse(shouldCloseComposerOnAndroidBack(DiscourseComposerState()))
+    }
+
+    @Test
+    fun providerFileMetadataCannotCarryAPathOrControlCharacter() {
+        assertEquals(
+            "report_.png",
+            normalizeForumAttachmentFileName("../../private/report\u0001.png"),
+        )
+        assertEquals("_", normalizeForumAttachmentFileName("\u0000"))
     }
 }

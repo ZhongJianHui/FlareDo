@@ -5,10 +5,14 @@ import dev.dimension.flare.data.network.discourse.error.DiscourseNetworkFailureK
 import dev.dimension.flare.data.network.discourse.paging.DiscourseNotificationOffset
 import dev.dimension.flare.data.network.discourse.paging.DiscourseSearchPage
 import dev.dimension.flare.data.network.discourse.session.DiscourseSessionManager
+import dev.dimension.flare.data.network.discourse.session.DiscourseSessionState
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -242,6 +246,181 @@ internal class DiscourseForumPresenterTest {
                 assertEquals(null, models.value.appendFailure)
                 assertEquals(null, models.value.nextPage)
             } finally {
+                presenter.close()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun authenticationDoesNotImplyTopicCreationPermission() =
+        runTest {
+            val sessionManager = DiscourseSessionManager()
+            val repository = FakeForumRepository()
+            var serverPermission = true
+            repository.feedHandler = { feed, page ->
+                forumFeedPage(
+                    feed = feed,
+                    page = page,
+                    canCreateTopic = serverPermission,
+                )
+            }
+            val presenter =
+                DiscourseForumPresenter(
+                    repository = repository,
+                    searchRepository = repository,
+                    accountRepository = repository,
+                    sessionManager = sessionManager,
+                    dispatcher = StandardTestDispatcher(testScheduler),
+                )
+            val models = presenter.models
+
+            try {
+                advanceUntilIdle()
+                assertFalse(models.value.isAuthenticated)
+                assertFalse(models.value.canCreateTopic, "A guest cannot inherit a permissive wire value")
+
+                serverPermission = false
+                sessionManager.startAuthenticatedSession(accountId = "42", username = "member")
+                advanceUntilIdle()
+
+                assertTrue(models.value.isAuthenticated)
+                assertFalse(models.value.canCreateTopic, "Login alone must not grant topic creation")
+
+                serverPermission = true
+                assertTrue(presenter.dispatch(DiscourseForumAction.Refresh))
+                advanceUntilIdle()
+
+                assertTrue(models.value.canCreateTopic, "The authenticated server response is authoritative")
+            } finally {
+                presenter.close()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun topicCreationPermissionFailsClosedDuringSelectionFailureAndSessionReplacement() =
+        runTest {
+            val sessionManager = DiscourseSessionManager()
+            sessionManager.startAuthenticatedSession(accountId = "42", username = "member")
+            val replacement = CompletableDeferred<DiscourseForumFeedPage>()
+            val repository = FakeForumRepository()
+            repository.feedHandler = { feed, page ->
+                if (feed is DiscourseForumFeed.Category) {
+                    replacement.await()
+                } else {
+                    forumFeedPage(
+                        feed = feed,
+                        page = page,
+                        canCreateTopic = true,
+                    )
+                }
+            }
+            val presenter =
+                DiscourseForumPresenter(
+                    repository = repository,
+                    searchRepository = repository,
+                    accountRepository = repository,
+                    sessionManager = sessionManager,
+                    dispatcher = StandardTestDispatcher(testScheduler),
+                )
+            val models = presenter.models
+            val restrictedFeed =
+                DiscourseForumFeed.Category(
+                    id = 5L,
+                    slug = "development",
+                    name = "Development",
+                )
+
+            try {
+                advanceUntilIdle()
+                assertTrue(models.value.canCreateTopic)
+
+                assertTrue(presenter.dispatch(DiscourseForumAction.SelectFeed(restrictedFeed)))
+                runCurrent()
+                assertFalse(models.value.canCreateTopic, "A previous feed cannot authorize a new selection")
+
+                replacement.completeExceptionally(
+                    DiscourseNetworkException(DiscourseNetworkFailureKind.Connection),
+                )
+                advanceUntilIdle()
+                assertEquals(DiscourseForumFailureKind.Network, models.value.feedFailure)
+                assertFalse(models.value.canCreateTopic)
+
+                sessionManager.logout()
+                advanceUntilIdle()
+                assertFalse(models.value.isAuthenticated)
+                assertFalse(models.value.canCreateTopic, "A replacement session always starts fail-closed")
+            } finally {
+                presenter.close()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun lateFeedPermissionCannotCrossAChangedSessionBeforeItsForwardedEvent() =
+        runTest {
+            val sessionManager = DiscourseSessionManager()
+            sessionManager.startAuthenticatedSession(accountId = "42", username = "member")
+            val lateCategory = CompletableDeferred<DiscourseForumFeedPage>()
+            val restrictedFeed =
+                DiscourseForumFeed.Category(
+                    id = 5L,
+                    slug = "development",
+                    name = "Development",
+                )
+            val repository = FakeForumRepository()
+            repository.feedHandler = { feed, page ->
+                if (feed == restrictedFeed) {
+                    lateCategory.await()
+                } else {
+                    forumFeedPage(feed = feed, page = page, canCreateTopic = true)
+                }
+            }
+            val presenter =
+                DiscourseForumPresenter(
+                    repository = repository,
+                    searchRepository = repository,
+                    accountRepository = repository,
+                    sessionManager = sessionManager,
+                    dispatcher = StandardTestDispatcher(testScheduler),
+                )
+            val models = presenter.models
+            var leakedPermission = false
+            val observer =
+                backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                    models.collect { value ->
+                        if (
+                            sessionManager.state.value !is DiscourseSessionState.Authenticated &&
+                            value.canCreateTopic
+                        ) {
+                            leakedPermission = true
+                        }
+                    }
+                }
+
+            try {
+                advanceUntilIdle()
+                assertTrue(models.value.canCreateTopic)
+                assertTrue(presenter.dispatch(DiscourseForumAction.SelectFeed(restrictedFeed)))
+                runCurrent()
+                assertFalse(models.value.canCreateTopic)
+
+                // Resume the old request before forwarding logout. Both events become queued, and
+                // the FeedLoaded handler must compare the manager's generation directly.
+                lateCategory.complete(
+                    forumFeedPage(
+                        feed = restrictedFeed,
+                        page = 0,
+                        canCreateTopic = true,
+                    ),
+                )
+                sessionManager.logout()
+                advanceUntilIdle()
+
+                assertFalse(leakedPermission)
+                assertFalse(models.value.canCreateTopic)
+            } finally {
+                observer.cancel()
                 presenter.close()
                 runCurrent()
             }

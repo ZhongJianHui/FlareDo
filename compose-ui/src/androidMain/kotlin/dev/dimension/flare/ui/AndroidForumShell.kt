@@ -29,6 +29,9 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
+import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerMode
+import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerPresenter
+import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerState
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumAction
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumDestination
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumFeed
@@ -68,12 +71,18 @@ internal data object ForumSupportingRoute : ForumNavKey
 @Composable
 public fun AndroidForumShell(
     presenter: DiscourseForumPresenter,
+    composerPresenter: DiscourseComposerPresenter,
     modifier: Modifier = Modifier,
 ) {
     val state by presenter.models.collectAsStateWithLifecycle()
+    val composerState by composerPresenter.models.collectAsStateWithLifecycle()
+    val attachmentPicker = rememberForumAttachmentPicker()
     AndroidForumShell(
         state = state,
         onAction = { presenter.dispatch(it) },
+        composerState = composerState,
+        onComposerAction = { composerPresenter.dispatchForumAction(it) },
+        attachmentPicker = attachmentPicker,
         modifier = modifier,
     )
 }
@@ -89,6 +98,9 @@ public fun AndroidForumShell(
 internal fun AndroidForumShell(
     state: DiscourseForumState,
     onAction: (DiscourseForumAction) -> Unit,
+    composerState: DiscourseComposerState,
+    onComposerAction: (ForumComposerAction) -> Unit,
+    attachmentPicker: ForumAttachmentPicker,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -276,6 +288,8 @@ internal fun AndroidForumShell(
                                 ForumPrimaryPane(
                                     state = state,
                                     onAction = ::dispatchAndNavigate,
+                                    composerState = composerState,
+                                    onComposerAction = onComposerAction,
                                     modifier = Modifier.fillMaxSize(),
                                 )
                             }
@@ -291,6 +305,8 @@ internal fun AndroidForumShell(
                                     onRetry = {
                                         dispatchAndNavigate(DiscourseForumAction.RetryTopic)
                                     },
+                                    composerState = composerState,
+                                    onComposerAction = onComposerAction,
                                     modifier = Modifier.fillMaxSize(),
                                 )
                             }
@@ -306,6 +322,8 @@ internal fun AndroidForumShell(
                                     showBackButton = false,
                                     onBack = {},
                                     onRetry = {},
+                                    composerState = composerState,
+                                    onComposerAction = onComposerAction,
                                     modifier = Modifier.fillMaxSize(),
                                 )
                             }
@@ -325,12 +343,34 @@ internal fun AndroidForumShell(
                         },
                 )
             }
-            BackHandler(enabled = backStack.none { it is ForumTopicRoute }) {
+            ForumComposerLayer(
+                layoutClass = layoutClass,
+                state = composerState,
+                onAction = onComposerAction,
+                attachmentPicker = attachmentPicker,
+            )
+            BackHandler(
+                enabled =
+                    composerState.mode == DiscourseComposerMode.Closed &&
+                        backStack.none { it is ForumTopicRoute },
+            ) {
                 activity?.finish()
+            }
+            BackHandler(enabled = shouldConsumeComposerAndroidBack(composerState)) {
+                if (shouldCloseComposerOnAndroidBack(composerState)) {
+                    onComposerAction(ForumComposerAction.Close)
+                }
             }
         }
     }
 }
+
+internal fun shouldConsumeComposerAndroidBack(state: DiscourseComposerState): Boolean = state.mode != DiscourseComposerMode.Closed
+
+/** Back is consumed while submitting so Android cannot close the editor or finish the activity. */
+internal fun shouldCloseComposerOnAndroidBack(state: DiscourseComposerState): Boolean =
+    shouldConsumeComposerAndroidBack(state) &&
+        forumCanDismissComposer(state)
 
 /** Builds pane routes from current semantic state; static panes never become user history. */
 internal fun forumRoutesFor(

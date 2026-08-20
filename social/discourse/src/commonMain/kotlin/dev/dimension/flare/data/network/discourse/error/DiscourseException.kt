@@ -79,6 +79,54 @@ public class DiscourseHttpException(
     }
 }
 
+/** Fixed composer/upload field names allowed to cross an HTTP 422 response boundary. */
+public enum class DiscourseValidationField {
+    Unknown,
+    Title,
+    Raw,
+    Tags,
+    Category,
+    Upload,
+    Post,
+}
+
+/** Fixed validation reasons recognized from Discourse's bounded HTTP 422 JSON envelope. */
+public enum class DiscourseValidationReason {
+    Unknown,
+    InvalidInput,
+    Required,
+    TooShort,
+    TooLong,
+    Forbidden,
+    NotFound,
+    RateLimited,
+}
+
+/**
+ * HTTP 422 with only allowlisted enum and bounded scalar metadata retained.
+ *
+ * Discourse's arbitrary `errors` strings may contain unpublished post text, filenames, usernames,
+ * or plugin details. They are intentionally absent from this type and from its fixed message.
+ */
+public class DiscourseValidationException(
+    public val field: DiscourseValidationField,
+    public val reason: DiscourseValidationReason,
+    public val minimum: Long? = null,
+    public val maximum: Long? = null,
+    public val retryAfterSeconds: Long? = null,
+) : DiscourseException("Discourse rejected submitted content (${field.name}/${reason.name})") {
+    init {
+        require(minimum == null || minimum >= 0L) { "Validation minimum cannot be negative" }
+        require(maximum == null || maximum >= 0L) { "Validation maximum cannot be negative" }
+        require(minimum == null || maximum == null || minimum <= maximum) {
+            "Validation minimum cannot exceed maximum"
+        }
+        require(retryAfterSeconds == null || retryAfterSeconds >= 0L) {
+            "Validation retry delay cannot be negative"
+        }
+    }
+}
+
 /** Transport failure classified without retaining the platform exception or request URL. */
 public class DiscourseNetworkException(
     public val kind: DiscourseNetworkFailureKind,

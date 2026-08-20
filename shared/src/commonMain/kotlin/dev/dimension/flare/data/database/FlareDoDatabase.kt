@@ -140,6 +140,105 @@ public interface ForumCacheEntryDao {
 }
 
 /**
+ * Restart-persistent composer content partitioned by a public account ID and application draft key.
+ *
+ * Unlike authentication state, draft text is intentionally allowed in Room so an expired session
+ * cannot destroy unfinished work. [payload] contains only the versioned composer model serialized
+ * by the Discourse module; it must never contain cookies, CSRF tokens, upload bytes, or a queued
+ * network operation. [revision] supports compare-and-delete after publishing, preserving a newer
+ * edit that was saved while the older revision was in flight.
+ */
+@Entity(
+    tableName = "composer_drafts",
+    primaryKeys = ["accountId", "draftKey"],
+    indices = [Index(value = ["accountId", "updatedAtEpochMillis"])],
+)
+public data class ComposerDraftEntity(
+    val accountId: String,
+    val draftKey: String,
+    val payload: String,
+    val revision: Long,
+    val updatedAtEpochMillis: Long,
+)
+
+/** Atomic persistence operations for bounded per-account composer drafts. */
+@Dao
+public interface ComposerDraftDao {
+    @Query("SELECT * FROM composer_drafts WHERE accountId = :accountId AND draftKey = :draftKey")
+    public suspend fun get(
+        accountId: String,
+        draftKey: String,
+    ): ComposerDraftEntity?
+
+    @Query(
+        """
+        SELECT * FROM composer_drafts
+        WHERE accountId = :accountId
+        ORDER BY updatedAtEpochMillis DESC, draftKey DESC
+        """,
+    )
+    public suspend fun listForAccount(accountId: String): List<ComposerDraftEntity>
+
+    @Upsert
+    public suspend fun upsert(entity: ComposerDraftEntity)
+
+    /** Atomically writes one revision and restores the persistent per-account bound. */
+    @Transaction
+    public suspend fun upsertBounded(
+        entity: ComposerDraftEntity,
+        maxEntries: Int,
+    ) {
+        upsert(entity)
+        pruneToNewest(entity.accountId, maxEntries)
+    }
+
+    @Query("DELETE FROM composer_drafts WHERE accountId = :accountId AND draftKey = :draftKey")
+    public suspend fun delete(
+        accountId: String,
+        draftKey: String,
+    )
+
+    /**
+     * Deletes only the revision submitted to Linux.do.
+     *
+     * A composer may save a newer revision before the publish response arrives. Including the
+     * observed revision in this query prevents that successful older request from deleting the
+     * user's newer text.
+     */
+    @Query(
+        """
+        DELETE FROM composer_drafts
+        WHERE accountId = :accountId AND draftKey = :draftKey AND revision = :expectedRevision
+        """,
+    )
+    public suspend fun deleteIfRevisionMatches(
+        accountId: String,
+        draftKey: String,
+        expectedRevision: Long,
+    ): Int
+
+    @Query(
+        """
+        DELETE FROM composer_drafts
+        WHERE accountId = :accountId
+          AND draftKey NOT IN (
+            SELECT draftKey FROM composer_drafts
+            WHERE accountId = :accountId
+            ORDER BY updatedAtEpochMillis DESC, draftKey DESC
+            LIMIT :maxEntries
+          )
+        """,
+    )
+    public suspend fun pruneToNewest(
+        accountId: String,
+        maxEntries: Int,
+    )
+
+    @Query("SELECT COUNT(*) FROM composer_drafts WHERE accountId = :accountId")
+    public suspend fun countForAccount(accountId: String): Int
+}
+
+/**
  * Non-secret pointer to one value owned by a platform credential vault.
  *
  * This table is the only authentication persistence surface in Room. [credentialRef] is an opaque
@@ -215,19 +314,21 @@ public interface SecureVaultReferenceDao {
 }
 
 /** Current additive Room schema version. */
-public const val FLARE_DO_DATABASE_VERSION: Int = 3
+public const val FLARE_DO_DATABASE_VERSION: Int = 4
 
 @Database(
     entities = [
         ForumCacheMetadataEntity::class,
         ForumCacheEntryEntity::class,
+        ComposerDraftEntity::class,
         SecureVaultReferenceEntity::class,
     ],
     version = FLARE_DO_DATABASE_VERSION,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
-        AutoMigration(from = 2, to = FLARE_DO_DATABASE_VERSION),
+        AutoMigration(from = 2, to = 3),
+        AutoMigration(from = 3, to = FLARE_DO_DATABASE_VERSION),
     ],
 )
 @ConstructedBy(FlareDoDatabaseConstructor::class)
@@ -235,6 +336,8 @@ public abstract class FlareDoDatabase : RoomDatabase() {
     public abstract fun forumCacheMetadataDao(): ForumCacheMetadataDao
 
     public abstract fun forumCacheEntryDao(): ForumCacheEntryDao
+
+    public abstract fun composerDraftDao(): ComposerDraftDao
 
     public abstract fun secureVaultReferenceDao(): SecureVaultReferenceDao
 }

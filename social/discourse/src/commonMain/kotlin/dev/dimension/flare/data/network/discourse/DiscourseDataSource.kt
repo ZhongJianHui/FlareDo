@@ -3,6 +3,7 @@ package dev.dimension.flare.data.network.discourse
 import dev.dimension.flare.data.network.discourse.error.DiscourseSerializationException
 import dev.dimension.flare.data.network.discourse.error.DiscourseSerializationPhase
 import dev.dimension.flare.data.network.discourse.model.DiscourseCategoryListResponse
+import dev.dimension.flare.data.network.discourse.model.DiscourseEditablePost
 import dev.dimension.flare.data.network.discourse.model.DiscourseNotificationResponse
 import dev.dimension.flare.data.network.discourse.model.DiscoursePost
 import dev.dimension.flare.data.network.discourse.model.DiscourseSearchResponse
@@ -108,6 +109,9 @@ public class DiscourseDataSource(
             hasMore = batch.hasMore,
         )
     }
+
+    /** Returns private, authoritative Markdown for an edit flow; this result is never cached here. */
+    public suspend fun editablePost(postId: Long): DiscourseEditablePost = api.editablePost(postId)
 
     public suspend fun search(
         query: String,
