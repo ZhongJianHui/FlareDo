@@ -32,6 +32,17 @@ import dev.dimension.flare.data.network.discourse.forum.DiscourseForumRepository
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumSearchMapper
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumSearchRepository
 import dev.dimension.flare.data.network.discourse.forum.MemoryDiscourseForumCache
+import dev.dimension.flare.data.network.discourse.realtime.DefaultDiscourseMessageBusEndpointProvider
+import dev.dimension.flare.data.network.discourse.realtime.DefaultDiscourseMessageBusTransport
+import dev.dimension.flare.data.network.discourse.realtime.DiscourseMessageBus
+import dev.dimension.flare.data.network.discourse.realtime.DiscourseMessageBusCursorStore
+import dev.dimension.flare.data.network.discourse.realtime.DiscourseMessageBusEndpointProvider
+import dev.dimension.flare.data.network.discourse.realtime.DiscourseMessageBusTransport
+import dev.dimension.flare.data.network.discourse.realtime.DiscourseRealtimeCoordinator
+import dev.dimension.flare.data.network.discourse.realtime.DiscourseRealtimeSessionRecovery
+import dev.dimension.flare.data.network.discourse.realtime.MemoryDiscourseMessageBusCursorStore
+import dev.dimension.flare.data.network.discourse.realtime.MemoryDiscourseRealtimeSessionRecovery
+import dev.dimension.flare.data.network.discourse.realtime.PersistedDiscourseRealtimeSessionRecovery
 import dev.dimension.flare.data.network.discourse.session.DiscourseCookieStorage
 import dev.dimension.flare.data.network.discourse.session.DiscourseCsrfTokenStore
 import dev.dimension.flare.data.network.discourse.session.DiscourseSessionLifecycle
@@ -67,6 +78,26 @@ public val discourseModule: Module =
         }
         single { createDiscourseHttpClient(cookieStorage = get()) } onClose { client ->
             client?.close()
+        }
+        single<DiscourseMessageBusCursorStore> { MemoryDiscourseMessageBusCursorStore() }
+        single<DiscourseMessageBusTransport> {
+            DefaultDiscourseMessageBusTransport(client = get())
+        } onClose { transport ->
+            (transport as? DefaultDiscourseMessageBusTransport)?.close()
+        }
+        single { DiscourseMessageBus(transport = get(), cursorStore = get()) }
+        single<DiscourseMessageBusEndpointProvider> {
+            DefaultDiscourseMessageBusEndpointProvider(client = get())
+        }
+        single<DiscourseRealtimeSessionRecovery> {
+            MemoryDiscourseRealtimeSessionRecovery(sessionManager = get())
+        }
+        factory {
+            DiscourseRealtimeCoordinator(
+                sessionManager = get(),
+                messageBus = get(),
+                endpointProvider = get(),
+            )
         }
         single { createDiscourseWireTransport(client = get()) }
         single<DiscourseApi> {
@@ -127,6 +158,8 @@ public val discourseModule: Module =
                 searchRepository = get(),
                 accountRepository = get(),
                 sessionManager = get(),
+                realtimeCoordinator = get(),
+                realtimeSessionRecovery = get(),
             )
         }
         // Composer actors own bounded channels and generation-bound child jobs, so each screen
@@ -189,6 +222,12 @@ public val discourseAuthenticationModule: Module =
             DiscourseSessionLifecycle(
                 sessionManager = get(),
                 sessionStore = get(),
+            )
+        }
+        single<DiscourseRealtimeSessionRecovery> {
+            PersistedDiscourseRealtimeSessionRecovery(
+                sessionManager = get(),
+                sessionLifecycle = get(),
             )
         }
         single {

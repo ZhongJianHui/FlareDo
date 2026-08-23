@@ -6,6 +6,8 @@ import androidx.room3.Dao
 import androidx.room3.Database
 import androidx.room3.Entity
 import androidx.room3.Index
+import androidx.room3.Insert
+import androidx.room3.OnConflictStrategy
 import androidx.room3.PrimaryKey
 import androidx.room3.Query
 import androidx.room3.RoomDatabase
@@ -239,6 +241,99 @@ public interface ComposerDraftDao {
 }
 
 /**
+ * Last accepted MessageBus message ID for one authenticated account and channel.
+ *
+ * Only the public account ID, the application-validated channel name, and its monotonically
+ * increasing numeric cursor belong in this table. Message payloads, MessageBus client IDs, shared
+ * session keys, cookies, CSRF values, and any other session material must never be persisted here.
+ * The Discourse adapter intentionally writes only `/notification/{accountId}`; other foreground
+ * subscriptions remain process-local even though the schema stays generic enough for atomic DAO
+ * tests and a future explicitly reviewed persistence policy.
+ */
+@Entity(
+    tableName = "message_bus_cursors",
+    primaryKeys = ["accountId", "channel"],
+)
+public data class MessageBusCursorEntity(
+    val accountId: String,
+    val channel: String,
+    val messageId: Long,
+) {
+    init {
+        require(messageId >= 0L) { "MessageBus cursor must not be negative" }
+    }
+}
+
+/** Result of one atomic cursor compare-and-set operation. */
+public data class MessageBusCursorAdvanceResult(
+    val cursor: Long,
+    val advanced: Boolean,
+)
+
+/** Atomic, non-secret cursor operations used by the Room-backed MessageBus cursor store. */
+@Dao
+public interface MessageBusCursorDao {
+    @Query("SELECT * FROM message_bus_cursors WHERE accountId = :accountId AND channel = :channel")
+    public suspend fun get(
+        accountId: String,
+        channel: String,
+    ): MessageBusCursorEntity?
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    public suspend fun insertIfAbsent(entity: MessageBusCursorEntity): Long
+
+    /** Advances an existing row only; a delayed or duplicate event can never lower its cursor. */
+    @Query(
+        """
+        UPDATE message_bus_cursors
+        SET messageId = :messageId
+        WHERE accountId = :accountId AND channel = :channel AND messageId < :messageId
+        """,
+    )
+    public suspend fun updateIfNewer(
+        accountId: String,
+        channel: String,
+        messageId: Long,
+    ): Int
+
+    /**
+     * Atomically creates or advances one cursor and returns the authoritative database value.
+     *
+     * Room serializes this transaction with competing writers. Reading after the conditional
+     * update is important: the caller must observe a larger cursor already committed by another
+     * event instead of assuming that its own candidate won the race.
+     */
+    @Transaction
+    public suspend fun advance(
+        accountId: String,
+        channel: String,
+        messageId: Long,
+    ): MessageBusCursorAdvanceResult {
+        require(messageId >= 0L) { "MessageBus cursor must not be negative" }
+        val inserted =
+            insertIfAbsent(
+                MessageBusCursorEntity(
+                    accountId = accountId,
+                    channel = channel,
+                    messageId = messageId,
+                ),
+            ) != -1L
+        val updated = !inserted && updateIfNewer(accountId, channel, messageId) == 1
+        val authoritative =
+            checkNotNull(get(accountId, channel)) {
+                "MessageBus cursor transaction did not create its row"
+            }.messageId
+        return MessageBusCursorAdvanceResult(
+            cursor = authoritative,
+            advanced = inserted || updated,
+        )
+    }
+
+    @Query("DELETE FROM message_bus_cursors WHERE accountId = :accountId")
+    public suspend fun deleteForAccount(accountId: String): Int
+}
+
+/**
  * Non-secret pointer to one value owned by a platform credential vault.
  *
  * This table is the only authentication persistence surface in Room. [credentialRef] is an opaque
@@ -314,13 +409,14 @@ public interface SecureVaultReferenceDao {
 }
 
 /** Current additive Room schema version. */
-public const val FLARE_DO_DATABASE_VERSION: Int = 4
+public const val FLARE_DO_DATABASE_VERSION: Int = 5
 
 @Database(
     entities = [
         ForumCacheMetadataEntity::class,
         ForumCacheEntryEntity::class,
         ComposerDraftEntity::class,
+        MessageBusCursorEntity::class,
         SecureVaultReferenceEntity::class,
     ],
     version = FLARE_DO_DATABASE_VERSION,
@@ -328,7 +424,8 @@ public const val FLARE_DO_DATABASE_VERSION: Int = 4
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
         AutoMigration(from = 2, to = 3),
-        AutoMigration(from = 3, to = FLARE_DO_DATABASE_VERSION),
+        AutoMigration(from = 3, to = 4),
+        AutoMigration(from = 4, to = FLARE_DO_DATABASE_VERSION),
     ],
 )
 @ConstructedBy(FlareDoDatabaseConstructor::class)
@@ -338,6 +435,8 @@ public abstract class FlareDoDatabase : RoomDatabase() {
     public abstract fun forumCacheEntryDao(): ForumCacheEntryDao
 
     public abstract fun composerDraftDao(): ComposerDraftDao
+
+    public abstract fun messageBusCursorDao(): MessageBusCursorDao
 
     public abstract fun secureVaultReferenceDao(): SecureVaultReferenceDao
 }

@@ -8,6 +8,8 @@ import dev.dimension.flare.data.network.discourse.auth.DiscourseWebSessionLogin
 import dev.dimension.flare.data.network.discourse.auth.JvmDiscourseWebSessionCookieBridge
 import dev.dimension.flare.data.network.discourse.discourseAuthenticationModule
 import dev.dimension.flare.data.network.discourse.discourseModule
+import dev.dimension.flare.data.network.discourse.realtime.DiscourseMessageBusCursorStore
+import dev.dimension.flare.data.network.discourse.realtime.RoomDiscourseMessageBusCursorStore
 import dev.dimension.flare.data.network.discourse.session.SessionOnlySecureCredentialStore
 import dev.dimension.flare.di.sharedModule
 import org.koin.dsl.koinApplication
@@ -49,6 +51,9 @@ class DesktopDiscourseHostModuleTest {
             )
             assertIs<DiscourseManualChallengeCookieHandler>(
                 application.koin.get<DiscourseCloudflareChallengeHandler>(),
+            )
+            assertIs<RoomDiscourseMessageBusCursorStore>(
+                application.koin.get<DiscourseMessageBusCursorStore>(),
             )
             assertSame(browserCookieManager, application.koin.get<CookieManager>())
         } finally {

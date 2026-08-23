@@ -12,6 +12,11 @@ internal class ForumPresenterViewModel(
     val presenter: DiscourseForumPresenter = (application as App).createForumPresenter()
     val composerPresenter: DiscourseComposerPresenter = (application as App).createComposerPresenter()
 
+    /** Keeps long polling bound to the visible Activity lifecycle across configuration changes. */
+    fun setForeground(isForeground: Boolean) {
+        presenter.setForeground(isForeground)
+    }
+
     override fun onCleared() {
         composerPresenter.close()
         presenter.close()

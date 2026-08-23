@@ -1,5 +1,9 @@
 package dev.dimension.flare.data.database
 
+import androidx.sqlite.SQLiteConnection
+import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import kotlinx.coroutines.async
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.test.runTest
 import java.nio.file.Files
 import java.nio.file.Path
@@ -89,6 +93,108 @@ class FlareDoDatabaseFactoryJvmTest {
             }
         }
 
+    @Test
+    fun messageBusCursorCasIsMonotonicAndAccountScoped() =
+        runTest {
+            withTemporaryDatabase { database ->
+                val dao = database.messageBusCursorDao()
+                val duplicateResults =
+                    supervisorScope {
+                        List(24) {
+                            async { dao.advance(ACCOUNT_42, NOTIFICATION_42, 5L) }
+                        }.map { it.await() }
+                    }
+
+                assertEquals(1, duplicateResults.count(MessageBusCursorAdvanceResult::advanced))
+                assertTrue(duplicateResults.all { it.cursor == 5L })
+
+                supervisorScope {
+                    listOf(4L, 9L, 6L, 12L, 8L)
+                        .map { candidate ->
+                            async { dao.advance(ACCOUNT_42, NOTIFICATION_42, candidate) }
+                        }.forEach { it.await() }
+                }
+                dao.advance(ACCOUNT_84, NOTIFICATION_84, 21L)
+
+                assertEquals(12L, dao.get(ACCOUNT_42, NOTIFICATION_42)?.messageId)
+                assertEquals(21L, dao.get(ACCOUNT_84, NOTIFICATION_84)?.messageId)
+                assertEquals(1, dao.deleteForAccount(ACCOUNT_42))
+                assertNull(dao.get(ACCOUNT_42, NOTIFICATION_42))
+                assertEquals(21L, dao.get(ACCOUNT_84, NOTIFICATION_84)?.messageId)
+            }
+        }
+
+    @Test
+    fun notificationCursorSurvivesDatabaseRestart() =
+        runTest {
+            val directory = Files.createTempDirectory("flaredo-room-cursor-restart-")
+            val databasePath = directory.resolve("forum.db")
+            try {
+                val firstProcess = createJvmFlareDoDatabase(databasePath)
+                try {
+                    assertEquals(
+                        MessageBusCursorAdvanceResult(cursor = 37L, advanced = true),
+                        firstProcess.messageBusCursorDao().advance(
+                            accountId = ACCOUNT_42,
+                            channel = NOTIFICATION_42,
+                            messageId = 37L,
+                        ),
+                    )
+                } finally {
+                    firstProcess.close()
+                }
+
+                val restartedProcess = createJvmFlareDoDatabase(databasePath)
+                try {
+                    assertEquals(
+                        37L,
+                        restartedProcess
+                            .messageBusCursorDao()
+                            .get(ACCOUNT_42, NOTIFICATION_42)
+                            ?.messageId,
+                    )
+                } finally {
+                    restartedProcess.close()
+                }
+            } finally {
+                directory.toFile().deleteRecursively()
+            }
+        }
+
+    @Test
+    fun migratesVersionFourDataAndCreatesTheMessageBusCursorTable() =
+        runTest {
+            val directory = Files.createTempDirectory("flaredo-room-migration-4-5-")
+            val databasePath = directory.resolve("forum.db")
+            try {
+                createVersionFourDatabase(databasePath)
+                val database = createJvmFlareDoDatabase(databasePath)
+                try {
+                    assertEquals(
+                        ForumCacheEntryEntity(
+                            accountId = ACCOUNT_42,
+                            cacheKey = VERSION_FOUR_CACHE_KEY,
+                            payload = VERSION_FOUR_CACHE_PAYLOAD,
+                            updatedAtEpochMillis = 123L,
+                        ),
+                        database.forumCacheEntryDao().get(ACCOUNT_42, VERSION_FOUR_CACHE_KEY),
+                    )
+                    assertEquals(
+                        MessageBusCursorAdvanceResult(cursor = 51L, advanced = true),
+                        database.messageBusCursorDao().advance(
+                            accountId = ACCOUNT_42,
+                            channel = NOTIFICATION_42,
+                            messageId = 51L,
+                        ),
+                    )
+                } finally {
+                    database.close()
+                }
+            } finally {
+                directory.toFile().deleteRecursively()
+            }
+        }
+
     private suspend fun withTemporaryDatabase(block: suspend (FlareDoDatabase) -> Unit) {
         val directory = Files.createTempDirectory("flaredo-room-test-")
         val databasePath = directory.resolve("forum.db")
@@ -99,6 +205,25 @@ class FlareDoDatabaseFactoryJvmTest {
         } finally {
             database.close()
             directory.toFile().deleteRecursively()
+        }
+    }
+
+    /** Creates the exact exported v4 schema without involving the v5 Room constructor. */
+    private fun createVersionFourDatabase(path: Path) {
+        val connection = BundledSQLiteDriver().open(path.toString())
+        try {
+            VERSION_FOUR_SCHEMA_SQL.forEach { sql -> connection.executeStatement(sql) }
+        } finally {
+            connection.close()
+        }
+    }
+
+    private fun SQLiteConnection.executeStatement(sql: String) {
+        val statement = prepare(sql)
+        try {
+            statement.step()
+        } finally {
+            statement.close()
         }
     }
 
@@ -140,6 +265,75 @@ class FlareDoDatabaseFactoryJvmTest {
 
     private companion object {
         const val ANONYMOUS_ACCOUNT_ID: String = "anonymous"
+        const val ACCOUNT_42: String = "42"
+        const val ACCOUNT_84: String = "84"
+        const val NOTIFICATION_42: String = "/notification/42"
+        const val NOTIFICATION_84: String = "/notification/84"
         const val PENDING_AUTH_SLOT: String = "pending-auth"
+        const val VERSION_FOUR_CACHE_KEY: String = "topic:7"
+        const val VERSION_FOUR_CACHE_PAYLOAD: String = "v4-cache-payload"
+
+        val VERSION_FOUR_SCHEMA_SQL: List<String> =
+            listOf(
+                """
+                CREATE TABLE IF NOT EXISTS forum_cache_metadata (
+                    accountId TEXT NOT NULL,
+                    cacheKey TEXT NOT NULL,
+                    updatedAtEpochMillis INTEGER NOT NULL,
+                    etag TEXT,
+                    lastModified TEXT,
+                    PRIMARY KEY(accountId, cacheKey)
+                )
+                """.trimIndent(),
+                """
+                CREATE TABLE IF NOT EXISTS forum_cache_entries (
+                    accountId TEXT NOT NULL,
+                    cacheKey TEXT NOT NULL,
+                    payload TEXT NOT NULL,
+                    updatedAtEpochMillis INTEGER NOT NULL,
+                    PRIMARY KEY(accountId, cacheKey)
+                )
+                """.trimIndent(),
+                """
+                CREATE INDEX IF NOT EXISTS index_forum_cache_entries_accountId_updatedAtEpochMillis
+                ON forum_cache_entries (accountId, updatedAtEpochMillis)
+                """.trimIndent(),
+                """
+                CREATE TABLE IF NOT EXISTS composer_drafts (
+                    accountId TEXT NOT NULL,
+                    draftKey TEXT NOT NULL,
+                    payload TEXT NOT NULL,
+                    revision INTEGER NOT NULL,
+                    updatedAtEpochMillis INTEGER NOT NULL,
+                    PRIMARY KEY(accountId, draftKey)
+                )
+                """.trimIndent(),
+                """
+                CREATE INDEX IF NOT EXISTS index_composer_drafts_accountId_updatedAtEpochMillis
+                ON composer_drafts (accountId, updatedAtEpochMillis)
+                """.trimIndent(),
+                """
+                CREATE TABLE IF NOT EXISTS secure_vault_references (
+                    slot TEXT NOT NULL,
+                    credentialRef TEXT NOT NULL,
+                    relatedCredentialRef TEXT,
+                    accountId TEXT,
+                    username TEXT,
+                    createdAtEpochMillis INTEGER NOT NULL,
+                    expiresAtEpochMillis INTEGER,
+                    PRIMARY KEY(slot)
+                )
+                """.trimIndent(),
+                "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY, identity_hash TEXT)",
+                """
+                INSERT OR REPLACE INTO room_master_table (id, identity_hash)
+                VALUES(42, 'b7ea9e3c063847051f23575f321c41ee')
+                """.trimIndent(),
+                "PRAGMA user_version = 4",
+                """
+                INSERT INTO forum_cache_entries (accountId, cacheKey, payload, updatedAtEpochMillis)
+                VALUES('42', 'topic:7', 'v4-cache-payload', 123)
+                """.trimIndent(),
+            )
     }
 }

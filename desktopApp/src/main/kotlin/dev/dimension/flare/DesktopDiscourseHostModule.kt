@@ -16,6 +16,8 @@ import dev.dimension.flare.data.network.discourse.composer.DiscourseDraftStore
 import dev.dimension.flare.data.network.discourse.composer.roomDiscourseDraftStore
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumCache
 import dev.dimension.flare.data.network.discourse.forum.roomDiscourseForumCache
+import dev.dimension.flare.data.network.discourse.realtime.DiscourseMessageBusCursorStore
+import dev.dimension.flare.data.network.discourse.realtime.roomDiscourseMessageBusCursorStore
 import dev.dimension.flare.data.network.discourse.session.DiscourseSessionManager
 import dev.dimension.flare.data.network.discourse.session.DiscourseSessionStore
 import dev.dimension.flare.data.network.discourse.session.RoomDiscourseSessionStore
@@ -52,6 +54,11 @@ internal fun createDesktopDiscourseHostModule(
         single<DiscourseDraftStore> {
             roomDiscourseDraftStore(
                 dao = get<FlareDoDatabase>().composerDraftDao(),
+            )
+        }
+        single<DiscourseMessageBusCursorStore> {
+            roomDiscourseMessageBusCursorStore(
+                dao = get<FlareDoDatabase>().messageBusCursorDao(),
             )
         }
         single<SecureCredentialStore> { credentialStore } onClose { store ->

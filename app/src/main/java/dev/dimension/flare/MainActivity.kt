@@ -35,4 +35,14 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onStart() {
+        super.onStart()
+        forumViewModel.setForeground(true)
+    }
+
+    override fun onStop() {
+        forumViewModel.setForeground(false)
+        super.onStop()
+    }
 }

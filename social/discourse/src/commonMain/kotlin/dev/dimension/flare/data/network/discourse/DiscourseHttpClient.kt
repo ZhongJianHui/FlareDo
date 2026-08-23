@@ -16,6 +16,7 @@ import io.ktor.client.statement.bodyAsChannel
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.URLProtocol
+import io.ktor.http.parseHeaderValue
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.readRemaining
@@ -71,7 +72,10 @@ private val DiscourseDefaultHeaders =
             if (request.headers[HttpHeaders.AcceptLanguage] == null) {
                 request.headers.append(HttpHeaders.AcceptLanguage, "zh-CN,zh;q=0.9,en;q=0.7")
             }
-            if (request.headers["X-Requested-With"] == null) {
+            // A full HTML bootstrap must render Discourse's layout and `data-preloaded` script.
+            // Rails treats X-Requested-With as an AJAX request, which may select a response variant
+            // without that layout. API and MessageBus requests keep the header's CSRF semantics.
+            if (!request.headers[HttpHeaders.Accept].acceptsHtml() && request.headers["X-Requested-With"] == null) {
                 request.headers.append("X-Requested-With", "XMLHttpRequest")
             }
         }
@@ -157,3 +161,12 @@ internal fun HttpClientConfig<*>.configureDiscourseHttpClient(cookieStorage: Dis
     // and upload bytes must never enter application or CI logs.
     install(DiscourseDefaultHeaders)
 }
+
+private fun String?.acceptsHtml(): Boolean =
+    parseHeaderValue(this).any { headerValue ->
+        try {
+            ContentType.parse(headerValue.value).match(ContentType.Text.Html)
+        } catch (_: IllegalArgumentException) {
+            false
+        }
+    }

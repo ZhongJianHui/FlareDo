@@ -1,5 +1,7 @@
 package dev.dimension.flare
 
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -60,16 +62,25 @@ public fun main() {
 
     try {
         application {
+            val windowState =
+                rememberWindowState(
+                    position = WindowPosition(Alignment.Center),
+                    size = DpSize(width = 1180.dp, height = 760.dp),
+                )
             Window(
                 onCloseRequest = ::exitApplication,
                 title = "FlareDo",
                 icon = painterResource(Res.drawable.flaredo_logo),
-                state =
-                    rememberWindowState(
-                        position = WindowPosition(Alignment.Center),
-                        size = DpSize(width = 1180.dp, height = 760.dp),
-                    ),
+                state = windowState,
             ) {
+                DisposableEffect(presenter) {
+                    onDispose { presenter.setForeground(false) }
+                }
+                LaunchedEffect(windowState.isMinimized) {
+                    // Desktop has no process lifecycle equivalent. A visible non-minimized window
+                    // is the bounded foreground owner; minimizing it cancels the in-flight poll.
+                    presenter.setForeground(!windowState.isMinimized)
+                }
                 FlareDoTheme {
                     DesktopForumShell(presenter, composerPresenter)
                 }

@@ -9,6 +9,13 @@ import androidx.compose.runtime.setValue
 import dev.dimension.flare.data.network.discourse.error.DiscourseException
 import dev.dimension.flare.data.network.discourse.paging.DiscourseNotificationOffset
 import dev.dimension.flare.data.network.discourse.paging.DiscourseSearchPage
+import dev.dimension.flare.data.network.discourse.realtime.DiscourseRealtimeCallbacks
+import dev.dimension.flare.data.network.discourse.realtime.DiscourseRealtimeCatchUp
+import dev.dimension.flare.data.network.discourse.realtime.DiscourseRealtimeCoordinator
+import dev.dimension.flare.data.network.discourse.realtime.DiscourseRealtimeRefresh
+import dev.dimension.flare.data.network.discourse.realtime.DiscourseRealtimeSessionRecovery
+import dev.dimension.flare.data.network.discourse.realtime.DiscourseSessionRecoveryReason
+import dev.dimension.flare.data.network.discourse.realtime.DiscourseSessionRecoveryRequest
 import dev.dimension.flare.data.network.discourse.session.DiscourseSessionManager
 import dev.dimension.flare.data.network.discourse.session.DiscourseSessionState
 import dev.dimension.flare.data.network.discourse.session.StaleDiscourseSessionException
@@ -20,6 +27,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
@@ -36,6 +45,8 @@ public class DiscourseForumPresenter(
     private val searchRepository: DiscourseForumSearchRepository,
     private val accountRepository: DiscourseForumAccountRepository,
     private val sessionManager: DiscourseSessionManager,
+    private val realtimeCoordinator: DiscourseRealtimeCoordinator? = null,
+    private val realtimeSessionRecovery: DiscourseRealtimeSessionRecovery? = null,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : PresenterBase<DiscourseForumState>(dispatcher) {
     private val actions = Channel<DiscourseForumAction>(capacity = ACTION_CHANNEL_CAPACITY)
@@ -43,10 +54,28 @@ public class DiscourseForumPresenter(
     /** Returns false after close or while the bounded UI action queue is full. */
     public fun dispatch(action: DiscourseForumAction): Boolean = actions.trySend(action).isSuccess
 
+    /**
+     * Mirrors the host's visible foreground lifecycle without creating a process-global scope.
+     *
+     * The coordinator is owned by this presenter instance. Moving to background cancels its active
+     * long poll through `collectLatest`; returning to foreground performs REST catch-up before a new
+     * poll is opened.
+     */
+    public fun setForeground(isForeground: Boolean) {
+        realtimeCoordinator?.setForeground(isForeground)
+    }
+
     @Composable
     override fun body(): DiscourseForumState {
         var state by remember { mutableStateOf(DiscourseForumState()) }
-        LaunchedEffect(repository, searchRepository, accountRepository, sessionManager) {
+        LaunchedEffect(
+            repository,
+            searchRepository,
+            accountRepository,
+            sessionManager,
+            realtimeCoordinator,
+            realtimeSessionRecovery,
+        ) {
             runActor(
                 state = { state },
                 setState = { state = it },
@@ -92,6 +121,7 @@ public class DiscourseForumPresenter(
             fun clearTopicSelection() {
                 topicJob?.cancel()
                 topicRequest = topicRequest.nextRequestId()
+                realtimeCoordinator?.setActiveTopic(null)
                 update {
                     it.copy(
                         selectedTopicId = null,
@@ -147,6 +177,7 @@ public class DiscourseForumPresenter(
                 topicJob?.cancel()
                 topicRequest = topicRequest.nextRequestId()
                 val requestId = topicRequest
+                realtimeCoordinator?.setActiveTopic(topicId)
                 update { current ->
                     current.copy(
                         selectedTopicId = topicId,
@@ -444,6 +475,7 @@ public class DiscourseForumPresenter(
             fun handleSessionChanged(session: DiscourseSessionState) {
                 if (session.generation == state().sessionGeneration) return
                 cancelGenerationWork()
+                realtimeCoordinator?.setActiveTopic(null)
                 val previous = state()
                 val authenticated = session as? DiscourseSessionState.Authenticated
                 val feed =
@@ -479,6 +511,7 @@ public class DiscourseForumPresenter(
                         isTopicLoading = false,
                         topicSource = null,
                         topicFailure = null,
+                        realtimeRecoveryReason = null,
                         search =
                             DiscourseForumSearchState(
                                 query = previous.search.query,
@@ -506,6 +539,117 @@ public class DiscourseForumPresenter(
                 }
             }
 
+            suspend fun refreshRealtimeFeed(expectedGeneration: Long) {
+                currentCoroutineContext().ensureActive()
+                val snapshot = state()
+                if (
+                    snapshot.destination != DiscourseForumDestination.Latest &&
+                    snapshot.destination != DiscourseForumDestination.Hot
+                ) {
+                    return
+                }
+                val feed = snapshot.selection
+                val page = repository.loadFeed(feed = feed, page = 0)
+                check(page.feed == feed && page.page == 0)
+                events.send(
+                    ForumPresenterEvent.RealtimeFeedLoaded(
+                        expectedGeneration = expectedGeneration,
+                        feed = feed,
+                        page = page,
+                    ),
+                )
+            }
+
+            suspend fun refreshRealtimeNotifications(
+                expectedGeneration: Long,
+                accountId: String,
+            ) {
+                currentCoroutineContext().ensureActive()
+                val page =
+                    accountRepository.loadNotifications(
+                        offset = DiscourseNotificationOffset.Initial,
+                        knownIds = emptySet(),
+                    )
+                events.send(
+                    ForumPresenterEvent.RealtimeNotificationsLoaded(
+                        expectedGeneration = expectedGeneration,
+                        accountId = accountId,
+                        page = page,
+                    ),
+                )
+            }
+
+            suspend fun refreshRealtimeTopic(
+                expectedGeneration: Long,
+                topicId: Long,
+            ) {
+                currentCoroutineContext().ensureActive()
+                val topic = repository.loadTopic(topicId)
+                check(topic.topicId == topicId)
+                events.send(
+                    ForumPresenterEvent.RealtimeTopicLoaded(
+                        expectedGeneration = expectedGeneration,
+                        topicId = topicId,
+                        value = topic,
+                    ),
+                )
+            }
+
+            val realtimeCallbacks =
+                object : DiscourseRealtimeCallbacks {
+                    override suspend fun catchUp(request: DiscourseRealtimeCatchUp) {
+                        // These calls intentionally complete before the coordinator opens its poll.
+                        // Each repository re-enters the same generation lease, so a login/logout
+                        // cancels the catch-up and prevents its result from crossing accounts.
+                        refreshRealtimeFeed(request.expectedSessionGeneration)
+                        request.accountId?.let { accountId ->
+                            refreshRealtimeNotifications(request.expectedSessionGeneration, accountId)
+                        }
+                        request.activeTopicId?.let { topicId ->
+                            refreshRealtimeTopic(request.expectedSessionGeneration, topicId)
+                        }
+                    }
+
+                    override suspend fun refresh(request: DiscourseRealtimeRefresh) {
+                        val generation = sessionManager.state.value.generation
+                        when (request) {
+                            DiscourseRealtimeRefresh.Latest,
+                            DiscourseRealtimeRefresh.NewTopics,
+                            -> {
+                                refreshRealtimeFeed(generation)
+                            }
+
+                            is DiscourseRealtimeRefresh.Notifications -> {
+                                refreshRealtimeNotifications(generation, request.userId.toString())
+                            }
+
+                            is DiscourseRealtimeRefresh.Topic -> {
+                                refreshRealtimeTopic(generation, request.topicId)
+                            }
+                        }
+                    }
+
+                    override suspend fun recoverSession(request: DiscourseSessionRecoveryRequest) {
+                        val recovered = realtimeSessionRecovery?.recover(request) == true
+                        if (!recovered) {
+                            events.send(
+                                ForumPresenterEvent.RealtimeRecoveryRequired(
+                                    expectedGeneration = request.expectedSessionGeneration,
+                                    reason = request.reason,
+                                ),
+                            )
+                        }
+                    }
+
+                    override suspend fun pipelineFailed(expectedSessionGeneration: Long) {
+                        events.send(
+                            ForumPresenterEvent.RealtimePipelineFailed(
+                                expectedGeneration = expectedSessionGeneration,
+                            ),
+                        )
+                    }
+                }
+
             val actionForwarder =
                 launch {
                     for (action in actions) events.send(ForumPresenterEvent.Action(action))
@@ -514,6 +658,22 @@ public class DiscourseForumPresenter(
                 launch {
                     sessionManager.state.collect { session ->
                         events.send(ForumPresenterEvent.SessionChanged(session))
+                    }
+                }
+            val realtimeJob =
+                realtimeCoordinator?.let { coordinator ->
+                    launch {
+                        try {
+                            coordinator.run(realtimeCallbacks)
+                        } catch (cancellation: CancellationException) {
+                            throw cancellation
+                        } catch (_: Throwable) {
+                            events.send(
+                                ForumPresenterEvent.RealtimePipelineFailed(
+                                    expectedGeneration = sessionManager.state.value.generation,
+                                ),
+                            )
+                        }
                     }
                 }
 
@@ -689,6 +849,135 @@ public class DiscourseForumPresenter(
                                 is DiscourseForumAction.MarkNotificationsRead -> {
                                     startMarkNotificationsRead(action.notificationId)
                                 }
+                            }
+                        }
+
+                        is ForumPresenterEvent.RealtimeFeedLoaded -> {
+                            val current = state()
+                            if (
+                                event.expectedGeneration != current.sessionGeneration ||
+                                event.feed != current.selection ||
+                                (
+                                    current.destination != DiscourseForumDestination.Latest &&
+                                        current.destination != DiscourseForumDestination.Hot
+                                )
+                            ) {
+                                continue
+                            }
+                            feedJob?.cancel()
+                            feedRequest = feedRequest.nextRequestId()
+                            update { latest ->
+                                val activeSession = sessionManager.state.value
+                                latest.copy(
+                                    topics = event.page.topics.withCategoryNames(latest.categories),
+                                    nextPage = event.page.nextPage,
+                                    isFeedLoading = false,
+                                    isAppending = false,
+                                    feedSource = event.page.source,
+                                    feedFailure = event.page.fallbackFailure,
+                                    appendFailure = null,
+                                    canCreateTopic =
+                                        activeSession is DiscourseSessionState.Authenticated &&
+                                            activeSession.generation == event.expectedGeneration &&
+                                            event.page.canCreateTopic &&
+                                            event.page.source == DiscourseForumContentSource.Network &&
+                                            event.page.fallbackFailure == null,
+                                    realtimeRecoveryReason = null,
+                                )
+                            }
+                        }
+
+                        is ForumPresenterEvent.RealtimeTopicLoaded -> {
+                            val current = state()
+                            if (
+                                event.expectedGeneration != current.sessionGeneration ||
+                                event.topicId != current.selectedTopicId
+                            ) {
+                                continue
+                            }
+                            topicJob?.cancel()
+                            topicRequest = topicRequest.nextRequestId()
+                            update {
+                                it.copy(
+                                    selectedTopic = event.value,
+                                    isTopicLoading = false,
+                                    topicSource = event.value.source,
+                                    topicFailure = event.value.fallbackFailure,
+                                    realtimeRecoveryReason = null,
+                                )
+                            }
+                        }
+
+                        is ForumPresenterEvent.RealtimeNotificationsLoaded -> {
+                            val current = state()
+                            val session = sessionManager.state.value as? DiscourseSessionState.Authenticated
+                            if (
+                                event.expectedGeneration != current.sessionGeneration ||
+                                session?.generation != event.expectedGeneration ||
+                                session.accountId != event.accountId
+                            ) {
+                                continue
+                            }
+                            if (current.notifications.isMarkingRead) {
+                                pendingNotificationsOffset = DiscourseNotificationOffset.Initial
+                                pendingNotificationsAppend = false
+                                continue
+                            }
+                            notificationsJob?.cancel()
+                            notificationsRequest = notificationsRequest.nextRequestId()
+                            update {
+                                it.copy(
+                                    notifications =
+                                        it.notifications.copy(
+                                            snapshot = event.page.toSnapshot(),
+                                            nextOffset = event.page.nextOffset,
+                                            isLoading = false,
+                                            isAppending = false,
+                                            failure = null,
+                                            appendFailure = null,
+                                        ),
+                                    realtimeRecoveryReason = null,
+                                )
+                            }
+                        }
+
+                        is ForumPresenterEvent.RealtimeRecoveryRequired -> {
+                            if (event.expectedGeneration != state().sessionGeneration) continue
+                            val failure = event.reason.toForumFailureKind()
+                            update { current ->
+                                current.copy(
+                                    feedFailure = if (current.topics.isEmpty()) failure else current.feedFailure,
+                                    topicFailure =
+                                        if (current.selectedTopicId != null && current.selectedTopic == null) {
+                                            failure
+                                        } else {
+                                            current.topicFailure
+                                        },
+                                    notifications =
+                                        current.notifications.copy(
+                                            failure =
+                                                if (current.notifications.snapshot == null) {
+                                                    failure
+                                                } else {
+                                                    current.notifications.failure
+                                                },
+                                        ),
+                                    realtimeRecoveryReason = event.reason,
+                                )
+                            }
+                        }
+
+                        is ForumPresenterEvent.RealtimePipelineFailed -> {
+                            if (event.expectedGeneration != state().sessionGeneration) continue
+                            update { current ->
+                                current.copy(
+                                    feedFailure =
+                                        if (current.topics.isEmpty()) {
+                                            DiscourseForumFailureKind.InvalidResponse
+                                        } else {
+                                            current.feedFailure
+                                        },
+                                )
                             }
                         }
 
@@ -946,6 +1235,8 @@ public class DiscourseForumPresenter(
                 }
             } finally {
                 cancelGenerationWork()
+                realtimeCoordinator?.setActiveTopic(null)
+                realtimeJob?.cancel()
                 actionForwarder.cancel()
                 sessionForwarder.cancel()
                 actions.close()
@@ -961,6 +1252,33 @@ private sealed interface ForumPresenterEvent {
 
     data class SessionChanged(
         val value: DiscourseSessionState,
+    ) : ForumPresenterEvent
+
+    data class RealtimeFeedLoaded(
+        val expectedGeneration: Long,
+        val feed: DiscourseForumFeed,
+        val page: DiscourseForumFeedPage,
+    ) : ForumPresenterEvent
+
+    data class RealtimeTopicLoaded(
+        val expectedGeneration: Long,
+        val topicId: Long,
+        val value: DiscourseForumTopic,
+    ) : ForumPresenterEvent
+
+    data class RealtimeNotificationsLoaded(
+        val expectedGeneration: Long,
+        val accountId: String,
+        val page: DiscourseForumNotificationPage,
+    ) : ForumPresenterEvent
+
+    data class RealtimeRecoveryRequired(
+        val expectedGeneration: Long,
+        val reason: DiscourseSessionRecoveryReason,
+    ) : ForumPresenterEvent
+
+    data class RealtimePipelineFailed(
+        val expectedGeneration: Long,
     ) : ForumPresenterEvent
 
     data class FeedLoaded(
@@ -1128,6 +1446,13 @@ private fun mergeMarkedNotificationState(
             },
     )
 }
+
+private fun DiscourseSessionRecoveryReason.toForumFailureKind(): DiscourseForumFailureKind =
+    when (this) {
+        DiscourseSessionRecoveryReason.AuthenticationRequired -> DiscourseForumFailureKind.Authentication
+        DiscourseSessionRecoveryReason.PermissionDenied -> DiscourseForumFailureKind.Permission
+        DiscourseSessionRecoveryReason.ManualChallengeRequired -> DiscourseForumFailureKind.ChallengeRequired
+    }
 
 private fun List<UiTimelineV2.Topic>.withCategoryNames(categories: List<DiscourseForumCategoryOption>): List<UiTimelineV2.Topic> {
     if (isEmpty() || categories.isEmpty()) return this

@@ -11,13 +11,24 @@ import dev.dimension.flare.data.network.discourse.model.DiscourseUserSummary
 import dev.dimension.flare.data.network.discourse.model.DiscourseUserSummaryResponse
 import dev.dimension.flare.data.network.discourse.paging.DiscourseNotificationOffset
 import dev.dimension.flare.data.network.discourse.paging.DiscourseSearchPage
+import dev.dimension.flare.data.network.discourse.realtime.DiscourseMessageBus
+import dev.dimension.flare.data.network.discourse.realtime.DiscourseMessageBusBatch
+import dev.dimension.flare.data.network.discourse.realtime.DiscourseMessageBusClientIdFactory
+import dev.dimension.flare.data.network.discourse.realtime.DiscourseMessageBusPollRequest
+import dev.dimension.flare.data.network.discourse.realtime.DiscourseMessageBusTransport
+import dev.dimension.flare.data.network.discourse.realtime.DiscourseRealtimeCoordinator
+import dev.dimension.flare.data.network.discourse.realtime.MemoryDiscourseMessageBusCursorStore
 import dev.dimension.flare.data.network.discourse.session.DiscourseSessionManager
 import dev.dimension.flare.ui.model.DiscourseTopicRef
 import dev.dimension.flare.ui.model.UiAuthor
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
@@ -640,6 +651,97 @@ internal class DiscourseForumPresenterStage6Test {
                 runCurrent()
             }
         }
+
+    @Test
+    fun foregroundRealtimeCatchUpReconcilesFeedTopicAndUnreadNotifications() =
+        runTest {
+            val sessionManager = authenticatedPresenterSession()
+            val forumRepository = RecordingPresenterForumRepository()
+            val accountRepository = RecordingPresenterAccountRepository()
+            var realtimePhase = false
+            forumRepository.feedHandler = { feed, page ->
+                forumFeedPage(
+                    feed = feed,
+                    page = page,
+                    topicIds = listOf(if (realtimePhase) 81L else 1L),
+                )
+            }
+            forumRepository.topicHandler = { topicId ->
+                forumTopic(if (realtimePhase) topicId + 100L else topicId)
+                    .copy(topicId = topicId)
+            }
+            accountRepository.notificationHandler = { offset, _ ->
+                notificationPage(
+                    offset = offset,
+                    items = if (realtimePhase) listOf(notification(803L)) else emptyList(),
+                    nextOffset = null,
+                )
+            }
+            val transport = SuspendingPresenterRealtimeTransport()
+            val coordinator =
+                DiscourseRealtimeCoordinator(
+                    sessionManager = sessionManager,
+                    messageBus =
+                        DiscourseMessageBus(
+                            transport = transport,
+                            cursorStore = MemoryDiscourseMessageBusCursorStore(),
+                            clientIdFactory =
+                                DiscourseMessageBusClientIdFactory {
+                                    "00000000000040008000000000000000"
+                                },
+                        ),
+                    dispatcher = StandardTestDispatcher(testScheduler),
+                )
+            val presenter =
+                stage6Presenter(
+                    forumRepository = forumRepository,
+                    accountRepository = accountRepository,
+                    sessionManager = sessionManager,
+                    realtimeCoordinator = coordinator,
+                    dispatcher = StandardTestDispatcher(testScheduler),
+                )
+            val models = presenter.models
+
+            try {
+                runCurrent()
+                assertTrue(presenter.dispatch(DiscourseForumAction.OpenTopic(7L)))
+                runCurrent()
+                assertTrue(transport.requests.isEmpty(), "Background presenters must not poll")
+
+                realtimePhase = true
+                presenter.setForeground(true)
+                runCurrent()
+
+                assertEquals(listOf(81L), models.value.topics.topicIdsForStage6())
+                assertEquals(7L, models.value.selectedTopic?.topicId)
+                assertEquals(
+                    listOf(803L),
+                    models.value.notifications.snapshot
+                        ?.items
+                        ?.map { it.id },
+                )
+                assertEquals(
+                    1,
+                    models.value.notifications.snapshot
+                        ?.unreadCount,
+                )
+                assertEquals(
+                    setOf(
+                        "/latest",
+                        "/new",
+                        "/notification/42",
+                        "/topic/7",
+                        "/topic/7/reactions",
+                    ),
+                    transport.requests
+                        .single()
+                        .channels.keys,
+                )
+            } finally {
+                presenter.close()
+                runCurrent()
+            }
+        }
 }
 
 private fun stage6Presenter(
@@ -648,14 +750,30 @@ private fun stage6Presenter(
     searchRepository: DiscourseForumSearchRepository = RecordingPresenterSearchRepository(),
     accountRepository: DiscourseForumAccountRepository = RecordingPresenterAccountRepository(),
     sessionManager: DiscourseSessionManager = DiscourseSessionManager(),
+    realtimeCoordinator: DiscourseRealtimeCoordinator? = null,
 ): DiscourseForumPresenter =
     DiscourseForumPresenter(
         repository = forumRepository,
         searchRepository = searchRepository,
         accountRepository = accountRepository,
         sessionManager = sessionManager,
+        realtimeCoordinator = realtimeCoordinator,
         dispatcher = dispatcher,
     )
+
+private class SuspendingPresenterRealtimeTransport : DiscourseMessageBusTransport {
+    val requests = mutableListOf<DiscourseMessageBusPollRequest>()
+
+    override fun poll(request: DiscourseMessageBusPollRequest): Flow<DiscourseMessageBusBatch> =
+        flow {
+            requests += request
+            try {
+                awaitCancellation()
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            }
+        }
+}
 
 private class RecordingPresenterForumRepository : DiscourseForumRepository {
     val feedCalls = mutableListOf<Pair<DiscourseForumFeed, Int>>()

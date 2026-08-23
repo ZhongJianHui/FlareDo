@@ -2,6 +2,7 @@ package dev.dimension.flare.data.network.discourse.forum
 
 import dev.dimension.flare.data.network.discourse.paging.DiscourseNotificationOffset
 import dev.dimension.flare.data.network.discourse.paging.DiscourseSearchPage
+import dev.dimension.flare.data.network.discourse.realtime.DiscourseSessionRecoveryReason
 import dev.dimension.flare.ui.model.DiscourseTopicMeta
 import dev.dimension.flare.ui.model.UiArticle
 import dev.dimension.flare.ui.model.UiTimelineV2
@@ -252,6 +253,8 @@ public data class DiscourseForumState(
     val appendFailure: DiscourseForumFailureKind? = null,
     val taxonomyFailure: DiscourseForumFailureKind? = null,
     val topicFailure: DiscourseForumFailureKind? = null,
+    /** Terminal realtime state for a generation that must not reconnect without recovery. */
+    val realtimeRecoveryReason: DiscourseSessionRecoveryReason? = null,
 ) {
     /** True when another de-duplicated page can be requested. */
     public val hasMore: Boolean
