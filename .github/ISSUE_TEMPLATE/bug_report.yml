@@ -1,0 +1,80 @@
+name: Bug report / 缺陷报告
+description: Report a reproducible FlareDo problem without sensitive data. / 报告可复现且不含敏感信息的 FlareDo 问题。
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a problem. Search existing issues first. Do not include credentials, cookies, CSRF tokens, user API keys, private forum content, personal data, or unredacted logs.
+
+        感谢反馈。请先搜索已有 Issue。不要提交凭据、Cookie、CSRF 令牌、User API Key、私密论坛内容、个人数据或未脱敏日志。
+
+        Security issues must use [private vulnerability reporting](https://github.com/ZhongJianHui/FlareDo/security/advisories/new). / 安全问题必须使用[私密漏洞报告](https://github.com/ZhongJianHui/FlareDo/security/advisories/new)。
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Preflight / 提交前确认
+      options:
+        - label: I searched open and closed issues for this problem. / 我已搜索开放和已关闭的 Issue。
+          required: true
+        - label: This report contains no secrets or private user data. / 本报告不包含秘密或用户隐私数据。
+          required: true
+        - label: This is a FlareDo client problem, not a Linux.do account, moderation, or service-support request. / 这是 FlareDo 客户端问题，而非 Linux.do 账号、审核或服务支持请求。
+          required: true
+  - type: input
+    id: revision
+    attributes:
+      label: FlareDo version or commit / FlareDo 版本或提交
+      description: Use the package/build version when available, or a Git commit SHA. / 请填写可用的安装包或构建版本，也可填写 Git 提交 SHA。
+      placeholder: e.g. 1.0.0 or abc1234
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform / 平台
+      multiple: true
+      options:
+        - Android
+        - iOS
+        - macOS
+        - Linux
+        - Windows
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: OS and device/window details / 系统与设备或窗口信息
+      description: Include OS version, device model or architecture, window size, and font scale when relevant. / 请按需注明系统版本、设备型号或架构、窗口尺寸和字体缩放。
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps / 复现步骤
+      description: Use a test account or synthetic data. Never perform automated writes against production Linux.do. / 使用测试账号或合成数据，绝不要对生产 Linux.do 执行自动化写操作。
+      placeholder: |
+        1. Open ...
+        2. Select ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior / 预期行为
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior / 实际行为
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Sanitized diagnostics / 已脱敏诊断信息
+      description: Optional. Include only the smallest relevant excerpt and redact identifiers, URLs with tokens, cookies, keys, content, and personal data. / 可选。只附最小相关片段，并删除标识符、含令牌 URL、Cookie、密钥、内容和个人数据。
+      render: shell

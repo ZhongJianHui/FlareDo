@@ -1,4 +1,7 @@
-# Contributor Covenant Code of Conduct
+# FlareDo Contributor Covenant Code of Conduct
+
+A Simplified Chinese version is available in
+[CODE_OF_CONDUCT.zh-CN.md](CODE_OF_CONDUCT.zh-CN.md).
 
 ## Our Pledge
 
@@ -58,10 +61,12 @@ representative at an online or offline event.
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the community leaders responsible for enforcement at
-info@dimension.im.
-All complaints will be reviewed and investigated promptly and fairly.
+Instances of abusive, harassing, or otherwise unacceptable behavior should be
+reported confidentially through the repository's
+[private report form](https://github.com/ZhongJianHui/FlareDo/security/advisories/new).
+Put "Code of Conduct" in the report title. Do not include private or identifying
+details in a public issue. All complaints will be reviewed and investigated
+promptly and fairly.
 
 All community leaders are obligated to respect the privacy and security of the
 reporter of any incident.

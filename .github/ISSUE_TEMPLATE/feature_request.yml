@@ -1,0 +1,52 @@
+name: Feature request / 功能建议
+description: Propose a focused improvement within FlareDo's scope. / 提议符合 FlareDo 范围的聚焦改进。
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        FlareDo is an unofficial, single-site Linux.do client. The first-release scope excludes generic multi-site Discourse, background push, Chat, app-store publishing, signed installers, and offline write queues.
+
+        FlareDo 是非官方、单站点 Linux.do 客户端。首版范围不包括通用多站点 Discourse、后台推送、Chat、应用商店发布、签名安装包和离线写队列。
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Preflight / 提交前确认
+      options:
+        - label: I searched open and closed issues for a similar proposal. / 我已搜索开放和已关闭 Issue 中的类似建议。
+          required: true
+        - label: This proposal does not require collecting credentials, telemetry, or private forum data. / 本建议不要求收集凭据、遥测或私密论坛数据。
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem / 用户问题
+      description: Describe the need without prescribing an implementation. / 请先描述需求，不必限定实现方式。
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior / 建议行为
+      description: Explain the smallest behavior that solves the problem. / 说明解决问题所需的最小行为。
+    validations:
+      required: true
+  - type: textarea
+    id: platforms
+    attributes:
+      label: Platforms and adaptive behavior / 平台与自适应行为
+      description: Note Android, iOS, macOS, Linux, and Windows differences, accessibility, keyboard/pointer, or window-size considerations. / 请说明五端差异、无障碍、键鼠或窗口尺寸考虑。
+    validations:
+      required: true
+  - type: textarea
+    id: security_privacy
+    attributes:
+      label: Security and privacy impact / 安全与隐私影响
+      description: Describe network, session, storage, permissions, logging, or data-retention changes; write “none” if not applicable. / 说明网络、会话、存储、权限、日志或数据保留变化；不适用请写“无”。
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives / 替代方案
+      description: Optional alternatives or workarounds considered. / 可选：考虑过的替代方案或临时办法。

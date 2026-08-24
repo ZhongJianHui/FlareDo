@@ -1,64 +1,80 @@
-# How To Contribute
+# Contributing to FlareDo
 
-First of all, I'd like to express my appreciation to you for contributing to this project.
-Below is the guidance for how to report issues, propose new features, and submit contributions via Pull Requests (PRs).
+Thank you for helping improve FlareDo. This guide covers issue reports, proposed changes, local verification, and licensing. A Simplified Chinese version is available in [CONTRIBUTING.zh-CN.md](CONTRIBUTING.zh-CN.md).
 
-## Before you start, use Flare
-You **MUST** be a user of Flare, otherwise your issue/PR will be treated as a spam.
+FlareDo is an unofficial Linux.do client and is not affiliated with Linux.do or DimensionDev. Please use the project issue tracker for FlareDo defects only; forum account, moderation, and service-availability questions belong to Linux.do.
 
-## File an issue
-If you have a question, think you've discovered an issue, would like to propose a new feature, etc., then find/file an issue **BEFORE** starting work to fix/implement it.
+## Before opening an issue
 
-### Search existing issues first
+1. Search open and closed issues for an existing report.
+2. Do not publish credentials, cookies, CSRF tokens, user API keys, private posts, personal data, or unredacted logs.
+3. For a vulnerability or a report containing sensitive reproduction details, follow [SECURITY.md](SECURITY.md) and use GitHub Private Vulnerability Reporting instead of a public issue.
+4. Use the issue form and include the FlareDo revision, platform/OS version, expected behavior, actual behavior, and minimal reproduction steps.
 
-Before filing a new issue, search existing open and closed issues first: It is likely someone else has found the problem you're seeing, and someone may be working on or have already contributed a fix!
+Feature proposals should explain the user problem and how the proposal fits FlareDo's single-site, privacy-first scope. Discuss large architectural or product changes before implementation.
 
-If no existing item describes your issue/feature, great - please file a new issue.
+## Development setup
 
-## Contributing fixes / features
+The build currently requires JDK 25. Apple development also requires a compatible macOS/Xcode toolchain and [XcodeGen](https://github.com/yonaskolb/XcodeGen). The CI workflow in `.github/workflows/bootstrap.yml` is the source of truth for exact supported commands.
 
-For those able & willing to help fix issues and/or implement features ...
+Common commands:
 
-### Development environment
+```shell
+# Kotlin formatting and static style checks
+./gradlew ktlintCheck
 
-Make sure you have
- - JDK 25
- - Xcode 26 if you're building for iOS
+# Android
+./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
 
-### Code guidelines
-Flare uses [ktlint](https://github.com/pinterest/ktlint) to check the code style for Kotlin, so make sure run `./gradlew ktlintFormat` and fix the errors before you submit any PR.
+# Shared API, data, and desktop tests
+./gradlew :social:discourse:jvmTest :shared:jvmTest
+./gradlew :compose-ui:jvmTest :desktopApp:test
 
-### Building
-### Android
- - Make sure you have JDK 25 installed
- - Run `./gradlew installDebug` to build and install the debug version of the app
- - You can open the project in Android Studio or IntelliJ IDEA if you want
+# Run Compose Desktop locally
+./gradlew :desktopApp:run
 
-### iOS/macOS
- - Make sure you have JDK 25 installed
- - Make sure you have a Mac with Xcode 26 installed
- - run `xcodegen generate --spec ./appleApp/project.yml`
- - open `appleApp/Flare.xcodeproj` in Xcode
- - Build and run the app
+# Generate the Apple Xcode project
+xcodegen generate --spec appleApp/project.yml
+```
 
-### Desktop
- - Make sure you have JDK 25 installed.
- - Run `./gradlew run` to build and run the debug version of the desktop app.
+Open the generated `appleApp/FlareDo.xcodeproj` to build the iOS and macOS applications. Run relevant XCTest suites and Kotlin/Native framework link tasks for Apple changes.
 
-### Project structure
-The project is split into these parts:
- - `shared`: Kotlin Multiplatform forum data, cache, and presentation contracts.
- - `apple-shared`: Kotlin framework exported to the Apple applications.
- - `compose-ui`: Shared Compose UI for Android, Linux, and Windows.
- - `app`: The Android application.
- - `appleApp`: The SwiftUI iOS and macOS applications.
- - `desktopApp`: The Compose Desktop application for Linux and Windows.
+## Project structure
 
-Most of the business logic is in `shared`, and the platform specific code and UI is in `app` and `appleApp`.
-Flare uses [Kotlin Multiplatform](https://kotlinlang.org/docs/multiplatform.html) to share code between platforms, [Jetpack Compose](https://developer.android.com/jetpack/compose) for the UI on Android, [SwiftUI](https://developer.apple.com/xcode/swiftui/) for the UI on iOS.
+- `social/discourse`: Linux.do/Discourse DTOs, API contracts, session behavior, paging, mapping, and message bus.
+- `shared`: shared database, cache, presenters, and application contracts.
+- `compose-ui`: adaptive Compose UI for Android, Linux, and Windows.
+- `app`: Android host, secure storage, and hardened authorization callback.
+- `desktopApp`: Linux/Windows host, vault integrations, callback broker, and packaging.
+- `apple-shared`: Kotlin framework exported to the Apple applications.
+- `appleApp`: SwiftUI applications and XCTest suites for iOS and macOS.
 
-### Business logic
-Flare leverages [Molecule](https://github.com/cashapp/molecule) to implement business logic, with most presenters extending from `PresenterBase`. Additionally, Flare employs the concept of a "single source of truth" to ensure consistency in its business logic implementation.
+Business rules belong in shared presenters and services; Compose and SwiftUI should render state and forward user intent. Preserve structured concurrency, monotonic session generations, fail-closed storage, strict same-origin checks, safe HTML parsing, and documented pagination contracts.
 
-### UI
-Since Flare uses Jetpack Compose and SwiftUI, both of which are declarative UI frameworks, ensure that the UI contains no business logic and is solely responsible for rendering the state provided by the presenter.
+## Code, copy, and test data
+
+- Write comments and KDoc in English. Comment non-obvious protocol, security, pagination, and concurrency invariants rather than restating code.
+- Keep user-facing UI and project documentation synchronized in English and Simplified Chinese.
+- Use synthetic, minimized, redacted fixtures that we have the right to distribute. Do not copy fluxdo Dart code, fixtures, strings, renderers, artwork, or assets; it may be used only to compare publicly observable API behavior.
+- Automated tests must use fake services and must never perform production write operations against Linux.do. Real-account posting, uploading, reactions, or other writes are manual smoke tests and their credentials/results must not be committed.
+- Do not add telemetry, analytics, or remote crash reporting.
+
+## Pull requests
+
+Keep each change focused and include:
+
+- the problem and intended behavior;
+- affected platforms and security/privacy implications;
+- tests run and any intentional screenshot-golden changes;
+- linked issue or design discussion when applicable;
+- both English and Simplified Chinese copy/documentation updates.
+
+Run `git diff --check`, relevant tests, and `./gradlew ktlintCheck` before requesting review. Do not mix generated artifacts, signing files, credentials, or unrelated formatting into a pull request.
+
+Use clear Conventional Commit-style subjects. Once a commit is published to `main`, never amend, squash, rebase, force-push, or otherwise rewrite it. Submit review and CI corrections as additional `fix(...)` commits.
+
+## License and provenance
+
+Contributions are accepted under the repository's [GNU Affero General Public License v3.0](LICENSE). By submitting a contribution, you confirm that you have the right to license it under AGPL-3.0 and that its provenance is accurately described.
+
+FlareDo retains Flare's complete history through baseline `44f9fd5e1`, copyright notices, and attribution. See [NOTICE](NOTICE) for provenance and third-party clarification.

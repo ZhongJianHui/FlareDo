@@ -1,0 +1,37 @@
+# FlareDo
+
+FlareDo is free software distributed under the GNU Affero General Public
+License, version 3. See LICENSE for the complete license terms.
+
+## Flare provenance
+
+FlareDo is based on Flare (https://github.com/DimensionDev/Flare) at baseline
+commit 44f9fd5e1. The complete upstream mainline history through that baseline is
+retained in this repository so that authorship, copyright, and provenance remain
+inspectable. Copyright in the inherited work remains with the respective Flare
+authors and contributors. New FlareDo work and original assets are copyright
+their respective contributors.
+
+The FlareDo modifications remain licensed under AGPL-3.0. Redistribution, and
+any remote-network interaction to which AGPL section 13 applies, must comply
+with the license, including applicable notice and corresponding-source duties.
+
+## fluxdo reference boundary
+
+fluxdo was consulted only to compare publicly observable Linux.do/Discourse API
+behavior. FlareDo does not copy or incorporate fluxdo Dart source code, fixtures,
+user-interface text, renderers, illustrations, icons, or other assets. Mention of
+fluxdo is a provenance clarification, not an assertion that fluxdo authors have
+endorsed or contributed to FlareDo.
+
+## No affiliation or endorsement
+
+FlareDo is an unofficial client. It is not affiliated with, endorsed by, or
+maintained by Linux.do, the Discourse project, DimensionDev, or the Flare or
+fluxdo authors. Linux.do, Discourse, Flare, fluxdo, and other names or marks are
+the property of their respective owners. The AGPL license does not grant rights
+to use third-party trademarks.
+
+Third-party software remains subject to its own license terms and notices, as
+identified by the dependency metadata and source distributions included with or
+referenced by this repository.

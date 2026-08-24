@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability / 安全漏洞
+    url: https://github.com/ZhongJianHui/FlareDo/security/advisories/new
+    about: Report vulnerabilities and sensitive reproduction details privately. / 请私密报告漏洞和敏感复现细节。
+  - name: Linux.do service or account support / Linux.do 服务或账号支持
+    url: https://linux.do
+    about: FlareDo is unofficial; service, account, and moderation questions belong to Linux.do. / FlareDo 是非官方客户端，服务、账号和审核问题请联系 Linux.do。
