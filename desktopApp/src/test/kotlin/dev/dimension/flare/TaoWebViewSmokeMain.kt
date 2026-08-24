@@ -1,7 +1,9 @@
 package dev.dimension.flare
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.rememberWindowState
@@ -52,7 +54,10 @@ public fun main() {
                         }
                     }
                 }
-            WebView(state = webViewState)
+            WebView(
+                state = webViewState,
+                modifier = Modifier.fillMaxSize(),
+            )
             LaunchedEffect(webViewState) {
                 runTaoSmokeWithFailureBoundary(
                     operation = {
@@ -75,16 +80,13 @@ public fun main() {
                                 delay(SMOKE_POLL_MILLIS)
                             }
                         }
-                        // The title can be available before WebKitGTK has submitted the first frame.
-                        // captureScreenshotAsync crosses the native callback boundary and proves that
-                        // the rendered surface, rather than only the loader, is operational.
-                        delay(SMOKE_FIRST_FRAME_SETTLE_MILLIS)
-                        val screenshot =
-                            withTimeout(SMOKE_TIMEOUT_MILLIS) {
-                                nativeWebView.captureScreenshotAsync()
+                        // The title can be available before GTK allocation and the first WebKit
+                        // frame. Retry screenshots inside one total timeout so a slow Xvfb frame
+                        // cannot make the smoke test flaky or reset its time budget indefinitely.
+                        withTimeout(SMOKE_TIMEOUT_MILLIS) {
+                            while (!nativeWebView.captureScreenshotAsync().isRenderedSmokePage()) {
+                                delay(SMOKE_POLL_MILLIS)
                             }
-                        check(screenshot.isRenderedSmokePage()) {
-                            "FlareDo Tao WebView returned an invalid or visually empty screenshot."
                         }
                         println("FLAREDO_TAO_WEBVIEW_RENDERED")
                         applicationScope.exitApplication()
@@ -211,10 +213,11 @@ private const val SMOKE_BASE_URL: String = "https://flaredo.invalid/smoke/"
 private const val SMOKE_TITLE: String = "FlareDo WebView smoke ready"
 private const val SMOKE_HTML: String =
     """<!doctype html><html><head><meta charset="utf-8"><title>$SMOKE_TITLE</title></head>""" +
-        """<body style="margin:0;background:#0f766e;color:white"><h1>$SMOKE_TITLE</h1></body></html>"""
+        """<body style="margin:0"><main style="position:fixed;inset:0;background:#0f766e;color:white">""" +
+        """<div style="width:96px;height:64px;background:#fff"></div><h1>$SMOKE_TITLE</h1>""" +
+        """</main></body></html>"""
 private const val SMOKE_TIMEOUT_MILLIS: Long = 15_000L
 private const val SMOKE_POLL_MILLIS: Long = 50L
-private const val SMOKE_FIRST_FRAME_SETTLE_MILLIS: Long = 250L
 private const val SMOKE_CLOSED_EXIT_CODE: Int = 2
 private const val SMOKE_UNAVAILABLE_EXIT_CODE: Int = 3
 private const val MIN_SCREENSHOT_WIDTH: Int = 160

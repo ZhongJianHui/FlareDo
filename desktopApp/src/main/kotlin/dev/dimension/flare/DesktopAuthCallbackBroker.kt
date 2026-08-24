@@ -88,7 +88,10 @@ internal fun claimDesktopInstance(
 
     val lock =
         try {
-            channel.tryLock()
+            // Windows byte-range locks are mandatory, including for another handle in the same
+            // process. Keep the ownership byte immediately after the five-byte port field so a
+            // secondary process can read offsets 0..4 while it probes the locked primary.
+            channel.tryLock(INSTANCE_LOCK_POSITION, INSTANCE_LOCK_LENGTH, false)
         } catch (_: OverlappingFileLockException) {
             null
         } catch (_: IOException) {
@@ -436,7 +439,7 @@ internal fun forwardDesktopCallback(
 private fun readPrimaryPort(lockFile: Path): Int? {
     return try {
         val size = Files.size(lockFile)
-        if (size !in 1L..MAX_PORT_TEXT_LENGTH.toLong()) return null
+        if (size !in 1L..MAX_PORT_TEXT_LENGTH) return null
         val raw = Files.readString(lockFile, StandardCharsets.US_ASCII)
         if (!PORT_PATTERN.matches(raw)) return null
         raw.toIntOrNull()?.takeIf { port -> port in 1..MAX_TCP_PORT }
@@ -527,7 +530,9 @@ private fun sleepWithinDeadline(deadlineNanos: Long): Boolean {
 private val PORT_PATTERN = Regex("[1-9][0-9]{0,4}")
 private const val LOOPBACK_HOST: String = "127.0.0.1"
 private const val MAX_TCP_PORT: Int = 65_535
-private const val MAX_PORT_TEXT_LENGTH: Int = 5
+private const val MAX_PORT_TEXT_LENGTH: Long = 5L
+private const val INSTANCE_LOCK_POSITION: Long = MAX_PORT_TEXT_LENGTH
+private const val INSTANCE_LOCK_LENGTH: Long = 1L
 private const val MAX_DESKTOP_CALLBACK_BYTES: Int = 16 * 1024
 private const val MAX_PENDING_CALLBACKS: Int = 4
 private const val MAX_CONCURRENT_CALLBACKS: Int = 4
