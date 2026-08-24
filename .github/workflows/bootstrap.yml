@@ -38,6 +38,43 @@ jobs:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
           validate-wrappers: true
 
+      - name: Install the managed-device system image
+        shell: bash
+        env:
+          FLAREDO_ANDROID_SYSTEM_IMAGE: system-images;android-30;aosp_atd;x86
+        run: |
+          set -euo pipefail
+
+          : "${ANDROID_SDK_ROOT:?ANDROID_SDK_ROOT is not set}"
+          sdkmanager="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if [[ ! -x "$sdkmanager" ]]; then
+            echo "::error::sdkmanager was not found at $sdkmanager"
+            exit 1
+          fi
+          "$sdkmanager" --version
+
+          # Only ignore GNU yes exiting after sdkmanager closes stdin. The package installer
+          # status and its materialized metadata remain mandatory so license/network failures
+          # cannot be mistaken for a provisioned managed device.
+          set +e
+          yes | "$sdkmanager" \
+            --sdk_root="$ANDROID_SDK_ROOT" \
+            --channel=0 \
+            --install "$FLAREDO_ANDROID_SYSTEM_IMAGE"
+          install_status=("${PIPESTATUS[@]}")
+          set -e
+
+          if (( install_status[1] != 0 )); then
+            echo "::error::sdkmanager failed with status ${install_status[1]}"
+            exit "${install_status[1]}"
+          fi
+
+          package_xml="$ANDROID_SDK_ROOT/system-images/android-30/aosp_atd/x86/package.xml"
+          if [[ ! -s "$package_xml" ]]; then
+            echo "::error::Managed-device system image was not installed"
+            exit 1
+          fi
+
       - name: Verify Android source and behavior
         run: >-
           ./gradlew
@@ -219,7 +256,9 @@ jobs:
 
   apple:
     name: Apple KMP, XCTest, and unsigned macOS
-    runs-on: macos-15
+    # Xcode 26's macOS AssetCatalogAgent links against Tahoe-era private frameworks and crashes
+    # on the macOS 15 runner before tests start. Match the host OS to the pinned Xcode toolchain.
+    runs-on: macos-26
     timeout-minutes: 120
     steps:
       - name: Check out source
