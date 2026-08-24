@@ -1,4 +1,4 @@
-name: Bootstrap CI
+name: Source CI
 
 on:
   workflow_dispatch:
@@ -11,25 +11,331 @@ permissions:
   contents: read
 
 concurrency:
-  group: bootstrap-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: source-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  gradle-projects:
-    name: Validate Gradle project graph
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+  android:
+    name: Android source and screenshots
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up JDK 25
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: jetbrains
           java-version: "25"
 
-      - name: Validate project graph
-        run: ./gradlew projects --stacktrace
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        with:
+          cache-provider: basic
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+          validate-wrappers: true
+
+      - name: Verify Android source and behavior
+        run: >-
+          ./gradlew
+          :app:ktlintCheck
+          :shared:ktlintCheck
+          :social:ktlintCheck
+          :social:discourse:ktlintCheck
+          :compose-ui:ktlintCheck
+          :app:assembleDebug
+          :app:testDebugUnitTest
+          :app:lintDebug
+          :app:validateDebugScreenshotTest
+          :shared:testAndroidHostTest
+          :social:discourse:testAndroidHostTest
+          :compose-ui:testAndroidHostTest
+          --stacktrace
+
+      - name: Allow the managed Android device to use KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' |
+            sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Test the real Android Keystore
+        run: >-
+          ./gradlew
+          :social:discourse:flaredoApi30AndroidDeviceTest
+          -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
+          --stacktrace
+
+      - name: Upload Android verification artifacts
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: android-verification
+          path: |
+            app/build/reports/screenshotTest/preview/debug
+            social/discourse/build/reports/androidTests
+          if-no-files-found: warn
+          retention-days: 7
+
+  linux:
+    name: Linux AppImage and Secret Service
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    env:
+      APPIMAGE_EXTRACT_AND_RUN: "1"
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Linux packaging and vault tools
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            dbus-x11 \
+            fakeroot \
+            gnome-keyring \
+            libfuse2t64 \
+            libsecret-tools
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: jetbrains
+          java-version: "25"
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        with:
+          cache-provider: basic
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+          validate-wrappers: true
+
+      - name: Test JVM and real Secret Service
+        env:
+          FLAREDO_REQUIRE_DESKTOP_VAULT: "1"
+        run: |
+          dbus-run-session -- bash -euo pipefail <<'CI_SCRIPT'
+          export XDG_DATA_HOME="$(mktemp -d)"
+          mkdir -p "$XDG_DATA_HOME/keyrings"
+          eval "$(printf '\n' | gnome-keyring-daemon --unlock --components=secrets)"
+          ./gradlew \
+            :desktopApp:ktlintCheck \
+            :shared:jvmTest \
+            :social:discourse:jvmTest \
+            :compose-ui:jvmTest \
+            :desktopApp:test \
+            --stacktrace
+          CI_SCRIPT
+
+      - name: Build unsigned AppImage
+        run: ./gradlew :desktopApp:packageAppImage --stacktrace
+
+      - name: Upload unsigned AppImage
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: linux-appimage
+          path: desktopApp/build/compose/binaries/main/AppImage/*.AppImage
+          if-no-files-found: error
+          retention-days: 7
+
+  windows:
+    name: Windows AppX and DPAPI
+    runs-on: windows-2025
+    timeout-minutes: 90
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: jetbrains
+          java-version: "25"
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        with:
+          cache-provider: basic
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+          validate-wrappers: true
+
+      - name: Add MakeAppx to PATH
+        shell: pwsh
+        run: |
+          $kitsRoot = Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10\bin"
+          $makeAppx = Get-ChildItem -Path $kitsRoot -Filter MakeAppx.exe -File -Recurse |
+            Where-Object { $_.DirectoryName -match '\\x64$' } |
+            Sort-Object -Property LastWriteTimeUtc -Descending |
+            Select-Object -First 1
+          if ($null -eq $makeAppx) {
+            throw "MakeAppx.exe was not found in the Windows SDK"
+          }
+          $makeAppx.DirectoryName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          Write-Host "Using $($makeAppx.FullName)"
+
+      - name: Test JVM and real CurrentUser DPAPI
+        shell: pwsh
+        env:
+          FLAREDO_REQUIRE_DESKTOP_VAULT: "1"
+        run: >-
+          ./gradlew.bat
+          :desktopApp:ktlintCheck
+          :shared:jvmTest
+          :social:discourse:jvmTest
+          :compose-ui:jvmTest
+          :desktopApp:test
+          --stacktrace
+
+      - name: Build unsigned AppX
+        shell: pwsh
+        run: ./gradlew.bat :desktopApp:packageAppX --stacktrace
+
+      - name: Upload unsigned AppX
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: windows-appx
+          path: desktopApp/build/compose/binaries/main/appx/*.appx
+          if-no-files-found: error
+          retention-days: 7
+
+  apple:
+    name: Apple KMP, XCTest, and unsigned macOS
+    runs-on: macos-15
+    timeout-minutes: 120
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: jetbrains
+          java-version: "25"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        with:
+          cache-provider: basic
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+          validate-wrappers: true
+
+      - name: Select Xcode 26.3
+        run: |
+          sudo xcode-select --switch /Applications/Xcode_26.3.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Install checksum-verified XcodeGen 2.46.0
+        env:
+          XCODEGEN_SHA256: 4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806
+        run: |
+          curl --fail --location --proto '=https' --tlsv1.2 \
+            https://github.com/yonaskolb/XcodeGen/releases/download/2.46.0/xcodegen.zip \
+            --output "$RUNNER_TEMP/xcodegen.zip"
+          echo "$XCODEGEN_SHA256  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 -c
+          mkdir -p "$RUNNER_TEMP/xcodegen-release"
+          ditto -x -k "$RUNNER_TEMP/xcodegen.zip" "$RUNNER_TEMP/xcodegen-release"
+          echo "$RUNNER_TEMP/xcodegen-release/xcodegen/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/xcodegen-release/xcodegen/bin/xcodegen" --version
+
+      - name: Verify Kotlin on Apple targets
+        run: >-
+          ./gradlew
+          :apple-shared:ktlintCheck
+          :shared:iosSimulatorArm64Test
+          :shared:macosArm64Test
+          :social:discourse:iosSimulatorArm64Test
+          :social:discourse:macosArm64Test
+          :apple-shared:iosSimulatorArm64Test
+          :apple-shared:macosArm64Test
+          :apple-shared:linkDebugFrameworkIosSimulatorArm64
+          :apple-shared:linkDebugFrameworkMacosArm64
+          --stacktrace
+
+      - name: Verify generated Xcode project
+        working-directory: appleApp
+        run: |
+          xcodegen generate --spec project.yml
+          git diff --exit-code -- FlareDo.xcodeproj
+
+      - name: Select an available iPhone simulator
+        run: |
+          simulator_id="$(
+            xcrun simctl list devices available --json |
+              jq --exit-status --raw-output \
+                '[.devices | to_entries[] | select(.key | contains("iOS")) | .value[] | select(.isAvailable and (.name | startswith("iPhone")))] | last | .udid'
+          )"
+          test -n "$simulator_id" && test "$simulator_id" != "null"
+          echo "IOS_SIMULATOR_ID=$simulator_id" >> "$GITHUB_ENV"
+
+      - name: Run iOS XCTest
+        working-directory: appleApp
+        run: |
+          mkdir -p build/ci build/DerivedData
+          xcodebuild \
+            -project FlareDo.xcodeproj \
+            -scheme iOS \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=$IOS_SIMULATOR_ID" \
+            -destination-timeout 180 \
+            -derivedDataPath "$PWD/build/DerivedData" \
+            -resultBundlePath "$PWD/build/ci/iOS.xcresult" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            test
+
+      - name: Run macOS XCTest
+        working-directory: appleApp
+        run: |
+          xcodebuild \
+            -project FlareDo.xcodeproj \
+            -scheme macOS \
+            -configuration Debug \
+            -destination "platform=macOS,arch=arm64" \
+            -derivedDataPath "$PWD/build/DerivedData" \
+            -resultBundlePath "$PWD/build/ci/macOS.xcresult" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            test
+
+      - name: Build unsigned macOS Release
+        working-directory: appleApp
+        run: |
+          xcodebuild \
+            -project FlareDo.xcodeproj \
+            -scheme macOS \
+            -configuration Release \
+            -destination "platform=macOS,arch=arm64" \
+            -derivedDataPath "$PWD/build/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      - name: Upload Apple test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: apple-test-results
+          path: appleApp/build/ci/*.xcresult
+          if-no-files-found: warn
+          retention-days: 7

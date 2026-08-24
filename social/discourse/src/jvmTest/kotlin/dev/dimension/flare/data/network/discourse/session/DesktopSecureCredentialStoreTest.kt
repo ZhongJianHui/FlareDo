@@ -1,9 +1,11 @@
 package dev.dimension.flare.data.network.discourse.session
 
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.nio.file.Path
@@ -174,6 +176,67 @@ internal class DesktopSecureCredentialStoreTest {
             }
         }
 
+    /**
+     * Exercises the real current-user desktop vault when the CI environment explicitly requires it.
+     *
+     * The default remains a fast, hermetic unit suite because developer machines may legitimately
+     * lack an unlocked Secret Service. CI sets [REQUIRE_DESKTOP_VAULT_ENV] to `1` only after it has
+     * provisioned the platform service. Once enabled, an unavailable backend is a hard failure rather
+     * than a skipped assertion, so Windows DPAPI and Linux Secret Service regressions cannot pass
+     * unnoticed.
+     */
+    @Test
+    fun requiredCurrentUserVaultRoundTripsAndRemovesCredential() =
+        runTest {
+            if (System.getenv(REQUIRE_DESKTOP_VAULT_ENV) != "1") return@runTest
+
+            val operatingSystem = System.getProperty("os.name", "").lowercase()
+            assertTrue(
+                "windows" in operatingSystem || "linux" in operatingSystem,
+                "$REQUIRE_DESKTOP_VAULT_ENV is supported only on Windows and Linux runners",
+            )
+
+            val availability = createDesktopSecureCredentialStore()
+            val store =
+                assertIs<DesktopCredentialStoreAvailability.Available>(
+                    availability,
+                    "$REQUIRE_DESKTOP_VAULT_ENV=1 requires an available current-user vault; got $availability",
+                ).store
+            val secret = "flaredo-real-vault-round-trip-fixture".encodeToByteArray()
+            var cleanupReference: SecureCredentialRef? = null
+            var primaryFailure: Throwable? = null
+
+            try {
+                val reference = store.save("ci-vault-${System.nanoTime().toString(16)}", secret)
+                cleanupReference = reference
+
+                val loaded = requireNotNull(store.load(reference)) { "The real vault lost the saved credential" }
+                try {
+                    assertContentEquals(secret, loaded)
+                } finally {
+                    loaded.fill(0)
+                }
+
+                store.delete(reference)
+                assertNull(store.load(reference), "The real vault retained the deleted credential")
+                cleanupReference = null
+            } catch (failure: Throwable) {
+                primaryFailure = failure
+                throw failure
+            } finally {
+                secret.fill(0)
+                cleanupReference?.let { reference ->
+                    withContext(NonCancellable) {
+                        try {
+                            store.delete(reference)
+                        } catch (cleanupFailure: Throwable) {
+                            primaryFailure?.addSuppressed(cleanupFailure) ?: throw cleanupFailure
+                        }
+                    }
+                }
+            }
+        }
+
     private fun TestScope.windowsStore(directory: Path): WindowsDpapiCredentialStore {
         var nextId = 1
         return WindowsDpapiCredentialStore(
@@ -201,6 +264,10 @@ internal class DesktopSecureCredentialStoreTest {
     private fun referenceFileName(value: Int): String = "${value.toString(16).padStart(2, '0').repeat(16)}.blob"
 
     private fun referenceId(reference: SecureCredentialRef): String = reference.value.substringAfter(':')
+
+    private companion object {
+        const val REQUIRE_DESKTOP_VAULT_ENV = "FLAREDO_REQUIRE_DESKTOP_VAULT"
+    }
 }
 
 private class FakeDpapiBackend(

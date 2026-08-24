@@ -30,6 +30,18 @@ kotlin {
             // assertion or coroutine failure with a "Log not mocked" exception.
             isReturnDefaultValues = true
         }
+        withDeviceTest {
+            instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+            managedDevices {
+                localDevices.create("flaredoApi30") {
+                    device = "Pixel 2"
+                    apiLevel = 30
+                    // ATD images omit UI components that this vault test does not need, reducing
+                    // CI boot time and memory while retaining the real Android Keystore service.
+                    systemImageSource = "aosp-atd"
+                }
+            }
+        }
     }
 
     sourceSets {
@@ -52,6 +64,11 @@ kotlin {
             implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.ktor.client.mock)
+        }
+        getByName("androidDeviceTest").dependencies {
+            implementation(kotlin("test-junit"))
+            implementation(libs.androidx.test.core)
+            implementation(libs.androidx.test.runner)
         }
         getByName("androidJvmMain").dependencies {
             implementation(libs.ktor.client.okhttp)
