@@ -1,10 +1,10 @@
 package dev.dimension.flare
 
+import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationPresenter
 import dev.dimension.flare.data.network.discourse.auth.DiscourseCloudflareChallengeHandler
 import dev.dimension.flare.data.network.discourse.auth.DiscourseLoginService
 import dev.dimension.flare.data.network.discourse.auth.DiscourseManualChallengeCookieHandler
 import dev.dimension.flare.data.network.discourse.auth.DiscourseWebSessionCookieBridge
-import dev.dimension.flare.data.network.discourse.auth.DiscourseWebSessionLogin
 import dev.dimension.flare.data.network.discourse.auth.JvmDiscourseWebSessionCookieBridge
 import dev.dimension.flare.data.network.discourse.discourseAuthenticationModule
 import dev.dimension.flare.data.network.discourse.discourseModule
@@ -45,7 +45,9 @@ class DesktopDiscourseHostModuleTest {
 
         try {
             assertIs<DiscourseLoginService>(application.koin.get<DiscourseLoginService>())
-            assertIs<DiscourseWebSessionLogin>(application.koin.get<DiscourseWebSessionLogin>())
+            assertIs<DiscourseAuthenticationPresenter>(
+                application.koin.get<DiscourseAuthenticationPresenter>(),
+            ).close()
             assertIs<JvmDiscourseWebSessionCookieBridge>(
                 application.koin.get<DiscourseWebSessionCookieBridge>(),
             )

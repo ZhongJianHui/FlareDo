@@ -27,6 +27,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -39,6 +40,7 @@ import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -50,9 +52,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -71,7 +75,9 @@ import compose.icons.fontawesomeicons.solid.Fire
 import compose.icons.fontawesomeicons.solid.House
 import compose.icons.fontawesomeicons.solid.MagnifyingGlass
 import compose.icons.fontawesomeicons.solid.Plus
+import compose.icons.fontawesomeicons.solid.RightFromBracket
 import compose.icons.fontawesomeicons.solid.Tag
+import compose.icons.fontawesomeicons.solid.TriangleExclamation
 import compose.icons.fontawesomeicons.solid.User
 import dev.dimension.flare.compose.ui.Res
 import dev.dimension.flare.compose.ui.forum_back
@@ -90,6 +96,11 @@ import dev.dimension.flare.compose.ui.forum_refresh
 import dev.dimension.flare.compose.ui.forum_replies
 import dev.dimension.flare.compose.ui.forum_search
 import dev.dimension.flare.compose.ui.forum_selected_topic
+import dev.dimension.flare.compose.ui.forum_session_recovery_authentication
+import dev.dimension.flare.compose.ui.forum_session_recovery_challenge
+import dev.dimension.flare.compose.ui.forum_session_recovery_permission
+import dev.dimension.flare.compose.ui.forum_session_recovery_retry_sign_out
+import dev.dimension.flare.compose.ui.forum_session_recovery_title
 import dev.dimension.flare.compose.ui.forum_tag_count
 import dev.dimension.flare.compose.ui.forum_tags
 import dev.dimension.flare.compose.ui.forum_topic
@@ -98,6 +109,7 @@ import dev.dimension.flare.compose.ui.forum_topic_posts
 import dev.dimension.flare.compose.ui.forum_unread
 import dev.dimension.flare.compose.ui.forum_views
 import dev.dimension.flare.compose.ui.product_name
+import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationAction
 import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerState
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumAction
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumCategoryOption
@@ -107,6 +119,7 @@ import dev.dimension.flare.data.network.discourse.forum.DiscourseForumFeed
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumState
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumTagOption
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumTopic
+import dev.dimension.flare.data.network.discourse.realtime.DiscourseSessionRecoveryReason
 import dev.dimension.flare.ui.model.UiArticle
 import dev.dimension.flare.ui.model.UiTimelineV2
 import org.jetbrains.compose.resources.stringResource
@@ -381,25 +394,180 @@ internal fun ForumNavigationFrame(
     }
     val unreadCount = state.notifications.snapshot?.unreadCount ?: 0
 
-    when (layoutClass) {
-        ForumLayoutClass.Compact -> {
-            Column(modifier = Modifier.fillMaxSize()) {
-                Box(modifier = Modifier.weight(1f)) { content() }
-                ForumBottomBar(destinations, selectedDestination, unreadCount, selectDestination)
-            }
+    Column(modifier = Modifier.fillMaxSize()) {
+        state.realtimeRecoveryReason?.let { reason ->
+            ForumSessionRecoveryBand(
+                reason = reason,
+                layoutClass = layoutClass,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
+        Box(modifier = Modifier.weight(1f)) {
+            when (layoutClass) {
+                ForumLayoutClass.Compact -> {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        Box(modifier = Modifier.weight(1f)) { content() }
+                        ForumBottomBar(destinations, selectedDestination, unreadCount, selectDestination)
+                    }
+                }
 
-        ForumLayoutClass.Medium,
-        ForumLayoutClass.Expanded,
-        -> {
-            Row(modifier = Modifier.fillMaxSize()) {
-                ForumNavigationRail(destinations, selectedDestination, unreadCount, selectDestination)
-                ForumPaneDivider()
-                Box(modifier = Modifier.weight(1f)) { content() }
+                ForumLayoutClass.Medium,
+                ForumLayoutClass.Expanded,
+                -> {
+                    Row(modifier = Modifier.fillMaxSize()) {
+                        ForumNavigationRail(destinations, selectedDestination, unreadCount, selectDestination)
+                        ForumPaneDivider()
+                        Box(modifier = Modifier.weight(1f)) { content() }
+                    }
+                }
             }
         }
     }
 }
+
+/**
+ * Generation-scoped terminal realtime failures stay visible above every pane until logout succeeds.
+ *
+ * The compact layout gives translated text the full width before placing the action at the end of a
+ * second row. Wider workspaces keep the same information in one scan line without changing pane
+ * widths. The action deliberately reuses normal logout so persistence and vault cleanup remain owned
+ * by the session lifecycle instead of presentation code.
+ */
+@Composable
+private fun ForumSessionRecoveryBand(
+    reason: DiscourseSessionRecoveryReason,
+    layoutClass: ForumLayoutClass,
+    modifier: Modifier = Modifier,
+) {
+    val authentication = LocalForumAuthentication.current
+    val title = stringResource(Res.string.forum_session_recovery_title)
+    val body = forumSessionRecoveryMessage(reason)
+    val actionLabel = stringResource(Res.string.forum_session_recovery_retry_sign_out)
+    val contentColor = MaterialTheme.colorScheme.onErrorContainer
+
+    Surface(
+        modifier =
+            modifier
+                .testTag(ForumTestTags.SESSION_RECOVERY_BAND)
+                .semantics { liveRegion = LiveRegionMode.Polite },
+        color = MaterialTheme.colorScheme.errorContainer,
+        contentColor = contentColor,
+    ) {
+        if (layoutClass == ForumLayoutClass.Compact) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                ForumSessionRecoveryMessage(
+                    title = title,
+                    body = body,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                ForumSessionRecoveryAction(
+                    label = actionLabel,
+                    enabled = !authentication.state.isBusy,
+                    onClick = { authentication.onAction(DiscourseAuthenticationAction.Logout) },
+                    modifier = Modifier.align(Alignment.End),
+                )
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                ForumSessionRecoveryMessage(
+                    title = title,
+                    body = body,
+                    modifier = Modifier.weight(1f),
+                )
+                ForumSessionRecoveryAction(
+                    label = actionLabel,
+                    enabled = !authentication.state.isBusy,
+                    onClick = { authentication.onAction(DiscourseAuthenticationAction.Logout) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ForumSessionRecoveryMessage(
+    title: String,
+    body: String,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.testTag(ForumTestTags.SESSION_RECOVERY_MESSAGE),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Icon(
+            imageVector = FontAwesomeIcons.Solid.TriangleExclamation,
+            contentDescription = null,
+            modifier = Modifier.padding(top = 2.dp).size(18.dp),
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(1.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = body,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ForumSessionRecoveryAction(
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val contentColor = MaterialTheme.colorScheme.onErrorContainer
+    TextButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier.testTag(ForumTestTags.SESSION_RECOVERY_ACTION),
+        colors =
+            ButtonDefaults.textButtonColors(
+                contentColor = contentColor,
+                disabledContentColor = contentColor.copy(alpha = 0.38f),
+            ),
+    ) {
+        Icon(
+            imageVector = FontAwesomeIcons.Solid.RightFromBracket,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+        )
+        Spacer(Modifier.width(7.dp))
+        Text(label)
+    }
+}
+
+/** Presentation-safe explanation for each terminal recovery reason. */
+@Composable
+internal fun forumSessionRecoveryMessage(reason: DiscourseSessionRecoveryReason): String =
+    when (reason) {
+        DiscourseSessionRecoveryReason.AuthenticationRequired -> {
+            stringResource(Res.string.forum_session_recovery_authentication)
+        }
+
+        DiscourseSessionRecoveryReason.PermissionDenied -> {
+            stringResource(Res.string.forum_session_recovery_permission)
+        }
+
+        DiscourseSessionRecoveryReason.ManualChallengeRequired -> {
+            stringResource(Res.string.forum_session_recovery_challenge)
+        }
+    }
 
 @Composable
 private fun forumDestinations(): List<ForumRootDestinationItem> =

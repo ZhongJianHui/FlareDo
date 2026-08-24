@@ -1,3 +1,4 @@
+import KotlinSharedUI
 import SwiftUI
 import XCTest
 
@@ -9,6 +10,44 @@ import XCTest
 /// result bundle for visual review. A missing framework, blank hierarchy, or empty split region then
 /// fails with a useful assertion instead of accepting a transparent or single-color render.
 nonisolated final class ForumShellLayoutTests: XCTestCase {
+    @MainActor
+    func testRealtimeRecoveryReasonMapsEverySharedValue() {
+        XCTAssertEqual(
+            AppleSessionRecoveryReason.authenticationRequired.swiftValue,
+            .authenticationRequired
+        )
+        XCTAssertEqual(
+            AppleSessionRecoveryReason.permissionDenied.swiftValue,
+            .permissionDenied
+        )
+        XCTAssertEqual(
+            AppleSessionRecoveryReason.manualChallengeRequired.swiftValue,
+            .manualChallengeRequired
+        )
+    }
+
+    @MainActor
+    func testFixtureRecoveryGatesLoginUntilOwnerSignOutCompletes() {
+        let authenticatedStore = ForumStore(fixture: .preview)
+        XCTAssertFalse(authenticatedStore.canBeginAuthentication)
+
+        var state = ForumViewState.preview
+        state.realtimeRecoveryReason = .authenticationRequired
+        let store = ForumStore(fixture: state)
+
+        XCTAssertFalse(store.canBeginAuthentication)
+        store.beginLogin()
+        store.beginFallbackLogin()
+        XCTAssertEqual(store.state.realtimeRecoveryReason, .authenticationRequired)
+
+        store.logout()
+        XCTAssertNil(store.state.realtimeRecoveryReason)
+        XCTAssertFalse(store.state.isAuthenticated)
+        XCTAssertNil(store.state.accountUsername)
+        XCTAssertFalse(store.state.canCreateTopic)
+        XCTAssertTrue(store.canBeginAuthentication)
+    }
+
     #if os(iOS)
     @MainActor
     func testIPhoneCompactImageRendererIsNonblank() throws {
@@ -54,6 +93,42 @@ nonisolated final class ForumShellLayoutTests: XCTestCase {
 
         XCTAssertTrue(try image.cgImageValue().containsVisibleVariation())
         retain(image, name: "iPhone compact Chinese profile accessibility dark")
+    }
+
+    @MainActor
+    func testIPhoneCompactRecoveryBannerIsNonblank() throws {
+        var state = ForumViewState.preview
+        state.realtimeRecoveryReason = .authenticationRequired
+        let image = try renderIOS(
+            width: 390,
+            height: 844,
+            sizeClass: .compact,
+            state: state
+        )
+
+        let cgImage = try image.cgImageValue()
+        XCTAssertTrue(cgImage.containsVisibleVariation())
+        XCTAssertTrue(cgImage.containsVisibleVariation(in: CGRect(x: 0, y: 0, width: 1, height: 0.2)))
+        retain(image, name: "iPhone compact realtime recovery")
+    }
+
+    @MainActor
+    func testIPadRegularRecoveryBannerFitsAccessibilityText() throws {
+        var state = ForumViewState.preview
+        state.realtimeRecoveryReason = .permissionDenied
+        let image = try renderIOS(
+            width: 1_024,
+            height: 768,
+            sizeClass: .regular,
+            dynamicTypeSize: .accessibility2,
+            locale: Locale(identifier: "zh-Hans"),
+            state: state
+        )
+
+        let cgImage = try image.cgImageValue()
+        XCTAssertTrue(cgImage.containsVisibleVariation())
+        XCTAssertTrue(cgImage.containsVisibleVariation(in: CGRect(x: 0, y: 0, width: 1, height: 0.25)))
+        retain(image, name: "iPad regular realtime recovery accessibility")
     }
 
     @MainActor
@@ -124,13 +199,30 @@ nonisolated final class ForumShellLayoutTests: XCTestCase {
     }
 
     @MainActor
+    func testMacSplitRecoveryBannerFitsWindow() throws {
+        var state = ForumViewState.preview
+        state.realtimeRecoveryReason = .manualChallengeRequired
+        let bitmap = try renderMac(
+            width: 1_080,
+            height: 720,
+            colorScheme: .light,
+            state: state
+        )
+
+        let image = try bitmap.cgImageValue()
+        XCTAssertTrue(image.containsVisibleVariation())
+        XCTAssertTrue(image.containsVisibleVariation(in: CGRect(x: 0, y: 0, width: 1, height: 0.2)))
+    }
+
+    @MainActor
     private func renderMac(
         width: CGFloat,
         height: CGFloat,
-        colorScheme: ColorScheme
+        colorScheme: ColorScheme,
+        state: ForumViewState = .preview
     ) throws -> NSBitmapImageRep {
         let size = CGSize(width: width, height: height)
-        let store = ForumStore(fixture: .preview)
+        let store = ForumStore(fixture: state)
         let hosting = NSHostingView(
             rootView: ForumShell(store: store)
                 .environment(\.colorScheme, colorScheme)

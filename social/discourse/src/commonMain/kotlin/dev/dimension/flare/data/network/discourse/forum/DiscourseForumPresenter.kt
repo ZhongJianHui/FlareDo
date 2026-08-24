@@ -31,6 +31,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -54,6 +55,25 @@ public class DiscourseForumPresenter(
 ) : PresenterBase<DiscourseForumState>(dispatcher) {
     private val actions = Channel<QueuedForumAction>(capacity = ACTION_CHANNEL_CAPACITY)
     private val actorCompleted = CompletableDeferred<Unit>()
+    private val actorLifecycle = MutableStateFlow(ForumActorLifecycle.NOT_STARTED)
+
+    override fun onClose() {
+        val closedBeforeStart =
+            actorLifecycle.compareAndSet(
+                expect = ForumActorLifecycle.NOT_STARTED,
+                update = ForumActorLifecycle.CLOSED,
+            )
+        if (!closedBeforeStart) {
+            actorLifecycle.compareAndSet(
+                expect = ForumActorLifecycle.RUNNING,
+                update = ForumActorLifecycle.CLOSED,
+            )
+        }
+        // Closing the input rejects every later UI action. A running actor is cancelled by
+        // PresenterBase immediately after this hook and completes the barrier from its finally.
+        actions.close()
+        if (closedBeforeStart) actorCompleted.complete(Unit)
+    }
 
     /**
      * Returns false after close or while the bounded UI action queue is full.
@@ -119,12 +139,31 @@ public class DiscourseForumPresenter(
             realtimeCoordinator,
             realtimeSessionRecovery,
         ) {
+            if (
+                !actorLifecycle.compareAndSet(
+                    expect = ForumActorLifecycle.NOT_STARTED,
+                    update = ForumActorLifecycle.RUNNING,
+                )
+            ) {
+                return@LaunchedEffect
+            }
             try {
                 runActor(
                     state = { state },
                     setState = { state = it },
                 )
             } finally {
+                if (
+                    !actorLifecycle.compareAndSet(
+                        expect = ForumActorLifecycle.RUNNING,
+                        update = ForumActorLifecycle.FINISHED,
+                    )
+                ) {
+                    actorLifecycle.compareAndSet(
+                        expect = ForumActorLifecycle.CLOSED,
+                        update = ForumActorLifecycle.FINISHED,
+                    )
+                }
                 actorCompleted.complete(Unit)
             }
         }
@@ -133,9 +172,9 @@ public class DiscourseForumPresenter(
 
     /** Cancels presenter work and waits until request and realtime children finish their cleanup. */
     public suspend fun closeAndJoin() {
-        // Force the lazy Molecule presenter to install its LaunchedEffect before cancellation.
-        models.value
         withContext(NonCancellable) {
+            // onClose completes the barrier itself when cancellation wins before LaunchedEffect.
+            // Otherwise the running actor owns completion after all structured children finish.
             close()
             actorCompleted.await()
         }
@@ -1409,6 +1448,13 @@ public class DiscourseForumPresenter(
                 events.close()
             }
         }
+}
+
+private enum class ForumActorLifecycle {
+    NOT_STARTED,
+    RUNNING,
+    CLOSED,
+    FINISHED,
 }
 
 private sealed interface ForumPresenterEvent {

@@ -37,16 +37,23 @@ struct ForumShell: View {
     }
 
     var body: some View {
-        Group {
-            #if os(iOS)
-            if horizontalSizeClass == .regular {
-                ForumSplitWorkspace(store: store)
-            } else {
-                ForumCompactWorkspace(store: store)
+        VStack(spacing: 0) {
+            if let reason = store.state.realtimeRecoveryReason {
+                ForumRealtimeRecoveryBanner(reason: reason, signOut: store.logout)
             }
-            #else
-            ForumSplitWorkspace(store: store)
-            #endif
+
+            Group {
+                #if os(iOS)
+                if horizontalSizeClass == .regular {
+                    ForumSplitWorkspace(store: store)
+                } else {
+                    ForumCompactWorkspace(store: store)
+                }
+                #else
+                ForumSplitWorkspace(store: store)
+                #endif
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .tint(ForumPalette.teal)
         .sheet(item: presentedSheet) { sheet in
@@ -121,6 +128,66 @@ struct ForumShell: View {
                 }
             }
         )
+    }
+}
+
+/// A persistent, non-card status band shared by compact, regular, and macOS split layouts.
+///
+/// Retry and dismissal are intentionally absent: the shared realtime coordinator permanently gates
+/// the failed generation. The owner-checked logout operation is the only action that can advance to
+/// a clean generation, and the banner remains visible when that asynchronous operation fails.
+private struct ForumRealtimeRecoveryBanner: View {
+    let reason: ForumRealtimeRecoveryReason
+    let signOut: () -> Void
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) {
+                message
+                Spacer(minLength: 8)
+                signOutButton
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                message
+                signOutButton
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(ForumPalette.gold.opacity(0.14))
+        .overlay(alignment: .bottom) {
+            Divider()
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("forum_realtime_recovery")
+    }
+
+    private var message: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Image(systemName: "exclamationmark.shield.fill")
+                .foregroundStyle(ForumPalette.coral)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("forum.realtime_recovery.title")
+                    .font(.callout.weight(.semibold))
+                Text(reason.message)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var signOutButton: some View {
+        Button(role: .destructive, action: signOut) {
+            Label("forum.realtime_recovery.sign_out", systemImage: "rectangle.portrait.and.arrow.right")
+        }
+        .buttonStyle(.bordered)
+        .tint(ForumPalette.coral)
+        .controlSize(.small)
+        .fixedSize(horizontal: true, vertical: false)
+        .accessibilityIdentifier("forum_realtime_recovery_logout")
     }
 }
 
@@ -1165,16 +1232,18 @@ private struct ForumAuthenticationRequired: View {
             Text("forum.login_required_detail")
         } actions: {
             VStack(spacing: 8) {
-                Button(action: store.beginLogin) {
-                    Label("forum.login", systemImage: "safari")
+                if store.state.realtimeRecoveryReason == nil {
+                    Button(action: store.beginLogin) {
+                        Label("forum.login", systemImage: "safari")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(!store.canBeginAuthentication)
+                    Button(action: store.beginFallbackLogin) {
+                        Label("forum.login_fallback", systemImage: "person.badge.key")
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(!store.canBeginAuthentication)
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(store.isRestoringSession)
-                Button(action: store.beginFallbackLogin) {
-                    Label("forum.login_fallback", systemImage: "person.badge.key")
-                }
-                .buttonStyle(.bordered)
-                .disabled(store.isRestoringSession)
                 if let message = store.state.authenticationMessage {
                     Text(message)
                         .font(.callout)

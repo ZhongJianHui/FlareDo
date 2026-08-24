@@ -1,6 +1,6 @@
-import io.github.kdroidfilter.nucleus.desktop.application.dsl.AppImageCategory
-import io.github.kdroidfilter.nucleus.desktop.application.dsl.CompressionLevel
-import io.github.kdroidfilter.nucleus.desktop.application.dsl.TargetFormat
+import dev.nucleusframework.desktop.application.dsl.AppImageCategory
+import dev.nucleusframework.desktop.application.dsl.CompressionLevel
+import dev.nucleusframework.desktop.application.dsl.TargetFormat
 import java.util.Properties
 import org.jetbrains.compose.compose
 
@@ -17,10 +17,22 @@ dependencies {
     implementation(projects.social.discourse)
     implementation(project.dependencies.platform(libs.koin.bom))
     implementation(libs.koin.core)
+    implementation(libs.nucleus.application)
+    implementation(libs.nucleus.decorated.window.tao)
     implementation(compose.desktop.currentOs)
     implementation(compose("org.jetbrains.compose.components:components-resources"))
 
     testImplementation(kotlin("test"))
+    testImplementation(libs.composewebview)
+    testImplementation(libs.kotlinx.coroutines.test)
+}
+
+tasks.register<JavaExec>("taoWebViewSmoke") {
+    group = "verification"
+    description = "Loads and screenshots an in-memory page through a real Linux Tao WebKitGTK backend."
+    dependsOn("testClasses")
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("dev.dimension.flare.TaoWebViewSmokeMainKt")
 }
 
 val fdroidProperties =
@@ -46,6 +58,7 @@ nucleus.application {
         packageName = "FlareDo"
         packageVersion = desktopVersionName
         artifactName = $$"FlareDo-$${desktopVersionName}.${ext}"
+        protocol("FlareDo authorization", "discourse")
 
         windows {
             iconFile.set(project.file("resources/ic_launcher.ico"))

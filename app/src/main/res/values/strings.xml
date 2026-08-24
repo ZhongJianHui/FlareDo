@@ -2,4 +2,7 @@
 <resources>
     <string name="app_name">FlareDo</string>
     <string name="app_description">An unofficial Linux.do forum client</string>
+    <string name="auth_redirect_in_progress">Authorization in progress</string>
+    <string name="auth_redirect_unavailable">Unable to complete authorization</string>
+    <string name="auth_redirect_return">Return to FlareDo</string>
 </resources>

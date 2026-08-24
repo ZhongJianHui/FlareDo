@@ -53,7 +53,12 @@ kotlin {
             // Compose's desktop test host renders into an offscreen Skiko surface. This keeps the
             // semantic and pixel-contract tests runnable on CI without an X server or emulator.
             implementation(libs.compose.ui.test)
+            implementation(libs.kotlinx.coroutines.test)
             runtimeOnly(compose.desktop.currentOs)
+        }
+        jvmMain.dependencies {
+            implementation(libs.composewebview)
+            implementation(libs.nucleus.application)
         }
     }
 }

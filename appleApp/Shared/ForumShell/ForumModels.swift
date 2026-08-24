@@ -50,6 +50,25 @@ enum ForumContentSource: Sendable {
     case staleCache
 }
 
+/// A terminal realtime failure for the current authenticated session generation.
+///
+/// The shared presenter deliberately keeps this value set until the generation changes. A normal
+/// feed refresh cannot reopen that generation's message bus, so the Apple shell must keep recovery
+/// visible and offer only the owner-checked sign-out path.
+enum ForumRealtimeRecoveryReason: Equatable, Sendable {
+    case authenticationRequired
+    case permissionDenied
+    case manualChallengeRequired
+
+    var message: LocalizedStringKey {
+        switch self {
+        case .authenticationRequired: "forum.realtime_recovery.authentication"
+        case .permissionDenied: "forum.realtime_recovery.permission"
+        case .manualChallengeRequired: "forum.realtime_recovery.challenge"
+        }
+    }
+}
+
 enum ForumFailure: String, Sendable {
     case network
     case authentication
@@ -334,6 +353,7 @@ struct ForumViewState: Sendable {
     var searchFailure: ForumFailure?
     var notificationsFailure: ForumFailure?
     var profileFailure: ForumFailure?
+    var realtimeRecoveryReason: ForumRealtimeRecoveryReason?
     var composer = ForumComposerModel()
     var authenticationMessage: String?
 }

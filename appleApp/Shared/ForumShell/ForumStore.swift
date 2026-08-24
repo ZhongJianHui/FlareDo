@@ -54,6 +54,17 @@ final class ForumStore: ObservableObject {
         isFixture = true
     }
 
+    /// Whether a normal authorization flow may be entered from SwiftUI.
+    ///
+    /// A realtime recovery reason permanently gates the current session generation. Starting a
+    /// second login flow on top of that owner could race the generation-CAS logout used to recover.
+    var canBeginAuthentication: Bool {
+        !isClosed
+            && !isRestoringSession
+            && !state.isAuthenticated
+            && state.realtimeRecoveryReason == nil
+    }
+
     // Keep this explicitly nonisolated. Letting Swift synthesize an actor-isolated deinit invokes
     // the broken iOS 17 deinit-on-executor back-deployment thunk. Real resources are owned by close().
     deinit {}
@@ -286,7 +297,7 @@ final class ForumStore: ObservableObject {
     }
 
     func beginLogin() {
-        guard !isFixture, !isClosed, !isRestoringSession, let host else { return }
+        guard !isFixture, canBeginAuthentication, let host else { return }
         authenticationMessage = nil
         let operationID = beginOperation()
         let observation = host.beginAuthorization { [weak self] result in
@@ -310,9 +321,7 @@ final class ForumStore: ObservableObject {
     /// Opens the fixed-origin fallback only after deleting any unfinished User API Key attempt.
     func beginFallbackLogin() {
         guard !isFixture,
-              !isClosed,
-              !isRestoringSession,
-              !state.isAuthenticated,
+              canBeginAuthentication,
               restrictedBrowserRequest == nil,
               let host else {
             return
@@ -424,7 +433,7 @@ final class ForumStore: ObservableObject {
 
     /// Passes the untouched absolute callback string to Kotlin's one-use RSA/nonce validator.
     func completeLogin(redirectURL: URL) {
-        guard !isFixture, !isClosed else { return }
+        guard !isFixture, !isClosed, state.realtimeRecoveryReason == nil else { return }
         guard !isRestoringSession else {
             // A cold-start callback can arrive before the encrypted session restore completes.
             // Preserve only the first callback and submit it after restore so the two session
@@ -453,6 +462,9 @@ final class ForumStore: ObservableObject {
         guard !isFixture else {
             state.isAuthenticated = false
             state.accountUsername = nil
+            state.canCreateTopic = false
+            state.realtimeRecoveryReason = nil
+            state.authenticationMessage = nil
             return
         }
         guard let owner = forumOwner(), let host else { return }
@@ -717,7 +729,7 @@ final class ForumStore: ObservableObject {
                 }
                 if let redirectURL = self.pendingLoginRedirectURL {
                     self.pendingLoginRedirectURL = nil
-                    self.completeLoginAfterRestore(redirectURL)
+                    self.completeLogin(redirectURL: redirectURL)
                 }
             }
             retain(restore, for: operationID)
@@ -887,6 +899,7 @@ final class ForumStore: ObservableObject {
                 ?? forum.profile.activityFailure
                 ?? forum.profile.failure
         )?.swiftValue
+        next.realtimeRecoveryReason = forum.realtimeRecoveryReason?.swiftValue
         next.composer = composer.map(mapComposer) ?? ForumComposerModel()
         next.authenticationMessage = authenticationMessage
         state = next
@@ -1350,6 +1363,16 @@ private extension AppleForumFailure {
         if self == AppleForumFailure.invalidResponse { return .invalidResponse }
         if self == AppleForumFailure.http { return .http }
         return .network
+    }
+}
+
+extension AppleSessionRecoveryReason {
+    /// Explicit mapping keeps Kotlin enum spelling out of the SwiftUI presentation model and makes
+    /// unknown future values fail closed as authentication recovery rather than enabling login UI.
+    var swiftValue: ForumRealtimeRecoveryReason {
+        if self == AppleSessionRecoveryReason.permissionDenied { return .permissionDenied }
+        if self == AppleSessionRecoveryReason.manualChallengeRequired { return .manualChallengeRequired }
+        return .authenticationRequired
     }
 }
 

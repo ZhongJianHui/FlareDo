@@ -29,6 +29,9 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
+import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationAction
+import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationPresenter
+import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationState
 import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerMode
 import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerPresenter
 import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerState
@@ -72,10 +75,12 @@ internal data object ForumSupportingRoute : ForumNavKey
 public fun AndroidForumShell(
     presenter: DiscourseForumPresenter,
     composerPresenter: DiscourseComposerPresenter,
+    authenticationPresenter: DiscourseAuthenticationPresenter,
     modifier: Modifier = Modifier,
 ) {
     val state by presenter.models.collectAsStateWithLifecycle()
     val composerState by composerPresenter.models.collectAsStateWithLifecycle()
+    val authenticationState by authenticationPresenter.models.collectAsStateWithLifecycle()
     val attachmentPicker = rememberForumAttachmentPicker()
     AndroidForumShell(
         state = state,
@@ -83,6 +88,8 @@ public fun AndroidForumShell(
         composerState = composerState,
         onComposerAction = { composerPresenter.dispatchForumAction(it) },
         attachmentPicker = attachmentPicker,
+        authenticationState = authenticationState,
+        onAuthenticationAction = { authenticationPresenter.dispatch(it) },
         modifier = modifier,
     )
 }
@@ -101,7 +108,37 @@ internal fun AndroidForumShell(
     composerState: DiscourseComposerState,
     onComposerAction: (ForumComposerAction) -> Unit,
     attachmentPicker: ForumAttachmentPicker,
+    authenticationState: DiscourseAuthenticationState = DiscourseAuthenticationState(),
+    onAuthenticationAction: (DiscourseAuthenticationAction) -> Boolean = { false },
     modifier: Modifier = Modifier,
+) {
+    ForumAuthenticationProvider(
+        state = authenticationState,
+        onAction = { action -> onAuthenticationAction(action) },
+    ) {
+        AndroidAuthenticationBrowserEffects(
+            state = authenticationState,
+            onAction = onAuthenticationAction,
+        )
+        AndroidForumShellContent(
+            state = state,
+            onAction = onAction,
+            composerState = composerState,
+            onComposerAction = onComposerAction,
+            attachmentPicker = attachmentPicker,
+            modifier = modifier,
+        )
+    }
+}
+
+@Composable
+private fun AndroidForumShellContent(
+    state: DiscourseForumState,
+    onAction: (DiscourseForumAction) -> Unit,
+    composerState: DiscourseComposerState,
+    onComposerAction: (ForumComposerAction) -> Unit,
+    attachmentPicker: ForumAttachmentPicker,
+    modifier: Modifier,
 ) {
     Surface(
         modifier = modifier.fillMaxSize(),

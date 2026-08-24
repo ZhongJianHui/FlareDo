@@ -84,11 +84,12 @@ public class DiscourseLoginService(
     /**
      * Destroys every app-owned copy of the web session even when remote logout fails or is cancelled.
      *
-     * Remote invalidation remains best effort because the device can be offline. The local Ktor jar,
-     * vault reference, pending authorization, and restricted-browser profile are therefore cleaned in
-     * a non-cancellable section before the original transport failure or caller cancellation is
-     * propagated. Browser cleanup errors are deliberately suppressed: an unavailable WebView backend
-     * must never prevent the authoritative in-memory session and vault reference from being destroyed.
+     * Remote invalidation remains best effort because the device can be offline. Vault invalidation,
+     * the generation CAS, and restricted-browser cleanup run in a non-cancellable section before the
+     * original transport failure or caller cancellation is propagated. If persistence cannot make its
+     * reference unreachable, the authenticated in-memory owner is deliberately retained so restart
+     * cannot reverse a falsely published logout; its browser Cookie is still cleared while that exact
+     * owner remains current. Browser cleanup errors never replace the authoritative local result.
      */
     public suspend fun logout() {
         val owner = sessionManager.state.value as? DiscourseSessionState.Authenticated ?: return
@@ -101,7 +102,8 @@ public class DiscourseLoginService(
      * The initial comparison rejects callbacks that were already stale when invoked. The lifecycle
      * performs the final generation CAS under its persistence mutex after remote invalidation, so a
      * login that replaces this owner while the request is suspended keeps its vault reference and
-     * Cookie jar. Browser cookies are cleared only after that final CAS succeeds.
+     * Cookie jar. Browser cookies are cleared after that CAS succeeds, or after a persistence failure
+     * only while a second lifecycle owner check still proves the original generation is active.
      */
     public suspend fun logout(
         expectedGeneration: Long,
@@ -131,6 +133,7 @@ public class DiscourseLoginService(
         }
 
         var localFailure: Throwable? = null
+        var browserCleanupFailure: Throwable? = null
         var clearedOwnedSession = false
         withContext(NonCancellable) {
             try {
@@ -138,14 +141,46 @@ public class DiscourseLoginService(
             } catch (failure: Throwable) {
                 localFailure = failure
             }
-            if (clearedOwnedSession) cookieBridge.clearLinuxDoCookiesBestEffort()
+            if (clearedOwnedSession) {
+                try {
+                    cookieBridge.clearLinuxDoCookiesBestEffort()
+                } catch (cleanupFailure: Throwable) {
+                    browserCleanupFailure = cleanupFailure
+                }
+            } else if (localFailure != null) {
+                try {
+                    // Persistence failed before the generation CAS, so the old owner remains active.
+                    // Re-entering the lifecycle mutex prevents a queued replacement from having its
+                    // browser profile cleared after it acquires ownership of the persisted slot.
+                    sessionLifecycle.runForAuthenticatedOwner(
+                        expectedGeneration = expectedGeneration,
+                        expectedAccountId = expectedAccountId,
+                    ) {
+                        cookieBridge.clearLinuxDoCookiesBestEffort()
+                    }
+                } catch (cleanupFailure: Throwable) {
+                    browserCleanupFailure = cleanupFailure
+                }
+            }
         }
 
-        // Cancellation that arrived during non-cancellable cleanup wins over ordinary failures.
-        currentCoroutineContext().ensureActive()
-        if (!clearedOwnedSession && localFailure == null) return false
-        remoteFailure?.let { throw it }
-        localFailure?.let { throw it }
+        // Cancellation that arrived during non-cancellable cleanup wins over ordinary failures,
+        // while every secondary transport/persistence/browser error remains available for diagnosis.
+        val cancellationFailure: CancellationException? =
+            try {
+                currentCoroutineContext().ensureActive()
+                null
+            } catch (cancellation: CancellationException) {
+                cancellation
+            }
+        if (!clearedOwnedSession && localFailure == null && cancellationFailure == null) return false
+        val primaryFailure = cancellationFailure ?: remoteFailure ?: localFailure ?: browserCleanupFailure
+        if (primaryFailure != null) {
+            remoteFailure?.let(primaryFailure::addSuppressedIfDistinct)
+            localFailure?.let(primaryFailure::addSuppressedIfDistinct)
+            browserCleanupFailure?.let(primaryFailure::addSuppressedIfDistinct)
+            throw primaryFailure
+        }
         return true
     }
 

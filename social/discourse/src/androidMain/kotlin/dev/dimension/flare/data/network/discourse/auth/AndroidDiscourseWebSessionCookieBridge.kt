@@ -33,18 +33,10 @@ public class AndroidDiscourseWebSessionCookieBridge internal constructor(
 
     override suspend fun clearLinuxDoCookies() {
         withContext(mainDispatcher) {
-            val names =
-                backend
-                    .getCookie(DISCOURSE_ORIGIN)
-                    ?.let(::parseBoundedWebCookieHeader)
-                    .orEmpty()
-                    .map(DiscourseCookieSnapshot::name)
-            names.forEach { name ->
-                backend.expireCookie(
-                    origin = DISCOURSE_ORIGIN,
-                    cookie = "$name=; Max-Age=0; Path=/; Secure; HttpOnly; SameSite=Lax",
-                )
-            }
+            // FlareDo's only Android WebView is the restricted authentication surface. Clearing
+            // the complete process store is therefore both isolated and necessary: a host-only
+            // expiry cannot delete cookies originally set with Domain=.linux.do.
+            backend.removeAllCookies()
             backend.flush()
         }
     }
@@ -54,10 +46,7 @@ public class AndroidDiscourseWebSessionCookieBridge internal constructor(
 internal interface AndroidWebCookieBackend {
     fun getCookie(origin: String): String?
 
-    suspend fun expireCookie(
-        origin: String,
-        cookie: String,
-    )
+    suspend fun removeAllCookies()
 
     fun flush()
 }
@@ -68,12 +57,11 @@ private object CookieManagerWebCookieBackend : AndroidWebCookieBackend {
 
     override fun getCookie(origin: String): String? = manager.getCookie(origin)
 
-    override suspend fun expireCookie(
-        origin: String,
-        cookie: String,
-    ) {
+    override suspend fun removeAllCookies() {
         suspendCancellableCoroutine { continuation ->
-            manager.setCookie(origin, cookie) {
+            manager.removeAllCookies {
+                // CookieManager cannot unregister this callback. The active guard prevents a late
+                // provider callback from attempting to resume a cancelled caller.
                 if (continuation.isActive) continuation.resume(Unit)
             }
         }

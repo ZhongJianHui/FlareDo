@@ -193,7 +193,7 @@ internal class DiscourseManualChallengeCoordinatorTest {
         }
 
     @Test
-    fun appleCompletionWaitsUntilRequestConsumesAndClearsCookieHandoff() =
+    fun completionKeepsRequestVisibleUntilCookieHandoffIsConsumedAndCleared() =
         runTest {
             val coordinator = DiscourseManualChallengeCoordinator()
             val sessionManager = DiscourseSessionManager()
@@ -233,6 +233,7 @@ internal class DiscourseManualChallengeCoordinatorTest {
 
             assertTrue(clearStarted.isCompleted)
             assertFalse(completion.isCompleted)
+            assertEquals(request, coordinator.request.value)
 
             releaseClear.complete(Unit)
             assertTrue(handling.await())

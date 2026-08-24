@@ -2,4 +2,7 @@
 <resources>
     <string name="app_name">FlareDo</string>
     <string name="app_description">非官方 Linux.do 论坛客户端</string>
+    <string name="auth_redirect_in_progress">正在完成授权</string>
+    <string name="auth_redirect_unavailable">无法完成授权</string>
+    <string name="auth_redirect_return">返回 FlareDo</string>
 </resources>

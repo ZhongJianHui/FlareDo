@@ -19,6 +19,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import dev.dimension.flare.App
 import dev.dimension.flare.MainActivity
 import dev.dimension.flare.data.network.discourse.auth.DiscourseLoginService
+import io.github.zhongjianhui.flaredo.R
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -112,18 +113,19 @@ class DiscourseAuthRedirectFrameworkTest {
         assertRejected(DiscourseAuthRedirectAuditEvent.UnsupportedFlags) {
             addFlags(Intent.FLAG_DEBUG_LOG_RESOLUTION)
         }
-        assertRejected(DiscourseAuthRedirectAuditEvent.NestedIntentBlocked) {
-            putExtra(Intent.EXTRA_INTENT, Intent(targetContext, MainActivity::class.java))
-        }
-        assertRejected(DiscourseAuthRedirectAuditEvent.ExtrasBlocked) {
-            putExtra("io.github.zhongjianhui.flaredo.UNTRUSTED", "value")
-        }
-        assertRejected(DiscourseAuthRedirectAuditEvent.ExtrasBlocked) {
-            putExtra(
-                "io.github.zhongjianhui.flaredo.NESTED",
-                Intent(targetContext, MainActivity::class.java),
-            )
-        }
+        // Browser scalar extras and even a nested Intent remain an opaque Bundle. Production copies
+        // the envelope and drops that Bundle before sanitizer/policy access, so neither kind is
+        // unmarshalled or forwarded to the sink.
+        assertIs<DiscourseAuthRedirectValidation.Accepted>(
+            validator.validate(
+                validFrameworkIntent().apply {
+                    putExtra("com.android.browser.application_id", targetContext.packageName)
+                    putExtra("create_new_tab", false)
+                    putExtra(Intent.EXTRA_INTENT, Intent(targetContext, MainActivity::class.java))
+                },
+                redirectComponent,
+            ),
+        )
         assertRejected(DiscourseAuthRedirectAuditEvent.ClipDataBlocked) {
             clipData = ClipData.newPlainText("untrusted", "value")
         }
@@ -142,6 +144,34 @@ class DiscourseAuthRedirectFrameworkTest {
     }
 
     @Test
+    fun defensiveEnvelopeRebuildNeverCopiesAttackerObjectContainers() {
+        val untrusted =
+            validFrameworkIntent().apply {
+                putExtra("com.android.browser.application_id", targetContext.packageName)
+                putExtra(Intent.EXTRA_INTENT, Intent(targetContext, MainActivity::class.java))
+                clipData = ClipData.newPlainText("untrusted", "must-not-be-copied")
+                selector = Intent(Intent.ACTION_SEND)
+                setDataAndType(data, "text/plain")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) identifier = "untrusted"
+                sourceBounds = Rect(0, 0, 1, 1)
+            }
+
+        val defensive = untrusted.toCandidate().toDefensiveIntent()
+
+        assertEquals(untrusted.action, defensive.action)
+        assertEquals(untrusted.data, defensive.data)
+        assertEquals(untrusted.component, defensive.component)
+        assertEquals(untrusted.flags, defensive.flags)
+        assertEquals(untrusted.categories, defensive.categories)
+        assertNull(defensive.extras)
+        assertNull(defensive.clipData)
+        assertNull(defensive.selector)
+        assertNull(defensive.type)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) assertNull(defensive.identifier)
+        assertNull(defensive.sourceBounds)
+    }
+
+    @Test
     fun coldAndWarmMaliciousIntentsNeverReachTheProductionSink() =
         runBlocking {
             val application = targetContext.applicationContext as App
@@ -153,7 +183,7 @@ class DiscourseAuthRedirectFrameworkTest {
             try {
                 val coldIntent =
                     validFrameworkIntent(callbackUri).apply {
-                        putExtra("io.github.zhongjianhui.flaredo.UNTRUSTED", "cold")
+                        clipData = ClipData.newPlainText("untrusted", "cold")
                     }
                 val activity = launchRedirectActivity(coldIntent)
                 try {
@@ -166,10 +196,7 @@ class DiscourseAuthRedirectFrameworkTest {
                         // Starting the top singleTop Activity routes this through the real onNewIntent.
                         activity.startActivity(
                             validFrameworkIntent(callbackUri).apply {
-                                putExtra(
-                                    Intent.EXTRA_INTENT,
-                                    Intent(targetContext, MainActivity::class.java),
-                                )
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                             },
                         )
                     }
@@ -183,8 +210,8 @@ class DiscourseAuthRedirectFrameworkTest {
                     finishRedirectActivity(activity)
                 }
 
-                // The correlated callback would consume the attempt before rejecting its bad API key
-                // if either malicious envelope reached App.discourseAuthRedirectSink.
+                // A malicious envelope must not reach the process-memory inbox. The unchanged common
+                // authorization attempt confirms that neither cold nor warm delivery reached crypto.
                 assertTrue(loginService.cancelAuthorization())
                 pendingAttemptOwned = false
             } finally {
@@ -195,6 +222,64 @@ class DiscourseAuthRedirectFrameworkTest {
                 }
             }
         }
+
+    @Test
+    fun acceptedCallbackReturnsToMainBeforeTheVisibleHostStartsExchange() {
+        val application = targetContext.applicationContext as App
+        application.deliverPendingAuthenticationRedirect { false }
+        val capturedIntent = AtomicReference<Intent?>()
+        val mainComponent = ComponentName(targetContext, MainActivity::class.java)
+        val monitor =
+            object : Instrumentation.ActivityMonitor() {
+                override fun onStartActivity(intent: Intent): Instrumentation.ActivityResult? {
+                    if (intent.component != mainComponent) return null
+                    capturedIntent.set(Intent(intent))
+                    return Instrumentation.ActivityResult(Activity.RESULT_CANCELED, null)
+                }
+            }
+        instrumentation.addMonitor(monitor)
+        try {
+            val activity =
+                launchRedirectActivity(
+                    validFrameworkIntent().apply {
+                        // These values exercise the opaque extras path used by Chrome. The nested
+                        // Intent must be equally unreachable and must never appear on the fixed return.
+                        putExtra("com.android.browser.application_id", targetContext.packageName)
+                        putExtra("create_new_tab", false)
+                        putExtra(Intent.EXTRA_INTENT, Intent(targetContext, MainActivity::class.java))
+                    },
+                )
+            try {
+                var deliveredUri: String? = null
+                assertEquals(
+                    DiscourseAuthRedirectDeliveryResult.Delivered,
+                    application.deliverPendingAuthenticationRedirect { rawUri ->
+                        deliveredUri = rawUri
+                        true
+                    },
+                )
+                assertEquals(EXACT_CALLBACK_URI, deliveredUri)
+                assertTrue(activity.isFinishing || activity.isDestroyed)
+
+                val outbound = assertNotNull(capturedIntent.get())
+                assertEquals(mainComponent, outbound.component)
+                assertEquals(
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP,
+                    outbound.flags,
+                )
+                assertNull(outbound.action)
+                assertNull(outbound.data)
+                assertNull(outbound.extras)
+                assertNull(outbound.clipData)
+                assertNull(outbound.selector)
+            } finally {
+                finishRedirectActivity(activity)
+            }
+        } finally {
+            application.deliverPendingAuthenticationRedirect { false }
+            instrumentation.removeMonitor(monitor)
+        }
+    }
 
     @Test
     fun failureReturnUsesOnlyTheFixedExplicitMainActivityIntent() {
@@ -325,14 +410,14 @@ private fun DiscourseAuthRedirectActivity.assertRejectedAndCleared() {
 }
 
 private fun DiscourseAuthRedirectActivity.requireReturnButton(): Button =
-    findViewById<ViewGroup>(android.R.id.content).findReturnButton()
+    findViewById<ViewGroup>(android.R.id.content).findReturnButton(getString(R.string.auth_redirect_return))
         ?: error("The fail-closed authorization view did not expose its return action")
 
-private fun View.findReturnButton(): Button? {
-    if (this is Button && text.toString() == "Return to FlareDo") return this
+private fun View.findReturnButton(expectedText: String): Button? {
+    if (this is Button && text.toString() == expectedText) return this
     if (this !is ViewGroup) return null
     for (index in 0 until childCount) {
-        getChildAt(index).findReturnButton()?.let { return it }
+        getChildAt(index).findReturnButton(expectedText)?.let { return it }
     }
     return null
 }

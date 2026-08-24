@@ -2,6 +2,7 @@ package dev.dimension.flare
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationPresenter
 import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerPresenter
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumPresenter
 
@@ -9,15 +10,27 @@ import dev.dimension.flare.data.network.discourse.forum.DiscourseForumPresenter
 internal class ForumPresenterViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
-    val presenter: DiscourseForumPresenter = (application as App).createForumPresenter()
-    val composerPresenter: DiscourseComposerPresenter = (application as App).createComposerPresenter()
+    private val app = application as App
+    val presenter: DiscourseForumPresenter = app.createForumPresenter()
+    val composerPresenter: DiscourseComposerPresenter = app.createComposerPresenter()
+    val authenticationPresenter: DiscourseAuthenticationPresenter =
+        app.createAuthenticationPresenter()
 
     /** Keeps long polling bound to the visible Activity lifecycle across configuration changes. */
     fun setForeground(isForeground: Boolean) {
         presenter.setForeground(isForeground)
     }
 
+    /**
+     * Called only after MainActivity is resumed, ensuring challenge state is rendered by the visible
+     * host rather than by the short-lived exported redirect Activity.
+     */
+    fun deliverPendingAuthenticationRedirect() {
+        app.deliverPendingAuthenticationRedirect(authenticationPresenter::completeRedirect)
+    }
+
     override fun onCleared() {
+        authenticationPresenter.close()
         composerPresenter.close()
         presenter.close()
         super.onCleared()

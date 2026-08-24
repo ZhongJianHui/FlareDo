@@ -8,8 +8,10 @@ import dev.dimension.flare.ui.model.UiArticle
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -72,9 +74,10 @@ internal class DiscourseComposerPresenterTest {
                 assertFalse(models.value.canSubmit)
 
                 // Public commands are accepted into the bounded actor, but terminal state rejects
-                // the duplicate before either persistence or transport is touched.
+                // the duplicate before either persistence or transport is touched. Draft input has
+                // a stricter owner-epoch gate and therefore rejects the terminal callback up front.
                 assertTrue(presenter.submit())
-                assertTrue(presenter.updateDraft("Duplicate", "Duplicate", emptyList()))
+                assertFalse(presenter.updateDraft("Duplicate", "Duplicate", emptyList()))
                 advanceUntilIdle()
                 assertEquals(1, repository.submitCalls)
                 assertEquals("Body 99", models.value.raw)
@@ -216,6 +219,75 @@ internal class DiscourseComposerPresenterTest {
                     assertNotNull(draftStore.load("42", target)).raw,
                 )
             } finally {
+                presenter.close()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun sessionTransitionSealsTheOldDraftOwnerBeforeItsSuspendingFlush() =
+        runTest {
+            val sessionManager = authenticatedComposerSession()
+            val draftStore = BlockingComposerDraftStore()
+            val repository = RecordingComposerRepository(draftStore)
+            val target = DiscourseComposerTarget.Reply(topicId = 42L)
+            val presenter =
+                composerPresenter(
+                    repository = repository,
+                    draftStore = draftStore,
+                    sessionManager = sessionManager,
+                    dispatcher = StandardTestDispatcher(testScheduler),
+                    autosaveDelayMillis = 60_000L,
+                )
+            val models = presenter.models
+
+            try {
+                runCurrent()
+                assertTrue(presenter.openReply(topicId = 42L))
+                advanceUntilIdle()
+                val oldOwner = models.value
+
+                assertTrue(
+                    presenter.updateDraft(
+                        title = null,
+                        raw = "Accepted before transition",
+                        tags = emptyList(),
+                        expectedContentVersion = oldOwner.contentVersion,
+                        expectedSessionGeneration = oldOwner.sessionGeneration,
+                        expectedAccountId = oldOwner.accountId,
+                        expectedTarget = oldOwner.target,
+                    ),
+                )
+                draftStore.blockNextSave = true
+                sessionManager.logout()
+                runCurrent()
+                assertTrue(draftStore.saveStarted.isCompleted)
+
+                // The actor has already taken the old owner's final snapshot and is suspended in
+                // its non-cancellable save. A delayed callback from that rendered owner must not be
+                // acknowledged because there is no later old-account flush that could consume it.
+                assertFalse(
+                    presenter.updateDraft(
+                        title = null,
+                        raw = "Too late for old owner",
+                        tags = emptyList(),
+                        expectedContentVersion = oldOwner.contentVersion,
+                        expectedSessionGeneration = oldOwner.sessionGeneration,
+                        expectedAccountId = oldOwner.accountId,
+                        expectedTarget = oldOwner.target,
+                    ),
+                )
+
+                draftStore.allowSave.complete(Unit)
+                advanceUntilIdle()
+
+                assertEquals(null, models.value.accountId)
+                assertEquals(
+                    "Accepted before transition",
+                    assertNotNull(draftStore.load("42", target)).raw,
+                )
+            } finally {
+                draftStore.allowSave.complete(Unit)
                 presenter.close()
                 runCurrent()
             }
@@ -918,7 +990,7 @@ internal class DiscourseComposerPresenterTest {
                 advanceUntilIdle()
                 assertTrue(models.value.contentVersion > stale.contentVersion)
 
-                assertTrue(
+                assertFalse(
                     presenter.updateDraft(
                         title = null,
                         raw = "stale picker-era text",
@@ -962,6 +1034,177 @@ internal class DiscourseComposerPresenterTest {
                 presenter.close()
                 runCurrent()
             }
+        }
+
+    @Test
+    fun closeAndFlushDoesNotWaitForAnUndispatchedLazyActor() =
+        runTest {
+            val sessionManager = authenticatedComposerSession()
+            val draftStore = MemoryDiscourseDraftStore()
+            val presenter =
+                composerPresenter(
+                    repository = RecordingComposerRepository(draftStore),
+                    draftStore = draftStore,
+                    sessionManager = sessionManager,
+                    dispatcher = StandardTestDispatcher(testScheduler),
+                )
+            presenter.models
+
+            // Deliberately do not advance the scheduler: there is no running actor that could own
+            // graceful drain, so the close path must complete the barrier and reject later commands.
+            presenter.closeAndFlush()
+
+            assertFalse(presenter.openNewTopic())
+        }
+
+    @Test
+    fun closeAndFlushAfterUninitializedCloseIsIdempotent() =
+        runTest {
+            val sessionManager = authenticatedComposerSession()
+            val draftStore = MemoryDiscourseDraftStore()
+            val presenter =
+                composerPresenter(
+                    repository = RecordingComposerRepository(draftStore),
+                    draftStore = draftStore,
+                    sessionManager = sessionManager,
+                    dispatcher = StandardTestDispatcher(testScheduler),
+                )
+
+            presenter.close()
+            // closeAndFlush must not initialize Molecule after its owned scope has been cancelled.
+            presenter.closeAndFlush()
+
+            assertFalse(presenter.openNewTopic())
+        }
+
+    @Test
+    fun closeAndFlushRejectsCommandsAfterItsShutdownMarkerIsQueued() =
+        runTest {
+            val sessionManager = authenticatedComposerSession()
+            val draftStore = MemoryDiscourseDraftStore()
+            val presenter =
+                composerPresenter(
+                    repository = RecordingComposerRepository(draftStore),
+                    draftStore = draftStore,
+                    sessionManager = sessionManager,
+                    dispatcher = StandardTestDispatcher(testScheduler),
+                )
+            presenter.models
+
+            try {
+                runCurrent()
+                val shutdown =
+                    async(start = CoroutineStart.UNDISPATCHED) {
+                        presenter.closeAndFlush()
+                    }
+
+                assertFalse(shutdown.isCompleted)
+                assertFalse(presenter.openNewTopic())
+
+                advanceUntilIdle()
+                shutdown.await()
+            } finally {
+                presenter.close()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun closeAndFlushProcessesCommandsAcceptedBeforeItsShutdownMarker() =
+        runTest {
+            val sessionManager = authenticatedComposerSession()
+            val draftStore = MemoryDiscourseDraftStore()
+            val presenter =
+                composerPresenter(
+                    repository = RecordingComposerRepository(draftStore),
+                    draftStore = draftStore,
+                    sessionManager = sessionManager,
+                    dispatcher = StandardTestDispatcher(testScheduler),
+                )
+            val models = presenter.models
+
+            try {
+                runCurrent()
+                assertTrue(presenter.openNewTopic(categoryId = 7L))
+                val shutdown =
+                    async(start = CoroutineStart.UNDISPATCHED) {
+                        presenter.closeAndFlush()
+                    }
+
+                advanceUntilIdle()
+                shutdown.await()
+
+                assertEquals(
+                    DiscourseComposerTarget.NewTopic(categoryId = 7L),
+                    models.value.target,
+                )
+            } finally {
+                presenter.close()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun closeAndFlushStartsALazyActorForAnAcceptedCommand() =
+        runTest {
+            val sessionManager = authenticatedComposerSession()
+            val draftStore = MemoryDiscourseDraftStore()
+            val presenter =
+                composerPresenter(
+                    repository = RecordingComposerRepository(draftStore),
+                    draftStore = draftStore,
+                    sessionManager = sessionManager,
+                    dispatcher = StandardTestDispatcher(testScheduler),
+                )
+
+            assertTrue(presenter.openNewTopic(categoryId = 7L))
+            val shutdown =
+                async(start = CoroutineStart.UNDISPATCHED) {
+                    presenter.closeAndFlush()
+                }
+
+            // Neither this test nor openNewTopic read models. Graceful close must initialize the
+            // lazy actor because the public command already returned true, then append Shutdown
+            // after that command so the actor observes the promised FIFO work before terminating.
+            assertFalse(shutdown.isCompleted)
+            assertFalse(presenter.openNewTopic())
+            advanceUntilIdle()
+            shutdown.await()
+
+            assertEquals(
+                DiscourseComposerTarget.NewTopic(categoryId = 7L),
+                presenter.models.value.target,
+            )
+        }
+
+    @Test
+    fun ordinaryCloseFlushesAnAcceptedConflatedDraftAndRejectsLaterCommands() =
+        runTest {
+            val sessionManager = authenticatedComposerSession()
+            val draftStore = MemoryDiscourseDraftStore()
+            val repository = RecordingComposerRepository(draftStore)
+            val target = DiscourseComposerTarget.Reply(topicId = 42L)
+            val presenter =
+                composerPresenter(
+                    repository = repository,
+                    draftStore = draftStore,
+                    sessionManager = sessionManager,
+                    dispatcher = StandardTestDispatcher(testScheduler),
+                    autosaveDelayMillis = 60_000L,
+                )
+            presenter.models
+            runCurrent()
+            assertTrue(presenter.openReply(topicId = 42L))
+            advanceUntilIdle()
+            assertTrue(presenter.updateDraft(title = null, raw = "accepted before close"))
+
+            presenter.close()
+            // Ordinary close is intentionally non-blocking. Its idempotent suspend counterpart is
+            // the observation barrier for the actor's non-cancellable final flush.
+            presenter.closeAndFlush()
+
+            assertEquals("accepted before close", assertNotNull(draftStore.load("42", target)).raw)
+            assertFalse(presenter.openNewTopic())
         }
 
     @Test

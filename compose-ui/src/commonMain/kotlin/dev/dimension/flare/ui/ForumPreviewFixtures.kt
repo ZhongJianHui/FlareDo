@@ -82,6 +82,14 @@ public object ForumTestTags {
     public const val COMPOSER_UPLOAD: String = "forum_composer_upload"
     public const val COMPOSER_CANCEL_UPLOAD: String = "forum_composer_cancel_upload"
     public const val COMPOSER_RETRY_UPLOAD: String = "forum_composer_retry_upload"
+    public const val AUTH_SIGN_IN: String = "forum_auth_sign_in"
+    public const val AUTH_FALLBACK: String = "forum_auth_fallback"
+    public const val AUTH_SIGN_OUT: String = "forum_auth_sign_out"
+    public const val AUTH_REQUIRED: String = "forum_auth_required"
+    public const val AUTH_FAILURE: String = "forum_auth_failure"
+    public const val SESSION_RECOVERY_BAND: String = "forum_session_recovery_band"
+    public const val SESSION_RECOVERY_MESSAGE: String = "forum_session_recovery_message"
+    public const val SESSION_RECOVERY_ACTION: String = "forum_session_recovery_action"
 
     public fun topic(topicId: Long): String = "forum_topic_$topicId"
 

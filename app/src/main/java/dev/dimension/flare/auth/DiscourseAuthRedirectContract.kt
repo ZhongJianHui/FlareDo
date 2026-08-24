@@ -1,7 +1,5 @@
 package dev.dimension.flare.auth
 
-import kotlinx.coroutines.CancellationException
-
 /**
  * A callback URI that passed the Android component, intent-shape, and route allowlists.
  *
@@ -23,23 +21,23 @@ class DiscourseAuthRedirectCallback internal constructor(
     override fun toString(): String = "DiscourseAuthRedirectCallback([redacted])"
 }
 
-/** Result returned after the common authentication layer verifies and consumes the callback. */
+/** Result returned after the validated callback is offered to the bounded in-memory inbox. */
 enum class DiscourseAuthRedirectSinkResult {
     Accepted,
     Rejected,
 }
 
 /**
- * Android-to-common authorization bridge.
+ * Exported-Activity-to-process-memory authorization bridge.
  *
- * The application/Koin integration performs bounded RSA PKCS#1 v1.5 callback decryption, verifies
- * the nonce and expiry, and atomically consumes the one-time authorization attempt. A rejection is
- * fail-closed and never causes the redirect Activity to launch a destination supplied by the
- * incoming Intent.
+ * Implementations must only enqueue the callback in bounded process memory. RSA decryption, nonce
+ * and expiry validation, and the OTP exchange run later through the visible Activity's retained
+ * authentication presenter. This synchronous boundary guarantees the exported Activity never waits
+ * for network or challenge work before returning to the fixed app destination.
  */
 fun interface DiscourseAuthRedirectSink {
-    /** Must be main-safe because the Android bridge invokes it from an Activity lifecycle scope. */
-    suspend fun consume(callback: DiscourseAuthRedirectCallback): DiscourseAuthRedirectSinkResult
+    /** Must be fast and main-safe; callback data must never be persisted or logged. */
+    fun enqueue(callback: DiscourseAuthRedirectCallback): DiscourseAuthRedirectSinkResult
 }
 
 /** Implemented by the Application once the common authentication graph is available. */
@@ -62,8 +60,6 @@ internal enum class DiscourseAuthRedirectAuditEvent {
     UriGrantBlocked,
     UnsupportedFlags,
     InvalidCategories,
-    NestedIntentBlocked,
-    ExtrasBlocked,
     ClipDataBlocked,
     SelectorBlocked,
     MimeTypeBlocked,
@@ -74,7 +70,6 @@ internal enum class DiscourseAuthRedirectAuditEvent {
     SinkUnavailable,
     SinkRejected,
     SinkFailure,
-    DispatchInProgress,
 }
 
 internal fun interface DiscourseAuthRedirectAuditLogger {
@@ -95,11 +90,10 @@ internal class DiscourseAuthRedirectCandidate(
     val componentPackage: String?,
     val componentClass: String?,
     val packageName: String?,
+    val activityFlags: Int,
     val hasUriGrantFlags: Boolean,
     val hasUnsupportedFlags: Boolean,
     val categories: Set<String>,
-    val hasNestedIntent: Boolean,
-    val hasExtras: Boolean,
     val hasClipData: Boolean,
     val hasSelector: Boolean,
     val mimeType: String?,
@@ -157,14 +151,6 @@ internal object DiscourseAuthRedirectPolicy {
                 CATEGORY_BROWSABLE !in candidate.categories ||
                     candidate.categories.any { it !in ALLOWED_CATEGORIES } -> {
                     DiscourseAuthRedirectAuditEvent.InvalidCategories
-                }
-
-                candidate.hasNestedIntent -> {
-                    DiscourseAuthRedirectAuditEvent.NestedIntentBlocked
-                }
-
-                candidate.hasExtras -> {
-                    DiscourseAuthRedirectAuditEvent.ExtrasBlocked
                 }
 
                 candidate.hasClipData -> {
@@ -233,12 +219,12 @@ internal sealed interface DiscourseAuthRedirectDispatchResult {
     data object Rejected : DiscourseAuthRedirectDispatchResult
 }
 
-/** Serial, one-call delegation boundary between the validated Android callback and common auth. */
+/** Serial, one-call delegation boundary between the validated Android callback and its inbox. */
 internal class DiscourseAuthRedirectDispatcher(
     private val sink: DiscourseAuthRedirectSink?,
     private val auditLogger: DiscourseAuthRedirectAuditLogger,
 ) {
-    suspend fun dispatch(
+    fun dispatch(
         validation: DiscourseAuthRedirectValidation,
         entryPoint: DiscourseAuthRedirectEntryPoint,
     ): DiscourseAuthRedirectDispatchResult =
@@ -255,7 +241,7 @@ internal class DiscourseAuthRedirectDispatcher(
                     DiscourseAuthRedirectDispatchResult.Rejected
                 } else {
                     try {
-                        when (target.consume(validation.callback)) {
+                        when (target.enqueue(validation.callback)) {
                             DiscourseAuthRedirectSinkResult.Accepted -> {
                                 DiscourseAuthRedirectDispatchResult.Accepted
                             }
@@ -268,9 +254,6 @@ internal class DiscourseAuthRedirectDispatcher(
                                 DiscourseAuthRedirectDispatchResult.Rejected
                             }
                         }
-                    } catch (cancellation: CancellationException) {
-                        // Activity destruction must cancel common auth and any in-flight OTP exchange.
-                        throw cancellation
                     } catch (_: Exception) {
                         auditLogger.record(DiscourseAuthRedirectAuditEvent.SinkFailure, entryPoint)
                         DiscourseAuthRedirectDispatchResult.Rejected

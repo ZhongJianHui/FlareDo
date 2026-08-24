@@ -15,6 +15,9 @@ public expect abstract class PresenterBase<Model : Any>(
     @Composable
     public abstract fun body(): Model
 
+    /** Invoked synchronously before the owned scope is cancelled, even if [models] was never read. */
+    protected open fun onClose(): Unit
+
     /** Cancels presenter work and releases its structured coroutine scope. */
     public fun close()
 }

@@ -1,40 +1,36 @@
 package dev.dimension.flare.auth
 
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class DiscourseAuthRedirectPolicyTest {
     @Test
-    fun coldAndWarmDeliveriesUseTheSameValidationAndDelegationPath() =
-        runTest {
-            val calls = mutableListOf<DiscourseAuthRedirectCallback>()
-            val audit = RecordingAuditLogger()
-            val dispatcher =
-                DiscourseAuthRedirectDispatcher(
-                    sink =
-                        DiscourseAuthRedirectSink { callback ->
-                            calls += callback
-                            DiscourseAuthRedirectSinkResult.Accepted
-                        },
-                    auditLogger = audit,
-                )
-            val validation = validate(validCandidate())
+    fun coldAndWarmDeliveriesUseTheSameValidationAndDelegationPath() {
+        val calls = mutableListOf<DiscourseAuthRedirectCallback>()
+        val audit = RecordingAuditLogger()
+        val dispatcher =
+            DiscourseAuthRedirectDispatcher(
+                sink =
+                    DiscourseAuthRedirectSink { callback ->
+                        calls += callback
+                        DiscourseAuthRedirectSinkResult.Accepted
+                    },
+                auditLogger = audit,
+            )
+        val validation = validate(validCandidate())
 
-            val cold = dispatcher.dispatch(validation, DiscourseAuthRedirectEntryPoint.ColdStart)
-            val warm = dispatcher.dispatch(validation, DiscourseAuthRedirectEntryPoint.WarmStart)
+        val cold = dispatcher.dispatch(validation, DiscourseAuthRedirectEntryPoint.ColdStart)
+        val warm = dispatcher.dispatch(validation, DiscourseAuthRedirectEntryPoint.WarmStart)
 
-            assertIs<DiscourseAuthRedirectDispatchResult.Accepted>(cold)
-            assertIs<DiscourseAuthRedirectDispatchResult.Accepted>(warm)
-            assertEquals(2, calls.size)
-            assertEquals(emptyList(), audit.records)
-            assertFalse(calls.first().toString().contains("self-authored-payload"))
-        }
+        assertIs<DiscourseAuthRedirectDispatchResult.Accepted>(cold)
+        assertIs<DiscourseAuthRedirectDispatchResult.Accepted>(warm)
+        assertEquals(2, calls.size)
+        assertEquals(emptyList(), audit.records)
+        assertFalse(calls.first().toString().contains("self-authored-payload"))
+    }
 
     @Test
     fun forgedActionComponentPackageSchemeAndAuthorityAreRejected() {
@@ -69,7 +65,7 @@ class DiscourseAuthRedirectPolicyTest {
     }
 
     @Test
-    fun grantsNestedIntentExtrasAndOtherDynamicMembersFailClosed() {
+    fun grantsAndOtherUnstrippedDynamicMembersFailClosed() {
         assertRejected(
             validCandidate(hasUriGrantFlags = true),
             DiscourseAuthRedirectAuditEvent.UriGrantBlocked,
@@ -85,14 +81,6 @@ class DiscourseAuthRedirectPolicyTest {
         assertRejected(
             validCandidate(categories = setOf(CATEGORY_BROWSABLE, "attacker.category")),
             DiscourseAuthRedirectAuditEvent.InvalidCategories,
-        )
-        assertRejected(
-            validCandidate(hasNestedIntent = true, hasExtras = true),
-            DiscourseAuthRedirectAuditEvent.NestedIntentBlocked,
-        )
-        assertRejected(
-            validCandidate(hasExtras = true),
-            DiscourseAuthRedirectAuditEvent.ExtrasBlocked,
         )
         assertRejected(
             validCandidate(hasClipData = true),
@@ -139,97 +127,76 @@ class DiscourseAuthRedirectPolicyTest {
     }
 
     @Test
-    fun replayDecisionIsDelegatedToTheSingleUseCommonSink() =
-        runTest {
-            val seen = mutableSetOf<String>()
-            val audit = RecordingAuditLogger()
-            var calls = 0
-            val dispatcher =
-                DiscourseAuthRedirectDispatcher(
-                    sink =
-                        DiscourseAuthRedirectSink { callback ->
-                            calls += 1
-                            if (seen.add(callback.encodedUri)) {
-                                DiscourseAuthRedirectSinkResult.Accepted
-                            } else {
-                                DiscourseAuthRedirectSinkResult.Rejected
-                            }
-                        },
-                    auditLogger = audit,
-                )
-            val validation = validate(validCandidate())
+    fun replayDecisionIsDelegatedToTheSingleUseCommonSink() {
+        val seen = mutableSetOf<String>()
+        val audit = RecordingAuditLogger()
+        var calls = 0
+        val dispatcher =
+            DiscourseAuthRedirectDispatcher(
+                sink =
+                    DiscourseAuthRedirectSink { callback ->
+                        calls += 1
+                        if (seen.add(callback.encodedUri)) {
+                            DiscourseAuthRedirectSinkResult.Accepted
+                        } else {
+                            DiscourseAuthRedirectSinkResult.Rejected
+                        }
+                    },
+                auditLogger = audit,
+            )
+        val validation = validate(validCandidate())
 
-            assertIs<DiscourseAuthRedirectDispatchResult.Accepted>(
-                dispatcher.dispatch(validation, DiscourseAuthRedirectEntryPoint.ColdStart),
-            )
-            assertIs<DiscourseAuthRedirectDispatchResult.Rejected>(
-                dispatcher.dispatch(validation, DiscourseAuthRedirectEntryPoint.WarmStart),
-            )
+        assertIs<DiscourseAuthRedirectDispatchResult.Accepted>(
+            dispatcher.dispatch(validation, DiscourseAuthRedirectEntryPoint.ColdStart),
+        )
+        assertIs<DiscourseAuthRedirectDispatchResult.Rejected>(
+            dispatcher.dispatch(validation, DiscourseAuthRedirectEntryPoint.WarmStart),
+        )
 
-            assertEquals(2, calls)
-            assertEquals(
-                listOf(
-                    DiscourseAuthRedirectAuditEvent.SinkRejected to
-                        DiscourseAuthRedirectEntryPoint.WarmStart,
-                ),
-                audit.records,
-            )
-        }
+        assertEquals(2, calls)
+        assertEquals(
+            listOf(
+                DiscourseAuthRedirectAuditEvent.SinkRejected to
+                    DiscourseAuthRedirectEntryPoint.WarmStart,
+            ),
+            audit.records,
+        )
+    }
 
     @Test
-    fun missingOrFailingSinkProducesOnlyFixedAuditEvents() =
-        runTest {
-            val unavailableAudit = RecordingAuditLogger()
-            val validation = validate(validCandidate())
-            val unavailable =
-                DiscourseAuthRedirectDispatcher(null, unavailableAudit)
-                    .dispatch(validation, DiscourseAuthRedirectEntryPoint.ColdStart)
+    fun missingOrFailingSinkProducesOnlyFixedAuditEvents() {
+        val unavailableAudit = RecordingAuditLogger()
+        val validation = validate(validCandidate())
+        val unavailable =
+            DiscourseAuthRedirectDispatcher(null, unavailableAudit)
+                .dispatch(validation, DiscourseAuthRedirectEntryPoint.ColdStart)
 
-            val failureAudit = RecordingAuditLogger()
-            val failing =
-                DiscourseAuthRedirectDispatcher(
-                    sink = DiscourseAuthRedirectSink { error("sink failure containing secret") },
-                    auditLogger = failureAudit,
-                ).dispatch(validation, DiscourseAuthRedirectEntryPoint.WarmStart)
+        val failureAudit = RecordingAuditLogger()
+        val failing =
+            DiscourseAuthRedirectDispatcher(
+                sink = DiscourseAuthRedirectSink { error("sink failure containing secret") },
+                auditLogger = failureAudit,
+            ).dispatch(validation, DiscourseAuthRedirectEntryPoint.WarmStart)
 
-            assertIs<DiscourseAuthRedirectDispatchResult.Rejected>(unavailable)
-            assertIs<DiscourseAuthRedirectDispatchResult.Rejected>(failing)
-            assertEquals(
-                listOf(
-                    DiscourseAuthRedirectAuditEvent.SinkUnavailable to
-                        DiscourseAuthRedirectEntryPoint.ColdStart,
-                ),
-                unavailableAudit.records,
-            )
-            assertEquals(
-                listOf(
-                    DiscourseAuthRedirectAuditEvent.SinkFailure to
-                        DiscourseAuthRedirectEntryPoint.WarmStart,
-                ),
-                failureAudit.records,
-            )
-            assertTrue(unavailableAudit.toString().contains("[redacted]"))
-            assertFalse(failureAudit.toString().contains("secret"))
-        }
-
-    @Test
-    fun lifecycleCancellationIsNeverConvertedIntoAnAuthenticationFailure() =
-        runTest {
-            val audit = RecordingAuditLogger()
-            val dispatcher =
-                DiscourseAuthRedirectDispatcher(
-                    sink = DiscourseAuthRedirectSink { throw CancellationException("destroyed") },
-                    auditLogger = audit,
-                )
-
-            assertFailsWith<CancellationException> {
-                dispatcher.dispatch(
-                    validate(validCandidate()),
+        assertIs<DiscourseAuthRedirectDispatchResult.Rejected>(unavailable)
+        assertIs<DiscourseAuthRedirectDispatchResult.Rejected>(failing)
+        assertEquals(
+            listOf(
+                DiscourseAuthRedirectAuditEvent.SinkUnavailable to
                     DiscourseAuthRedirectEntryPoint.ColdStart,
-                )
-            }
-            assertEquals(emptyList(), audit.records)
-        }
+            ),
+            unavailableAudit.records,
+        )
+        assertEquals(
+            listOf(
+                DiscourseAuthRedirectAuditEvent.SinkFailure to
+                    DiscourseAuthRedirectEntryPoint.WarmStart,
+            ),
+            failureAudit.records,
+        )
+        assertTrue(unavailableAudit.toString().contains("[redacted]"))
+        assertFalse(failureAudit.toString().contains("secret"))
+    }
 }
 
 private fun validate(candidate: DiscourseAuthRedirectCandidate): DiscourseAuthRedirectValidation =
@@ -253,11 +220,10 @@ private fun validCandidate(
     componentPackage: String? = EXPECTED_PACKAGE,
     componentClass: String? = EXPECTED_COMPONENT,
     packageName: String? = null,
+    activityFlags: Int = 0,
     hasUriGrantFlags: Boolean = false,
     hasUnsupportedFlags: Boolean = false,
     categories: Set<String> = setOf(CATEGORY_BROWSABLE),
-    hasNestedIntent: Boolean = false,
-    hasExtras: Boolean = false,
     hasClipData: Boolean = false,
     hasSelector: Boolean = false,
     mimeType: String? = null,
@@ -274,11 +240,10 @@ private fun validCandidate(
         componentPackage = componentPackage,
         componentClass = componentClass,
         packageName = packageName,
+        activityFlags = activityFlags,
         hasUriGrantFlags = hasUriGrantFlags,
         hasUnsupportedFlags = hasUnsupportedFlags,
         categories = categories,
-        hasNestedIntent = hasNestedIntent,
-        hasExtras = hasExtras,
         hasClipData = hasClipData,
         hasSelector = hasSelector,
         mimeType = mimeType,

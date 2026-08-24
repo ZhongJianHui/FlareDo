@@ -242,27 +242,32 @@ public class DiscourseSessionLifecycle(
         cookies: List<DiscourseCookieSnapshot>,
     ) {
         operationMutex.withLock {
-            requireCurrentGeneration(expectedGeneration)
-            val reference = sessionStore.replace(accountId, username, cookies)
-            var activated = false
-            try {
-                sessionManager.startAuthenticatedSession(
-                    accountId = accountId,
-                    username = username,
-                    credentialRef = reference,
-                    cookieSnapshot = cookies,
-                    expectedGeneration = expectedGeneration,
-                )
-                activated = true
-            } finally {
-                if (!activated) {
-                    withContext(NonCancellable) {
-                        sessionStore.clear(reference)
-                    }
-                }
-            }
+            activateLocked(expectedGeneration, accountId, username, cookies)
         }
     }
+
+    /**
+     * Activates one browser-authenticated owner and runs its request-bound cleanup without releasing
+     * [operationMutex] between those steps.
+     *
+     * A second lifecycle operation therefore cannot replace the freshly persisted session before the
+     * browser's duplicate `_t` is cleared. A direct in-memory replacement can still race this method,
+     * but [block] is entered immediately after activation and is never skipped because of that race;
+     * the trailing owner check then rejects stale success without deleting the replacement's vault.
+     */
+    internal suspend fun <T> activateAndRunForAuthenticatedOwner(
+        expectedGeneration: Long,
+        accountId: String,
+        username: String?,
+        cookies: List<DiscourseCookieSnapshot>,
+        block: suspend (DiscourseSessionState.Authenticated) -> T,
+    ): T =
+        operationMutex.withLock {
+            val active = activateLocked(expectedGeneration, accountId, username, cookies)
+            val result = block(active)
+            requireCurrentAuthenticatedOwner(active.generation, active.accountId)
+            result
+        }
 
     /** Writes the current bounded Cookie snapshot after a server-side session refresh. */
     public suspend fun checkpoint(): Boolean =
@@ -311,12 +316,22 @@ public class DiscourseSessionLifecycle(
             result
         }
 
-    /** Clears memory first and then makes every persisted reference unreachable before returning. */
+    /**
+     * Makes the persisted owner unreachable before publishing a guest session.
+     *
+     * Room or vault invalidation can fail independently of the in-memory transition. Keeping the
+     * authenticated owner unchanged on that failure avoids a false logged-out state whose retained
+     * reference would authenticate again on the next process start. The generation CAS then protects
+     * a direct in-memory replacement that might win while persistence is suspending.
+     */
     public suspend fun logout() {
         withContext(NonCancellable) {
             operationMutex.withLock {
-                sessionManager.logout()
-                sessionStore.clear()
+                val current = sessionManager.state.value
+                val credentialRef =
+                    (current as? DiscourseSessionState.Authenticated)?.credentialRef
+                sessionStore.clear(credentialRef)
+                sessionManager.logoutIfGeneration(current.generation)
             }
         }
     }
@@ -324,9 +339,11 @@ public class DiscourseSessionLifecycle(
     /**
      * Clears only the generation still owned by an incomplete authentication handoff.
      *
-     * The exact vault reference is captured before the in-memory CAS. A replacement login must
-     * acquire this lifecycle mutex to publish a new persisted reference, so an old cleanup can
-     * neither log out nor delete that replacement account.
+     * The exact vault reference is invalidated before the in-memory CAS. A persistence failure keeps
+     * the authenticated owner and its Cookie jar intact instead of publishing a guest state that can
+     * be silently reversed by [restore]. A replacement login must acquire this lifecycle mutex to
+     * publish a new reference, while the trailing generation CAS also preserves any direct in-memory
+     * replacement that wins while the store operation suspends.
      */
     internal suspend fun logoutIfGeneration(expectedGeneration: Long): Boolean =
         withContext(NonCancellable) {
@@ -335,11 +352,46 @@ public class DiscourseSessionLifecycle(
                 if (current.generation != expectedGeneration) return@withLock false
                 val credentialRef =
                     (current as? DiscourseSessionState.Authenticated)?.credentialRef
-                if (!sessionManager.logoutIfGeneration(expectedGeneration)) return@withLock false
-                credentialRef?.let { sessionStore.clear(it) }
-                true
+                sessionStore.clear(credentialRef)
+                sessionManager.logoutIfGeneration(expectedGeneration)
             }
         }
+
+    private suspend fun activateLocked(
+        expectedGeneration: Long,
+        accountId: String,
+        username: String?,
+        cookies: List<DiscourseCookieSnapshot>,
+    ): DiscourseSessionState.Authenticated {
+        requireCurrentGeneration(expectedGeneration)
+        val reference = sessionStore.replace(accountId, username, cookies)
+        var activated = false
+        try {
+            sessionManager.startAuthenticatedSession(
+                accountId = accountId,
+                username = username,
+                credentialRef = reference,
+                cookieSnapshot = cookies,
+                expectedGeneration = expectedGeneration,
+            )
+            activated = true
+            val current = sessionManager.state.value
+            val active = current as? DiscourseSessionState.Authenticated
+            if (
+                active?.generation != expectedGeneration + 1L ||
+                active.accountId != accountId
+            ) {
+                throw StaleDiscourseSessionException(expectedGeneration + 1L, current.generation)
+            }
+            return active
+        } finally {
+            if (!activated) {
+                withContext(NonCancellable) {
+                    sessionStore.clear(reference)
+                }
+            }
+        }
+    }
 
     private fun requireCurrentGeneration(expectedGeneration: Long) {
         val actualGeneration = sessionManager.state.value.generation

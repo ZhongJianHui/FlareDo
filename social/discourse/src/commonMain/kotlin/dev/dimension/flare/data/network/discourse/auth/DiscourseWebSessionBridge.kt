@@ -1,7 +1,6 @@
 package dev.dimension.flare.data.network.discourse.auth
 
 import dev.dimension.flare.data.network.discourse.DISCOURSE_ORIGIN
-import dev.dimension.flare.data.network.discourse.DiscourseApi
 import dev.dimension.flare.data.network.discourse.error.DiscourseCloudflareChallengeException
 import dev.dimension.flare.data.network.discourse.session.DiscourseCookieSnapshot
 import dev.dimension.flare.data.network.discourse.session.DiscourseSessionLifecycle
@@ -11,6 +10,8 @@ import dev.dimension.flare.data.network.discourse.session.StaleDiscourseSessionE
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -140,9 +141,9 @@ public class DiscourseManualChallengeCoordinator(
     public suspend fun complete(requestId: Long): Boolean = resolve(requestId, completed = true, waitForCookieConsumption = false) != null
 
     /**
-     * Completes the visible request but returns only after request-bound code consumes the Cookie
-     * handoff. Apple uses this form so releasing its Swift ownership token cannot let a replacement
-     * WebView overwrite the shared buffer before Kotlin snapshots and clears it.
+     * Accepts the visible request but keeps it published until request-bound code consumes the
+     * Cookie handoff. Platform hosts use this form so disposing or replacing their WebView cannot
+     * erase/overwrite the shared buffer before Kotlin snapshots and clears it.
      */
     public suspend fun completeAfterCookieConsumption(requestId: Long): Boolean {
         val completion =
@@ -173,11 +174,11 @@ public class DiscourseManualChallengeCoordinator(
         operationMutex.withLock {
             val current = activeRequest ?: return@withLock null
             if (current.request.requestId != requestId || current.result.isCompleted) return@withLock null
-            mutableRequest.value = null
             current.waitsForCookieConsumption = completed && waitForCookieConsumption
             current.result.complete(completed)
             if (!current.waitsForCookieConsumption) {
                 activeRequest = null
+                mutableRequest.value = null
                 current.cookieConsumption.complete(Unit)
             }
             current.cookieConsumption
@@ -245,16 +246,17 @@ public class DiscourseManualChallengeCookieHandler(
 /**
  * Validates the fallback WebView cookie path through Linux.do before activating persistence.
  *
- * A browser-provided `_t` is first installed under a deliberately non-user temporary account. The
- * fixed-origin API then supplies the authoritative numeric id and username. Only that verified
- * identity and the final bounded jar reach [DiscourseSessionLifecycle]; every failure clears both
- * memory and browser state in a non-cancellable fail-closed cleanup.
+ * Browser Cookies are verified by an isolated [DiscourseWebSessionProbe]. The main session manager
+ * therefore remains at the captured guest generation until Linux.do supplies an authoritative
+ * identity and final bounded Cookie jar. Only that result reaches [DiscourseSessionLifecycle], in
+ * one compare-and-set activation; every failure clears browser state in a non-cancellable
+ * fail-closed cleanup without publishing a temporary account to shared observers.
  */
-public class DiscourseWebSessionLogin(
+public class DiscourseWebSessionLogin internal constructor(
     private val cookieBridge: DiscourseWebSessionCookieBridge,
     private val sessionManager: DiscourseSessionManager,
     private val sessionLifecycle: DiscourseSessionLifecycle,
-    private val api: DiscourseApi,
+    private val probe: DiscourseWebSessionProbe,
 ) {
     private val completionMutex: Mutex = Mutex()
 
@@ -272,7 +274,8 @@ public class DiscourseWebSessionLogin(
     }
 
     private suspend fun completeOwnedHandoff(): DiscourseLoginResult.Authenticated {
-        var ownedGeneration: Long? = null
+        var activatedGeneration: Long? = null
+        var browserCookiesCleared = false
         try {
             val bridgedCookies = cookieBridge.snapshotLinuxDoCookies()
             require(bridgedCookies.any { it.name == "_t" && it.value.isNotEmpty() }) {
@@ -281,58 +284,32 @@ public class DiscourseWebSessionLogin(
             val guest =
                 sessionManager.state.value as? DiscourseSessionState.Guest
                     ?: throw DiscourseAuthExchangeException(DiscourseAuthExchangeFailure.ActiveSession)
-            sessionManager.startAuthenticatedSession(
-                accountId = "web-session-probe",
-                cookieSnapshot = bridgedCookies,
-                expectedGeneration = guest.generation,
-            )
-            val probeState =
-                sessionManager.state.value as? DiscourseSessionState.Authenticated
-                    ?: throw StaleDiscourseSessionException(
-                        expectedGeneration = guest.generation,
-                        actualGeneration = sessionManager.state.value.generation,
-                    )
-            ownedGeneration = probeState.generation
-            val user =
-                api.currentSession().currentUser
-                    ?: throw DiscourseAuthExchangeException(DiscourseAuthExchangeFailure.Identity)
-            if (user.id <= 0L || user.username.isBlank()) {
-                throw DiscourseAuthExchangeException(DiscourseAuthExchangeFailure.Identity)
-            }
-            val finalCookies = sessionManager.cookieStorage.snapshot()
-            sessionLifecycle.activate(
-                expectedGeneration = probeState.generation,
-                accountId = user.id.toString(),
-                username = user.username,
-                cookies = finalCookies,
-            )
-            val expectedActiveGeneration = probeState.generation + 1L
-            val currentState = sessionManager.state.value
-            val activeState = currentState as? DiscourseSessionState.Authenticated
-            if (
-                activeState == null ||
-                activeState.generation != expectedActiveGeneration ||
-                activeState.accountId != user.id.toString()
-            ) {
-                throw StaleDiscourseSessionException(
-                    expectedGeneration = expectedActiveGeneration,
-                    actualGeneration = currentState.generation,
-                )
-            }
-            // From this point cancellation owns the final authenticated generation, not the
-            // temporary probe generation, so incomplete handoff cleanup cannot leave it active.
-            ownedGeneration = activeState.generation
-            // Successful handoff is not complete while the browser still owns a second copy of
-            // `_t`. A cleanup failure therefore enters the catch path, destroys the newly active
-            // local session, and makes one final best-effort browser cleanup attempt.
-            sessionLifecycle.runForAuthenticatedOwner(
-                expectedGeneration = activeState.generation,
-                expectedAccountId = activeState.accountId,
-            ) {
-                withContext(NonCancellable) {
-                    cookieBridge.clearLinuxDoCookies()
+
+            // The probe has its own client, Cookie jar, CSRF store, and session manager. Nothing in
+            // this suspension can advance or authenticate the process-wide manager captured above.
+            val verified = probe.probe(bridgedCookies)
+            val activeState =
+                sessionLifecycle.activateAndRunForAuthenticatedOwner(
+                    expectedGeneration = guest.generation,
+                    accountId = verified.accountId,
+                    username = verified.username,
+                    cookies = verified.cookies,
+                ) { activated ->
+                    // From this point cancellation owns the one newly authenticated generation, so
+                    // an incomplete handoff can remove exactly that session without touching a
+                    // replacement. The lifecycle mutex stays held through browser cleanup: there is
+                    // no activation-to-cleanup acquisition gap in which `_t` could be stranded.
+                    activatedGeneration = activated.generation
+                    withContext(NonCancellable) {
+                        cookieBridge.clearLinuxDoCookies()
+                    }
+                    browserCookiesCleared = true
+                    // `withContext(NonCancellable)` does not necessarily dispatch on return. Check
+                    // the request context explicitly so cancellation that arrived during mandatory
+                    // browser cleanup rolls back this newly activated generation before success.
+                    currentCoroutineContext().ensureActive()
+                    activated
                 }
-            }
             val finalState = sessionManager.state.value
             val finalOwner = finalState as? DiscourseSessionState.Authenticated
             if (
@@ -342,26 +319,79 @@ public class DiscourseWebSessionLogin(
                 throw StaleDiscourseSessionException(activeState.generation, finalState.generation)
             }
             return DiscourseLoginResult.Authenticated(
-                accountId = user.id.toString(),
-                username = user.username,
-                displayName = user.name,
+                accountId = verified.accountId,
+                username = verified.username,
+                displayName = verified.displayName,
             )
         } catch (cancellation: CancellationException) {
-            clearIncompleteBrowserSession(ownedGeneration)
+            clearIncompleteBrowserSession(
+                ownedGeneration = activatedGeneration,
+                browserCookiesCleared = browserCookiesCleared,
+                primaryFailure = cancellation,
+            )
             throw cancellation
         } catch (failure: Throwable) {
-            clearIncompleteBrowserSession(ownedGeneration)
+            clearIncompleteBrowserSession(
+                ownedGeneration = activatedGeneration,
+                browserCookiesCleared = browserCookiesCleared,
+                primaryFailure = failure,
+            )
             throw failure
         }
     }
 
-    private suspend fun clearIncompleteBrowserSession(ownedGeneration: Long?) {
+    private suspend fun clearIncompleteBrowserSession(
+        ownedGeneration: Long?,
+        browserCookiesCleared: Boolean,
+        primaryFailure: Throwable,
+    ) {
         withContext(NonCancellable) {
-            val mayClearBrowser =
-                ownedGeneration == null || sessionLifecycle.logoutIfGeneration(ownedGeneration)
-            if (mayClearBrowser) cookieBridge.clearLinuxDoCookiesBestEffort()
+            // Session ownership gates destructive vault cleanup, but not cleanup of this call's
+            // one-use browser handoff. [completionMutex] excludes another fallback completion until
+            // this finally-equivalent path releases its duplicate Cookie snapshot. Every cleanup
+            // failure is attached to the failure that entered this path: neither a vault error nor a
+            // repeated browser error may replace caller cancellation or the original handoff error.
+            try {
+                ownedGeneration?.let { sessionLifecycle.logoutIfGeneration(it) }
+            } catch (cleanupFailure: Throwable) {
+                primaryFailure.addSuppressedIfDistinct(cleanupFailure)
+            } finally {
+                if (!browserCookiesCleared) {
+                    try {
+                        cookieBridge.clearLinuxDoCookiesBestEffort()
+                    } catch (cleanupFailure: Throwable) {
+                        primaryFailure.addSuppressedIfDistinct(cleanupFailure)
+                    }
+                }
+            }
         }
     }
+}
+
+/**
+ * Adds secondary cleanup diagnostics without duplicating a retried coroutine exception.
+ *
+ * Coroutine stack-trace recovery may copy a throwable and retain the original as its root cause, so
+ * reference comparison alone is insufficient to recognize the same failure crossing `withContext`.
+ */
+internal fun Throwable.addSuppressedIfDistinct(secondary: Throwable) {
+    val secondaryRoot = secondary.rootCauseIdentity()
+    if (
+        rootCauseIdentity() !== secondaryRoot &&
+        suppressedExceptions.none { it.rootCauseIdentity() === secondaryRoot }
+    ) {
+        addSuppressed(secondary)
+    }
+}
+
+private fun Throwable.rootCauseIdentity(): Throwable {
+    var current = this
+    repeat(32) {
+        val next = current.cause ?: return current
+        if (next === current) return current
+        current = next
+    }
+    return current
 }
 
 /**

@@ -9,9 +9,12 @@ import androidx.core.content.IntentSanitizer
 /**
  * Android adapter around the pure redirect policy.
  *
- * The manual projection rejects dangerous members before AndroidX traverses extras or ClipData.
- * [IntentSanitizer.sanitizeByThrowing] then independently enforces the same allowlist and creates a
- * safe copy. The sanitized copy is projected and validated again before its URI is delegated.
+ * Extras are an opaque attacker-controlled parcel at this boundary. The initial projection reads
+ * only safe scalar fields and whether separately stored dynamic members exist; it never queries an
+ * extra key, size, or value. After policy rejects grants, ClipData, selector, type, identifier, and
+ * source bounds, the adapter builds a fresh Intent from allowlisted fields only. It never invokes
+ * Intent's recursive copy constructor. [IntentSanitizer.sanitizeByThrowing] independently enforces
+ * that defensive envelope before its URI is delegated.
  */
 internal class DiscourseAuthIntentValidator {
     fun validate(
@@ -34,9 +37,15 @@ internal class DiscourseAuthIntentValidator {
             return initialValidation
         }
 
+        val defensiveIntent =
+            try {
+                initial.toDefensiveIntent()
+            } catch (_: RuntimeException) {
+                return rejected(DiscourseAuthRedirectAuditEvent.MalformedIntent)
+            }
         val sanitized =
             try {
-                sanitizer(expectedComponent).sanitizeByThrowing(untrustedIntent)
+                sanitizer(expectedComponent).sanitizeByThrowing(defensiveIntent)
             } catch (_: SecurityException) {
                 return rejected(DiscourseAuthRedirectAuditEvent.SanitizerRejected)
             } catch (_: RuntimeException) {
@@ -67,21 +76,18 @@ internal class DiscourseAuthIntentValidator {
             .build()
 }
 
-private fun Intent.toCandidate(): DiscourseAuthRedirectCandidate {
+/** Projects only scalar routing fields and dynamic-member presence; it never accesses [Intent.getExtras]. */
+internal fun Intent.toCandidate(): DiscourseAuthRedirectCandidate {
     val callbackData = data
-    val extras = extras
     return DiscourseAuthRedirectCandidate(
         action = action,
         componentPackage = component?.packageName,
         componentClass = component?.className,
         packageName = `package`,
+        activityFlags = flags,
         hasUriGrantFlags = flags and URI_GRANT_FLAGS != 0,
         hasUnsupportedFlags = flags and ALLOWED_ACTIVITY_FLAGS.inv() != 0,
         categories = categories?.toSet().orEmpty(),
-        // The standard nested-intent key is classified explicitly; any custom-key nested value is
-        // still rejected by the blanket no-extras policy without deserializing attacker objects.
-        hasNestedIntent = hasExtra(Intent.EXTRA_INTENT),
-        hasExtras = extras != null && !extras.isEmpty,
         hasClipData = clipData != null,
         hasSelector = selector != null,
         mimeType = type,
@@ -94,6 +100,27 @@ private fun Intent.toCandidate(): DiscourseAuthRedirectCandidate {
         encodedUri = callbackData?.toString(),
     )
 }
+
+/**
+ * Reconstructs the validated routing envelope without copying any attacker-owned object container.
+ *
+ * In particular, no extras, ClipData, selector, MIME type, identifier, or source bounds can enter
+ * this Intent. The caller must run the pure policy first so every required field is non-null and the
+ * raw activity flags contain only the browser/task allowlist.
+ */
+internal fun DiscourseAuthRedirectCandidate.toDefensiveIntent(): Intent =
+    Intent().apply {
+        action = this@toDefensiveIntent.action
+        data = Uri.parse(checkNotNull(encodedUri))
+        component =
+            ComponentName(
+                checkNotNull(componentPackage),
+                checkNotNull(componentClass),
+            )
+        `package` = packageName
+        this@toDefensiveIntent.categories.forEach { category -> addCategory(category) }
+        flags = activityFlags
+    }
 
 private fun isAllowedCallbackData(uri: Uri): Boolean =
     DiscourseAuthRedirectPolicy.isAllowedCallbackUri(

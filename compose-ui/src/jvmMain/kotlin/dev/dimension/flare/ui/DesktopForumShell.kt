@@ -11,6 +11,8 @@ import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
+import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationAction
+import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationState
 import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerMode
 import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerPresenter
 import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerState
@@ -26,19 +28,26 @@ import dev.dimension.flare.data.network.discourse.forum.DiscourseForumState
 public fun DesktopForumShell(
     presenter: DiscourseForumPresenter,
     composerPresenter: DiscourseComposerPresenter,
+    authenticationState: DiscourseAuthenticationState,
+    onAuthenticationAction: (DiscourseAuthenticationAction) -> Boolean,
     modifier: Modifier = Modifier,
 ) {
     val state by presenter.models.collectAsState()
     val composerState by composerPresenter.models.collectAsState()
     val attachmentPicker = rememberForumAttachmentPicker()
-    ForumWorkspaceWithComposer(
-        state = state,
-        onAction = { presenter.dispatch(it) },
-        composerState = composerState,
-        onComposerAction = { composerPresenter.dispatchForumAction(it) },
-        attachmentPicker = attachmentPicker,
-        modifier = modifier,
-    )
+    ForumAuthenticationProvider(
+        state = authenticationState,
+        onAction = { action -> onAuthenticationAction(action) },
+    ) {
+        ForumWorkspaceWithComposer(
+            state = state,
+            onAction = { presenter.dispatch(it) },
+            composerState = composerState,
+            onComposerAction = { composerPresenter.dispatchForumAction(it) },
+            attachmentPicker = attachmentPicker,
+            modifier = modifier,
+        )
+    }
 }
 
 internal enum class ForumDesktopShortcutKey {

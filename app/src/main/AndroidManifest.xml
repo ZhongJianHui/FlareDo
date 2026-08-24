@@ -30,8 +30,9 @@
         </activity>
 
         <!--
-          This is the only exported data entry point. Runtime validation repeats this exact route
-          allowlist and rejects extras, ClipData, selectors, nested intents, MIME types and URI grants.
+          This is the only exported data entry point. Runtime validation repeats this exact route,
+          rejects ClipData, selectors, MIME types and URI grants, and rebuilds a defensive envelope
+          that strips all extras without unparcelling or forwarding them (including nested intents).
         -->
         <activity
             android:name="dev.dimension.flare.auth.DiscourseAuthRedirectActivity"

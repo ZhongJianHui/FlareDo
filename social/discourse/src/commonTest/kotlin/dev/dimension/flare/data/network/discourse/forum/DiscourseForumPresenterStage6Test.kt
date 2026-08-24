@@ -47,6 +47,37 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class DiscourseForumPresenterStage6Test {
     @Test
+    fun closeAndJoinDoesNotWaitForAnUndispatchedLazyActor() =
+        runTest {
+            val presenter =
+                stage6Presenter(
+                    dispatcher = StandardTestDispatcher(testScheduler),
+                )
+            presenter.models
+
+            // Deliberately do not advance the scheduler: close must win NOT_STARTED and complete its
+            // own barrier instead of waiting for a LaunchedEffect that cancellation prevents running.
+            presenter.closeAndJoin()
+
+            assertFalse(presenter.dispatch(DiscourseForumAction.Refresh))
+        }
+
+    @Test
+    fun closeAndJoinAfterUninitializedCloseIsIdempotent() =
+        runTest {
+            val presenter =
+                stage6Presenter(
+                    dispatcher = StandardTestDispatcher(testScheduler),
+                )
+
+            presenter.close()
+            // closeAndJoin must not initialize Molecule after its owned scope has been cancelled.
+            presenter.closeAndJoin()
+
+            assertFalse(presenter.dispatch(DiscourseForumAction.Refresh))
+        }
+
+    @Test
     fun closeAndJoinWaitsForNonCancellableRequestCleanup() =
         runTest {
             val cleanupStarted = CompletableDeferred<Unit>()

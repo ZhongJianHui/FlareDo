@@ -2,11 +2,11 @@ package dev.dimension.flare
 
 import dev.dimension.flare.data.network.discourse.auth.AndroidDiscourseWebSessionCookieBridge
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthAttemptStore
+import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationPresenter
 import dev.dimension.flare.data.network.discourse.auth.DiscourseCloudflareChallengeHandler
 import dev.dimension.flare.data.network.discourse.auth.DiscourseLoginService
 import dev.dimension.flare.data.network.discourse.auth.DiscourseManualChallengeCookieHandler
 import dev.dimension.flare.data.network.discourse.auth.DiscourseWebSessionCookieBridge
-import dev.dimension.flare.data.network.discourse.auth.DiscourseWebSessionLogin
 import dev.dimension.flare.data.network.discourse.auth.MemoryDiscourseAuthAttemptStore
 import dev.dimension.flare.data.network.discourse.discourseAuthenticationModule
 import dev.dimension.flare.data.network.discourse.discourseModule
@@ -63,7 +63,9 @@ class AndroidDiscourseHostModuleTest {
 
         try {
             assertIs<DiscourseLoginService>(application.koin.get<DiscourseLoginService>())
-            assertIs<DiscourseWebSessionLogin>(application.koin.get<DiscourseWebSessionLogin>())
+            assertIs<DiscourseAuthenticationPresenter>(
+                application.koin.get<DiscourseAuthenticationPresenter>(),
+            ).close()
             assertIs<AndroidDiscourseWebSessionCookieBridge>(
                 application.koin.get<DiscourseWebSessionCookieBridge>(),
             )

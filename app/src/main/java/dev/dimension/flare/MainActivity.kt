@@ -29,9 +29,10 @@ class MainActivity : ComponentActivity() {
 
         val presenter = forumViewModel.presenter
         val composerPresenter = forumViewModel.composerPresenter
+        val authenticationPresenter = forumViewModel.authenticationPresenter
         setContent {
             FlareDoTheme {
-                AndroidForumShell(presenter, composerPresenter)
+                AndroidForumShell(presenter, composerPresenter, authenticationPresenter)
             }
         }
     }
@@ -39,6 +40,12 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         forumViewModel.setForeground(true)
+    }
+
+    override fun onPostResume() {
+        super.onPostResume()
+        // Redirect callbacks are consumed only while this host and its challenge UI are visible.
+        forumViewModel.deliverPendingAuthenticationRedirect()
     }
 
     override fun onStop() {

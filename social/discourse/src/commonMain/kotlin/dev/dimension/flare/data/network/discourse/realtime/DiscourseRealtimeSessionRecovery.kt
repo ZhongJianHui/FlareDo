@@ -3,6 +3,7 @@ package dev.dimension.flare.data.network.discourse.realtime
 import dev.dimension.flare.data.network.discourse.session.DiscourseSessionLifecycle
 import dev.dimension.flare.data.network.discourse.session.DiscourseSessionManager
 import dev.dimension.flare.data.network.discourse.session.DiscourseSessionState
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 
@@ -12,7 +13,8 @@ import kotlinx.coroutines.withContext
  * Implementations must compare [DiscourseSessionRecoveryRequest.expectedSessionGeneration] before
  * deleting any state. A delayed 401/403 from an old long poll must never clear credentials that
  * belong to a newer account generation. The boolean result is false when the request was stale,
- * belonged to a guest session, or requires the separate user-mediated Cloudflare flow.
+ * belonged to a guest session, requires the separate user-mediated Cloudflare flow, or local
+ * persistence could not safely make the current vault reference unreachable.
  */
 public fun interface DiscourseRealtimeSessionRecovery {
     public suspend fun recover(request: DiscourseSessionRecoveryRequest): Boolean
@@ -52,8 +54,15 @@ internal class PersistedDiscourseRealtimeSessionRecovery(
             return false
         }
         // The lifecycle owns a second generation CAS under its persistence mutex and performs the
-        // vault cleanup in NonCancellable context. The pre-check merely avoids entering it for a
-        // guest or already replaced session.
-        return sessionLifecycle.logoutIfGeneration(request.expectedSessionGeneration)
+        // vault cleanup in NonCancellable context. Persistence failure intentionally keeps the owner
+        // authenticated; reporting false lets the presenter surface recovery UI instead of losing
+        // this terminal callback to a failed cleanup exception.
+        return try {
+            sessionLifecycle.logoutIfGeneration(request.expectedSessionGeneration)
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Throwable) {
+            false
+        }
     }
 }

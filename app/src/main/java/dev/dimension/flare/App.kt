@@ -1,10 +1,11 @@
 package dev.dimension.flare
 
 import android.app.Application
+import dev.dimension.flare.auth.DiscourseAuthRedirectDeliveryResult
+import dev.dimension.flare.auth.DiscourseAuthRedirectInbox
 import dev.dimension.flare.auth.DiscourseAuthRedirectSink
 import dev.dimension.flare.auth.DiscourseAuthRedirectSinkOwner
-import dev.dimension.flare.auth.DiscourseAuthRedirectSinkResult
-import dev.dimension.flare.data.network.discourse.auth.DiscourseLoginResult
+import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationPresenter
 import dev.dimension.flare.data.network.discourse.auth.DiscourseLoginService
 import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerPresenter
 import dev.dimension.flare.data.network.discourse.discourseAuthenticationModule
@@ -32,18 +33,13 @@ class App :
     DiscourseAuthRedirectSinkOwner {
     private lateinit var dependencies: KoinApplication
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val discourseAuthRedirectInbox = DiscourseAuthRedirectInbox()
 
     internal val koin: Koin
         get() = dependencies.koin
 
-    /** Only a fully verified, exchanged, and encrypted callback is accepted by the exported Activity. */
-    override val discourseAuthRedirectSink: DiscourseAuthRedirectSink =
-        DiscourseAuthRedirectSink { callback ->
-            when (koin.get<DiscourseLoginService>().completeRedirect(callback.encodedUri)) {
-                is DiscourseLoginResult.Authenticated -> DiscourseAuthRedirectSinkResult.Accepted
-                else -> DiscourseAuthRedirectSinkResult.Rejected
-            }
-        }
+    /** The exported Activity may only enqueue into bounded process memory; it never performs exchange. */
+    override val discourseAuthRedirectSink: DiscourseAuthRedirectSink = discourseAuthRedirectInbox
 
     override fun onCreate() {
         super.onCreate()
@@ -70,6 +66,13 @@ class App :
 
     /** Composer has the same retained Activity lifecycle as the read-only forum presenter. */
     internal fun createComposerPresenter(): DiscourseComposerPresenter = koin.get()
+
+    /** Authentication UI work is retained across configuration changes but never process-global. */
+    internal fun createAuthenticationPresenter(): DiscourseAuthenticationPresenter = koin.get()
+
+    /** Moves one callback from process memory into the visible Activity's retained presenter. */
+    internal fun deliverPendingAuthenticationRedirect(consumer: (String) -> Boolean): DiscourseAuthRedirectDeliveryResult =
+        discourseAuthRedirectInbox.deliverPending(consumer)
 
     override fun onTerminate() {
         applicationScope.cancel()

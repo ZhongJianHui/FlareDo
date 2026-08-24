@@ -1,8 +1,10 @@
 package dev.dimension.flare.data.network.discourse
 
+import dev.dimension.flare.data.network.discourse.auth.DefaultDiscourseWebSessionProbe
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthAttemptStore
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthRedirectProcessor
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthTokenGenerator
+import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationPresenter
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthorizationCoordinator
 import dev.dimension.flare.data.network.discourse.auth.DiscourseCloudflareChallengeHandler
 import dev.dimension.flare.data.network.discourse.auth.DiscourseLoginService
@@ -10,6 +12,7 @@ import dev.dimension.flare.data.network.discourse.auth.DiscourseManualChallengeC
 import dev.dimension.flare.data.network.discourse.auth.DiscourseManualChallengePresenter
 import dev.dimension.flare.data.network.discourse.auth.DiscourseOtpSessionExchangeTransport
 import dev.dimension.flare.data.network.discourse.auth.DiscourseWebSessionLogin
+import dev.dimension.flare.data.network.discourse.auth.DiscourseWebSessionProbe
 import dev.dimension.flare.data.network.discourse.auth.MemoryDiscourseAuthAttemptStore
 import dev.dimension.flare.data.network.discourse.auth.createPlatformDiscourseAuthTokenGenerator
 import dev.dimension.flare.data.network.discourse.composer.DefaultDiscourseComposerRepository
@@ -241,12 +244,22 @@ public val discourseAuthenticationModule: Module =
                 api = get(),
             )
         }
+        factory {
+            DiscourseAuthenticationPresenter(
+                loginService = get(),
+                webSessionLogin = get(),
+                cookieBridge = get(),
+                sessionManager = get(),
+                challengeCoordinator = get(),
+            )
+        }
+        single<DiscourseWebSessionProbe> { DefaultDiscourseWebSessionProbe() }
         single {
             DiscourseWebSessionLogin(
                 cookieBridge = get(),
                 sessionManager = get(),
                 sessionLifecycle = get(),
-                api = get(),
+                probe = get(),
             )
         }
     }

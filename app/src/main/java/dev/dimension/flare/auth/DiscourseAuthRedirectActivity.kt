@@ -12,23 +12,22 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.activity.ComponentActivity
-import androidx.lifecycle.lifecycleScope
 import dev.dimension.flare.MainActivity
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
+import io.github.zhongjianhui.flaredo.R
 
 /**
  * The sole exported endpoint for `discourse://auth_redirect`.
  *
  * Both lifecycle entry points call [handleIncomingIntent]. No field from the untrusted Intent is
  * copied into an outgoing Intent: returning to the app always uses a fixed explicit MainActivity
- * component. The common authentication sink owns cryptographic validation and one-time nonce
- * consumption after the Android envelope has passed this component's strict allowlist.
+ * component. A successful envelope is synchronously placed in a bounded process-memory inbox, then
+ * this Activity immediately returns to MainActivity. The visible Activity's retained authentication
+ * presenter owns cryptographic validation, one-time nonce consumption, OTP exchange, and any manual
+ * Cloudflare challenge.
  */
 class DiscourseAuthRedirectActivity : ComponentActivity() {
     private val validator = DiscourseAuthIntentValidator()
     private val auditLogger = AndroidDiscourseAuthRedirectAuditLogger
-    private var dispatchJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,14 +47,6 @@ class DiscourseAuthRedirectActivity : ComponentActivity() {
         untrustedIntent: Intent,
         entryPoint: DiscourseAuthRedirectEntryPoint,
     ) {
-        // Lifecycle callbacks run on Main, so this check and assignment form one serialized gate.
-        // Keeping the first callback avoids cancelling an exchange after its nonce was consumed.
-        if (dispatchJob?.isActive == true) {
-            setIntent(Intent())
-            auditLogger.record(DiscourseAuthRedirectAuditEvent.DispatchInProgress, entryPoint)
-            return
-        }
-
         val expectedComponent = ComponentName(this, DiscourseAuthRedirectActivity::class.java)
         val validation = validator.validate(untrustedIntent, expectedComponent)
 
@@ -69,13 +60,10 @@ class DiscourseAuthRedirectActivity : ComponentActivity() {
                 sink = sink,
                 auditLogger = auditLogger,
             )
-        dispatchJob =
-            lifecycleScope.launch {
-                when (dispatcher.dispatch(validation, entryPoint)) {
-                    DiscourseAuthRedirectDispatchResult.Accepted -> returnToMainActivity()
-                    DiscourseAuthRedirectDispatchResult.Rejected -> showFailure()
-                }
-            }
+        when (dispatcher.dispatch(validation, entryPoint)) {
+            DiscourseAuthRedirectDispatchResult.Accepted -> returnToMainActivity()
+            DiscourseAuthRedirectDispatchResult.Rejected -> showFailure()
+        }
     }
 
     private fun showProcessing() {
@@ -83,7 +71,7 @@ class DiscourseAuthRedirectActivity : ComponentActivity() {
         content.addView(ProgressBar(this))
         content.addView(
             statusText(
-                text = "Authorization in progress",
+                text = getString(R.string.auth_redirect_in_progress),
                 bold = false,
             ),
         )
@@ -94,13 +82,13 @@ class DiscourseAuthRedirectActivity : ComponentActivity() {
         val content = statusContainer()
         content.addView(
             statusText(
-                text = "Unable to complete authorization",
+                text = getString(R.string.auth_redirect_unavailable),
                 bold = true,
             ),
         )
         content.addView(
             Button(this).apply {
-                text = "Return to FlareDo"
+                text = getString(R.string.auth_redirect_return)
                 setOnClickListener { returnToMainActivity() }
             },
         )

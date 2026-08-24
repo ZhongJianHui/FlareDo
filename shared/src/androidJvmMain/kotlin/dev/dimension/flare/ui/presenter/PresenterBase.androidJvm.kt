@@ -21,7 +21,13 @@ public actual abstract class PresenterBase<Model : Any> actual constructor(
     @Composable
     public actual abstract fun body(): Model
 
+    protected actual open fun onClose(): Unit = Unit
+
     public actual fun close() {
-        presenterScope.cancel()
+        try {
+            onClose()
+        } finally {
+            presenterScope.cancel()
+        }
     }
 }

@@ -20,8 +20,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -61,11 +63,25 @@ import compose.icons.fontawesomeicons.solid.Heart
 import compose.icons.fontawesomeicons.solid.Lock
 import compose.icons.fontawesomeicons.solid.MagnifyingGlass
 import compose.icons.fontawesomeicons.solid.Medal
+import compose.icons.fontawesomeicons.solid.RightFromBracket
+import compose.icons.fontawesomeicons.solid.TriangleExclamation
 import compose.icons.fontawesomeicons.solid.User
 import dev.dimension.flare.compose.ui.Res
 import dev.dimension.flare.compose.ui.forum_activity_hidden
+import dev.dimension.flare.compose.ui.forum_auth_browser_unavailable
+import dev.dimension.flare.compose.ui.forum_auth_busy
+import dev.dimension.flare.compose.ui.forum_auth_fallback
 import dev.dimension.flare.compose.ui.forum_auth_required_body
 import dev.dimension.flare.compose.ui.forum_auth_required_title
+import dev.dimension.flare.compose.ui.forum_auth_sign_in
+import dev.dimension.flare.compose.ui.forum_auth_sign_out
+import dev.dimension.flare.compose.ui.forum_failure_authentication
+import dev.dimension.flare.compose.ui.forum_failure_challenge
+import dev.dimension.flare.compose.ui.forum_failure_invalid_response
+import dev.dimension.flare.compose.ui.forum_failure_network
+import dev.dimension.flare.compose.ui.forum_failure_permission
+import dev.dimension.flare.compose.ui.forum_failure_rate_limited
+import dev.dimension.flare.compose.ui.forum_failure_server
 import dev.dimension.flare.compose.ui.forum_likes
 import dev.dimension.flare.compose.ui.forum_loading_more_activity
 import dev.dimension.flare.compose.ui.forum_loading_more_notifications
@@ -98,7 +114,10 @@ import dev.dimension.flare.compose.ui.forum_search_no_results_body
 import dev.dimension.flare.compose.ui.forum_search_no_results_title
 import dev.dimension.flare.compose.ui.forum_search_results
 import dev.dimension.flare.compose.ui.forum_search_submit
+import dev.dimension.flare.compose.ui.forum_session_recovery_title
 import dev.dimension.flare.compose.ui.forum_unread_count
+import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationAction
+import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationFailureKind
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumAction
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumActivity
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumFailureKind
@@ -106,6 +125,7 @@ import dev.dimension.flare.data.network.discourse.forum.DiscourseForumNotificati
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumProfile
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumSearchHit
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumState
+import dev.dimension.flare.data.network.discourse.realtime.DiscourseSessionRecoveryReason
 import org.jetbrains.compose.resources.stringResource
 
 /** Search results use their own one-based cursor and never share feed paging state. */
@@ -367,7 +387,7 @@ internal fun ForumNotificationsPane(
         }
         when {
             !state.isAuthenticated || notificationFailure == DiscourseForumFailureKind.Authentication -> {
-                ForumAuthenticationRequiredState()
+                ForumAuthenticationRequiredState(state.realtimeRecoveryReason)
             }
 
             notifications.isLoading && snapshot == null -> {
@@ -525,6 +545,7 @@ internal fun ForumProfilePane(
 ) {
     val profileState = state.profile
     val profileFailure = profileState.failure
+    val authentication = LocalForumAuthentication.current
     Column(
         modifier =
             modifier
@@ -539,12 +560,21 @@ internal fun ForumProfilePane(
             actionLabel = stringResource(Res.string.forum_refresh),
             actionEnabled = !profileState.isLoading && !profileState.isActivityLoading,
             onAction = { onAction(DiscourseForumAction.RetryProfile) },
+            secondaryActionIcon =
+                FontAwesomeIcons.Solid.RightFromBracket.takeIf { state.isAuthenticated },
+            secondaryActionLabel =
+                stringResource(Res.string.forum_auth_sign_out).takeIf { state.isAuthenticated },
+            secondaryActionEnabled = !authentication.state.isBusy,
+            onSecondaryAction =
+                {
+                    authentication.onAction(DiscourseAuthenticationAction.Logout)
+                }.takeIf { state.isAuthenticated },
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         when {
             profileState.value == null &&
                 (!state.isAuthenticated || profileFailure == DiscourseForumFailureKind.Authentication) -> {
-                ForumAuthenticationRequiredState()
+                ForumAuthenticationRequiredState(state.realtimeRecoveryReason)
             }
 
             profileState.isLoading && profileState.value == null -> {
@@ -859,6 +889,10 @@ private fun ForumSectionPaneHeader(
     actionLabel: String? = null,
     actionEnabled: Boolean = true,
     onAction: (() -> Unit)? = null,
+    secondaryActionIcon: ImageVector? = null,
+    secondaryActionLabel: String? = null,
+    secondaryActionEnabled: Boolean = true,
+    onSecondaryAction: (() -> Unit)? = null,
 ) {
     Row(
         modifier =
@@ -892,17 +926,146 @@ private fun ForumSectionPaneHeader(
                 Icon(actionIcon, actionLabel, Modifier.size(18.dp))
             }
         }
+        if (
+            secondaryActionIcon != null &&
+            secondaryActionLabel != null &&
+            onSecondaryAction != null
+        ) {
+            IconButton(
+                onClick = onSecondaryAction,
+                enabled = secondaryActionEnabled,
+                modifier = Modifier.testTag(ForumTestTags.AUTH_SIGN_OUT),
+            ) {
+                Icon(secondaryActionIcon, secondaryActionLabel, Modifier.size(18.dp))
+            }
+        }
     }
 }
 
 @Composable
-private fun ForumAuthenticationRequiredState() {
-    ForumAccountCenteredState(
-        icon = FontAwesomeIcons.Solid.Lock,
-        title = stringResource(Res.string.forum_auth_required_title),
-        body = stringResource(Res.string.forum_auth_required_body),
-    )
+private fun ForumAuthenticationRequiredState(recoveryReason: DiscourseSessionRecoveryReason?) {
+    val authentication = LocalForumAuthentication.current
+    val state = authentication.state
+    val recoveryRequired = recoveryReason != null
+    Column(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 16.dp)
+                .testTag(ForumTestTags.AUTH_REQUIRED),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
+    ) {
+        Icon(
+            if (recoveryRequired) {
+                FontAwesomeIcons.Solid.TriangleExclamation
+            } else {
+                FontAwesomeIcons.Solid.Lock
+            },
+            contentDescription = null,
+            modifier = Modifier.size(28.dp),
+            tint = MaterialTheme.colorScheme.secondary,
+        )
+        Text(
+            stringResource(
+                if (recoveryRequired) {
+                    Res.string.forum_session_recovery_title
+                } else {
+                    Res.string.forum_auth_required_title
+                },
+            ),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            recoveryReason?.let { forumSessionRecoveryMessage(it) }
+                ?: stringResource(Res.string.forum_auth_required_body),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        if (!recoveryRequired) {
+            state.failure?.let { failure ->
+                Text(
+                    authenticationFailureMessage(failure),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.testTag(ForumTestTags.AUTH_FAILURE),
+                )
+            }
+            if (state.isBusy) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                    Text(
+                        stringResource(Res.string.forum_auth_busy),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            } else {
+                Button(
+                    onClick = {
+                        authentication.onAction(DiscourseAuthenticationAction.BeginAuthorization)
+                    },
+                    modifier = Modifier.testTag(ForumTestTags.AUTH_SIGN_IN),
+                    shape = RoundedCornerShape(6.dp),
+                ) {
+                    Text(stringResource(Res.string.forum_auth_sign_in))
+                }
+                TextButton(
+                    onClick = {
+                        authentication.onAction(DiscourseAuthenticationAction.BeginFallbackLogin)
+                    },
+                    modifier = Modifier.testTag(ForumTestTags.AUTH_FALLBACK),
+                ) {
+                    Text(stringResource(Res.string.forum_auth_fallback))
+                }
+            }
+        }
+    }
 }
+
+@Composable
+private fun authenticationFailureMessage(failure: DiscourseAuthenticationFailureKind): String =
+    when (failure) {
+        DiscourseAuthenticationFailureKind.Authentication -> {
+            stringResource(Res.string.forum_failure_authentication)
+        }
+
+        DiscourseAuthenticationFailureKind.Permission -> {
+            stringResource(Res.string.forum_failure_permission)
+        }
+
+        DiscourseAuthenticationFailureKind.RateLimited -> {
+            stringResource(Res.string.forum_failure_rate_limited)
+        }
+
+        DiscourseAuthenticationFailureKind.ChallengeRequired -> {
+            stringResource(Res.string.forum_failure_challenge)
+        }
+
+        DiscourseAuthenticationFailureKind.Network -> {
+            stringResource(Res.string.forum_failure_network)
+        }
+
+        DiscourseAuthenticationFailureKind.Server -> {
+            stringResource(Res.string.forum_failure_server)
+        }
+
+        DiscourseAuthenticationFailureKind.InvalidResponse -> {
+            stringResource(Res.string.forum_failure_invalid_response)
+        }
+
+        DiscourseAuthenticationFailureKind.BrowserUnavailable -> {
+            stringResource(Res.string.forum_auth_browser_unavailable)
+        }
+    }
 
 @Composable
 private fun ForumAccountCenteredState(

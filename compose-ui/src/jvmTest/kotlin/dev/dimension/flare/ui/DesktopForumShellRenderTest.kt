@@ -1,8 +1,11 @@
 package dev.dimension.flare.ui
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toAwtImage
 import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsEqualTo
@@ -11,10 +14,21 @@ import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.v2.runDesktopComposeUiTest
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
+import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationAction
+import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationFailureKind
+import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationState
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumAction
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumDestination
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumFailureKind
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumNotificationsState
+import dev.dimension.flare.data.network.discourse.forum.DiscourseForumState
+import dev.dimension.flare.data.network.discourse.realtime.DiscourseSessionRecoveryReason
 import dev.dimension.flare.ui.theme.FlareDoTheme
 import java.io.File
 import javax.imageio.ImageIO
@@ -103,7 +117,314 @@ internal class DesktopForumShellRenderTest {
                 image.writeReport("compact-topic-dark.png")
             }
         }
+
+    @Test
+    fun guestAuthenticationControlsDispatchPrimaryAndFallbackLogin() =
+        runDesktopComposeUiTest(width = 500, height = 720) {
+            val observedActions = mutableListOf<DiscourseAuthenticationAction>()
+            val guestProfile =
+                ForumPreviewFixtures.loaded(withSelectedTopic = false).copy(
+                    destination = DiscourseForumDestination.Profile,
+                )
+            setContent {
+                FlareDoTheme(darkTheme = false) {
+                    ForumAuthenticationProvider(
+                        state = DiscourseAuthenticationState(),
+                        onAction = observedActions::add,
+                    ) {
+                        ForumProfilePane(
+                            state = guestProfile,
+                            onAction = {},
+                        )
+                    }
+                }
+            }
+
+            onNodeWithTag(ForumTestTags.AUTH_SIGN_OUT).assertDoesNotExist()
+            onNodeWithTag(ForumTestTags.AUTH_SIGN_IN)
+                .assertIsDisplayed()
+                .assertHasClickAction()
+                .performClick()
+            onNodeWithTag(ForumTestTags.AUTH_FALLBACK)
+                .assertIsDisplayed()
+                .assertHasClickAction()
+                .performClick()
+
+            runOnIdle {
+                assertEquals(
+                    listOf(
+                        DiscourseAuthenticationAction.BeginAuthorization,
+                        DiscourseAuthenticationAction.BeginFallbackLogin,
+                    ),
+                    observedActions,
+                )
+            }
+        }
+
+    @Test
+    fun authenticatedProfileExposesOnlyLogoutCommand() =
+        runDesktopComposeUiTest(width = 500, height = 720) {
+            var observedAction: DiscourseAuthenticationAction? = null
+            setContent {
+                FlareDoTheme(darkTheme = false) {
+                    ForumAuthenticationProvider(
+                        state = DiscourseAuthenticationState(),
+                        onAction = { observedAction = it },
+                    ) {
+                        ForumProfilePane(
+                            state = ForumPreviewFixtures.profile(),
+                            onAction = {},
+                        )
+                    }
+                }
+            }
+
+            onNodeWithTag(ForumTestTags.AUTH_SIGN_IN).assertDoesNotExist()
+            onNodeWithTag(ForumTestTags.AUTH_FALLBACK).assertDoesNotExist()
+            onNodeWithTag(ForumTestTags.AUTH_SIGN_OUT)
+                .assertIsDisplayed()
+                .assertHasClickAction()
+                .performClick()
+
+            runOnIdle {
+                assertEquals(DiscourseAuthenticationAction.Logout, observedAction)
+            }
+        }
+
+    @Test
+    fun compactGuestProfileKeepsFailedLoginActionsReachableAtLargeFontScale() =
+        runDesktopComposeUiTest(width = 400, height = 400) {
+            val observedActions = mutableListOf<DiscourseAuthenticationAction>()
+            val guestProfile =
+                ForumPreviewFixtures.loaded(withSelectedTopic = false).copy(
+                    destination = DiscourseForumDestination.Profile,
+                )
+            setContent {
+                val hostDensity = LocalDensity.current
+                CompositionLocalProvider(
+                    LocalDensity provides Density(hostDensity.density, fontScale = 1.5f),
+                ) {
+                    FlareDoTheme(darkTheme = false) {
+                        ForumAuthenticationProvider(
+                            state =
+                                DiscourseAuthenticationState(
+                                    failure = DiscourseAuthenticationFailureKind.BrowserUnavailable,
+                                ),
+                            onAction = observedActions::add,
+                        ) {
+                            ForumProfilePane(state = guestProfile, onAction = {})
+                        }
+                    }
+                }
+            }
+
+            onNodeWithTag(ForumTestTags.PROFILE).assertIsDisplayed()
+            onNodeWithTag(ForumTestTags.AUTH_FAILURE).performScrollTo().assertIsDisplayed()
+            onNodeWithTag(ForumTestTags.AUTH_SIGN_IN)
+                .performScrollTo()
+                .assertIsDisplayed()
+                .assertHasClickAction()
+                .performClick()
+            onNodeWithTag(ForumTestTags.AUTH_FALLBACK)
+                .performScrollTo()
+                .assertIsDisplayed()
+                .assertHasClickAction()
+                .performClick()
+
+            runOnIdle {
+                assertEquals(
+                    listOf(
+                        DiscourseAuthenticationAction.BeginAuthorization,
+                        DiscourseAuthenticationAction.BeginFallbackLogin,
+                    ),
+                    observedActions,
+                )
+            }
+        }
+
+    @Test
+    fun compactGuestNotificationsKeepsFailedLoginActionsReachableAtLargeFontScale() =
+        runDesktopComposeUiTest(width = 400, height = 400) {
+            val guestNotifications =
+                ForumPreviewFixtures.loaded(withSelectedTopic = false).copy(
+                    destination = DiscourseForumDestination.Notifications,
+                )
+            setContent {
+                val hostDensity = LocalDensity.current
+                CompositionLocalProvider(
+                    LocalDensity provides Density(hostDensity.density, fontScale = 1.5f),
+                ) {
+                    FlareDoTheme(darkTheme = false) {
+                        ForumAuthenticationProvider(
+                            state =
+                                DiscourseAuthenticationState(
+                                    failure = DiscourseAuthenticationFailureKind.Network,
+                                ),
+                            onAction = {},
+                        ) {
+                            ForumNotificationsPane(state = guestNotifications, onAction = {})
+                        }
+                    }
+                }
+            }
+
+            onNodeWithTag(ForumTestTags.NOTIFICATIONS).assertIsDisplayed()
+            onNodeWithTag(ForumTestTags.AUTH_FAILURE).performScrollTo().assertIsDisplayed()
+            onNodeWithTag(ForumTestTags.AUTH_SIGN_IN)
+                .performScrollTo()
+                .assertIsDisplayed()
+                .assertHasClickAction()
+            onNodeWithTag(ForumTestTags.AUTH_FALLBACK)
+                .performScrollTo()
+                .assertIsDisplayed()
+                .assertHasClickAction()
+        }
+
+    @Test
+    fun compactRecoveryKeepsLogoutReachableAndRemovesLoginActionsAtLargeFontScale() =
+        runDesktopComposeUiTest(width = 400, height = 400) {
+            val observedActions = mutableListOf<DiscourseAuthenticationAction>()
+            setContent {
+                val hostDensity = LocalDensity.current
+                CompositionLocalProvider(
+                    LocalDensity provides Density(hostDensity.density, fontScale = 1.5f),
+                ) {
+                    FlareDoTheme(darkTheme = false) {
+                        ForumAuthenticationProvider(
+                            state = DiscourseAuthenticationState(),
+                            onAction = observedActions::add,
+                        ) {
+                            ForumWorkspace(
+                                state = recoveryState(DiscourseSessionRecoveryReason.AuthenticationRequired),
+                                onAction = {},
+                            )
+                        }
+                    }
+                }
+            }
+
+            val bandBounds =
+                onNodeWithTag(ForumTestTags.SESSION_RECOVERY_BAND)
+                    .assertIsDisplayed()
+                    .assertWidthIsEqualTo(400.dp)
+                    .getUnclippedBoundsInRoot()
+            val messageBounds =
+                onNodeWithTag(ForumTestTags.SESSION_RECOVERY_MESSAGE)
+                    .assertIsDisplayed()
+                    .getUnclippedBoundsInRoot()
+            val action =
+                onNodeWithTag(ForumTestTags.SESSION_RECOVERY_ACTION)
+                    .assertIsDisplayed()
+                    .assertHasClickAction()
+            val actionBounds = action.getUnclippedBoundsInRoot()
+            val notificationsTop =
+                onNodeWithTag(ForumTestTags.NOTIFICATIONS)
+                    .assertIsDisplayed()
+                    .getUnclippedBoundsInRoot()
+                    .top
+
+            assertTrue(messageBounds.bottom <= actionBounds.top, "Compact recovery text must precede its action")
+            assertTrue(actionBounds.bottom <= bandBounds.bottom, "Compact recovery action must stay inside the band")
+            assertTrue(bandBounds.bottom <= notificationsTop, "Recovery band must not cover compact content")
+            onNodeWithTag(ForumTestTags.AUTH_REQUIRED).assertIsDisplayed()
+            onNodeWithTag(ForumTestTags.AUTH_SIGN_IN).assertDoesNotExist()
+            onNodeWithTag(ForumTestTags.AUTH_FALLBACK).assertDoesNotExist()
+
+            action.performClick()
+            runOnIdle {
+                assertEquals(
+                    listOf<DiscourseAuthenticationAction>(DiscourseAuthenticationAction.Logout),
+                    observedActions,
+                )
+            }
+        }
+
+    @Test
+    fun mediumRecoveryBandKeepsMessageActionAndPanesDisjoint() =
+        runDesktopComposeUiTest(width = 610, height = 500) {
+            setContent {
+                FlareDoTheme(darkTheme = false) {
+                    ForumAuthenticationProvider(
+                        state = DiscourseAuthenticationState(),
+                        onAction = {},
+                    ) {
+                        ForumWorkspace(
+                            state = recoveryState(DiscourseSessionRecoveryReason.PermissionDenied),
+                            onAction = {},
+                        )
+                    }
+                }
+            }
+
+            assertWideRecoveryGeometry(expectedWidth = 610.dp)
+            onNodeWithTag(ForumTestTags.TOPIC_DETAIL).assertIsDisplayed()
+            onNodeWithTag(ForumTestTags.SUPPORTING_PANE).assertDoesNotExist()
+        }
+
+    @Test
+    fun expandedRecoveryBandKeepsMessageActionAndThreePanesDisjoint() =
+        runDesktopComposeUiTest(width = 900, height = 500) {
+            setContent {
+                FlareDoTheme(darkTheme = true) {
+                    ForumAuthenticationProvider(
+                        state = DiscourseAuthenticationState(),
+                        onAction = {},
+                    ) {
+                        ForumWorkspace(
+                            state = recoveryState(DiscourseSessionRecoveryReason.ManualChallengeRequired),
+                            onAction = {},
+                        )
+                    }
+                }
+            }
+
+            assertWideRecoveryGeometry(expectedWidth = 900.dp)
+            onNodeWithTag(ForumTestTags.TOPIC_DETAIL).assertIsDisplayed()
+            onNodeWithTag(ForumTestTags.SUPPORTING_PANE).assertIsDisplayed()
+        }
+
+    private fun ComposeUiTest.assertWideRecoveryGeometry(expectedWidth: Dp) {
+        val bandBounds =
+            onNodeWithTag(ForumTestTags.SESSION_RECOVERY_BAND)
+                .assertIsDisplayed()
+                .assertWidthIsEqualTo(expectedWidth)
+                .getUnclippedBoundsInRoot()
+        val messageBounds =
+            onNodeWithTag(ForumTestTags.SESSION_RECOVERY_MESSAGE)
+                .assertIsDisplayed()
+                .getUnclippedBoundsInRoot()
+        val actionBounds =
+            onNodeWithTag(ForumTestTags.SESSION_RECOVERY_ACTION)
+                .assertIsDisplayed()
+                .assertHasClickAction()
+                .getUnclippedBoundsInRoot()
+        val notificationsTop =
+            onNodeWithTag(ForumTestTags.NOTIFICATIONS)
+                .assertIsDisplayed()
+                .getUnclippedBoundsInRoot()
+                .top
+
+        assertTrue(messageBounds.right <= actionBounds.left, "Wide recovery text must end before its action")
+        assertTrue(actionBounds.right <= bandBounds.right, "Wide recovery action must stay inside the band")
+        assertTrue(bandBounds.bottom <= notificationsTop, "Recovery band must not cover account content")
+        onNodeWithTag(ForumTestTags.AUTH_SIGN_IN).assertDoesNotExist()
+        onNodeWithTag(ForumTestTags.AUTH_FALLBACK).assertDoesNotExist()
+    }
 }
+
+private fun recoveryState(reason: DiscourseSessionRecoveryReason): DiscourseForumState =
+    ForumPreviewFixtures.loaded(withSelectedTopic = false).copy(
+        destination = DiscourseForumDestination.Notifications,
+        sessionGeneration = 6L,
+        accountId = "preview-account",
+        isAuthenticated = true,
+        accountUsername = "preview_member",
+        notifications =
+            DiscourseForumNotificationsState(
+                failure = DiscourseForumFailureKind.Authentication,
+            ),
+        realtimeRecoveryReason = reason,
+    )
 
 /**
  * Checks a structural pixel contract instead of a cross-platform golden.

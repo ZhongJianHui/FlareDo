@@ -25,6 +25,7 @@ internal class DesktopLifecycleTest {
                             allowFlush.await()
                             order += "composer-finished"
                         },
+                        closeAuthentication = { order += "authentication" },
                         closeForum = { order += "forum" },
                         closeDependencies = { order += "dependencies" },
                     )
@@ -38,10 +39,44 @@ internal class DesktopLifecycleTest {
             shutdown.join()
 
             assertEquals(
-                listOf("composer-start", "composer-finished", "forum", "dependencies"),
+                listOf("composer-start", "composer-finished", "authentication", "forum", "dependencies"),
                 order,
             )
             assertTrue(shutdown.isCompleted)
+        }
+
+    @Test
+    fun dependenciesRemainOpenUntilPresenterCleanupCompletes() =
+        runBlocking {
+            val cleanupStarted = CompletableDeferred<Unit>()
+            val allowCleanup = CompletableDeferred<Unit>()
+            val order = mutableListOf<String>()
+            val shutdown =
+                launch(start = CoroutineStart.UNDISPATCHED) {
+                    closeDesktopApplication(
+                        closeComposer = { order += "composer" },
+                        closeAuthentication = {
+                            order += "presenters-start"
+                            cleanupStarted.complete(Unit)
+                            allowCleanup.await()
+                            order += "presenters-finished"
+                        },
+                        closeForum = { order += "forum" },
+                        closeDependencies = { order += "dependencies" },
+                    )
+                }
+
+            cleanupStarted.await()
+            assertEquals(listOf("composer", "presenters-start"), order)
+            assertFalse(shutdown.isCompleted)
+
+            allowCleanup.complete(Unit)
+            shutdown.join()
+
+            assertEquals(
+                listOf("composer", "presenters-start", "presenters-finished", "forum", "dependencies"),
+                order,
+            )
         }
 
     @Test
@@ -55,12 +90,34 @@ internal class DesktopLifecycleTest {
                         order += "composer"
                         error("flush failed")
                     },
+                    closeAuthentication = { order += "authentication" },
                     closeForum = { order += "forum" },
                     closeDependencies = { order += "dependencies" },
                 )
             }
         }
 
-        assertEquals(listOf("composer", "forum", "dependencies"), order)
+        assertEquals(listOf("composer", "authentication", "forum", "dependencies"), order)
+    }
+
+    @Test
+    fun forumAndDependenciesStillCloseWhenAuthenticationCleanupFails() {
+        val order = mutableListOf<String>()
+
+        runCatching {
+            runBlocking {
+                closeDesktopApplication(
+                    closeComposer = { order += "composer" },
+                    closeAuthentication = {
+                        order += "authentication"
+                        error("authentication cleanup failed")
+                    },
+                    closeForum = { order += "forum" },
+                    closeDependencies = { order += "dependencies" },
+                )
+            }
+        }
+
+        assertEquals(listOf("composer", "authentication", "forum", "dependencies"), order)
     }
 }

@@ -9,7 +9,7 @@ import kotlin.test.assertTrue
 
 class AndroidDiscourseWebSessionCookieBridgeTest {
     @Test
-    fun bridgeReadsOnlyTheFixedOriginAndExpiresObservedNames() =
+    fun bridgeReadsOnlyTheFixedOriginAndRemovesTheWholeWebViewCookieStore() =
         runTest {
             val backend = FakeAndroidWebCookieBackend("_t=session-value; cf_clearance=clearance-value")
             val bridge =
@@ -26,9 +26,11 @@ class AndroidDiscourseWebSessionCookieBridgeTest {
             assertEquals(listOf("https://linux.do"), backend.readOrigins)
 
             bridge.clearLinuxDoCookies()
-            assertEquals(2, backend.expired.size)
-            assertTrue(backend.expired.all { (origin, _) -> origin == "https://linux.do" })
+            assertEquals(1, backend.removeAllCalls)
             assertTrue(backend.didFlush)
+            assertEquals(listOf("removeAll", "flush"), backend.cleanupEvents)
+            // Cleanup does not infer cookie scope from getCookie(), which omits Domain metadata.
+            assertEquals(listOf("https://linux.do"), backend.readOrigins)
         }
 
     @Test
@@ -49,7 +51,8 @@ private class FakeAndroidWebCookieBackend(
     private val header: String?,
 ) : AndroidWebCookieBackend {
     val readOrigins = mutableListOf<String>()
-    val expired = mutableListOf<Pair<String, String>>()
+    val cleanupEvents = mutableListOf<String>()
+    var removeAllCalls = 0
     var didFlush = false
 
     override fun getCookie(origin: String): String? {
@@ -57,14 +60,13 @@ private class FakeAndroidWebCookieBackend(
         return header
     }
 
-    override suspend fun expireCookie(
-        origin: String,
-        cookie: String,
-    ) {
-        expired += origin to cookie
+    override suspend fun removeAllCookies() {
+        removeAllCalls += 1
+        cleanupEvents += "removeAll"
     }
 
     override fun flush() {
         didFlush = true
+        cleanupEvents += "flush"
     }
 }

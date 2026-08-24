@@ -27,7 +27,9 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.withContext
@@ -55,11 +57,29 @@ public class DiscourseComposerPresenter(
     private val autosaveDelayMillis: Long = DEFAULT_COMPOSER_AUTOSAVE_DELAY_MILLIS,
 ) : PresenterBase<DiscourseComposerState>(dispatcher) {
     private val commands = Channel<ComposerCommand>(capacity = COMMAND_CHANNEL_CAPACITY)
-    private val draftUpdates = Channel<OwnedComposerDraftInput>(capacity = Channel.CONFLATED)
+    private val draftUpdateSignals = Channel<Unit>(capacity = Channel.CONFLATED)
+    private val acceptedDraftInput = MutableStateFlow(AcceptedComposerDraftInputState())
+    private val commandAdmission = MutableStateFlow(ComposerCommandAdmissionState())
     private val actorCompleted = CompletableDeferred<Unit>()
+    private val actorLifecycle = MutableStateFlow(ComposerActorLifecycle.NOT_STARTED)
 
     init {
         require(autosaveDelayMillis >= 0L) { "Composer autosave delay cannot be negative" }
+    }
+
+    override fun onClose() {
+        closeCommandAdmission()
+        if (!closeActorBeforeStart()) {
+            actorLifecycle.compareAndSet(
+                expect = ComposerActorLifecycle.RUNNING,
+                update = ComposerActorLifecycle.CLOSED,
+            )
+            // close() preserves a conflated draft already accepted by the running actor, allowing
+            // runActorScope's non-cancellable final flush to consume it before scope cancellation.
+            commands.close()
+            closeDraftInputAdmission()
+            draftUpdateSignals.close()
+        }
     }
 
     /** Opens a new-topic editor after loading account-visible category and tag constraints. */
@@ -174,14 +194,13 @@ public class DiscourseComposerPresenter(
                 accountId = expectedAccountId,
                 target = expectedTarget,
             ) ?: return false
-        return draftUpdates
-            .trySend(
-                OwnedComposerDraftInput(
-                    value = DiscourseComposerDraftInput(title, raw, tags.toList()),
-                    baseContentVersion = expectedContentVersion,
-                    owner = owner,
-                ),
-            ).isSuccess
+        return acceptDraftInput(
+            OwnedComposerDraftInput(
+                value = DiscourseComposerDraftInput(title, raw, tags.toList()),
+                baseContentVersion = expectedContentVersion,
+                owner = owner,
+            ),
+        )
     }
 
     /** Persists the latest conflated input and submits exactly that durable draft. */
@@ -260,10 +279,14 @@ public class DiscourseComposerPresenter(
      * `finally` still performs the same non-cancellable flush without blocking `ViewModel.onCleared`.
      */
     public suspend fun closeAndFlush() {
-        // Force lazy Molecule startup before enqueuing the terminal command.
-        models.value
         withContext(NonCancellable) {
-            if (!actorCompleted.isCompleted) {
+            val ownsShutdown = closeCommandAdmission()
+            closeDraftInputAdmission(permanently = true)
+            awaitAdmittedCommandSenders()
+            startLazyActorForAcceptedCommands()
+            // Whichever side wins NOT_STARTED owns teardown. If LaunchedEffect has already moved to
+            // RUNNING, preserve graceful shutdown so accepted submits finish before the final flush.
+            if (!closeActorBeforeStart() && ownsShutdown && !actorCompleted.isCompleted) {
                 val immediate = commands.trySend(ComposerCommand.Shutdown)
                 if (immediate.isFailure && !immediate.isClosed) {
                     try {
@@ -414,6 +437,14 @@ public class DiscourseComposerPresenter(
     override fun body(): DiscourseComposerState {
         var state by remember { mutableStateOf(DiscourseComposerState()) }
         LaunchedEffect(repository, draftStore, postActionRepository, sessionManager) {
+            if (
+                !actorLifecycle.compareAndSet(
+                    expect = ComposerActorLifecycle.NOT_STARTED,
+                    update = ComposerActorLifecycle.RUNNING,
+                )
+            ) {
+                return@LaunchedEffect
+            }
             runActor(
                 state = { state },
                 setState = { state = it },
@@ -422,7 +453,167 @@ public class DiscourseComposerPresenter(
         return state
     }
 
-    private fun dispatch(command: ComposerCommand): Boolean = commands.trySend(command).isSuccess
+    private fun dispatch(command: ComposerCommand): Boolean {
+        if (!acquireCommandAdmission()) return false
+        return try {
+            commands.trySend(command).isSuccess.also { accepted ->
+                if (accepted) recordAcceptedCommand()
+            }
+        } finally {
+            releaseCommandAdmission()
+        }
+    }
+
+    /**
+     * Pins one non-suspending producer before it touches the command Channel.
+     *
+     * Graceful shutdown first closes this admission state, waits for every pin to leave, and then
+     * appends its terminal marker. A command that already returned true is therefore unconditionally
+     * before Shutdown in the Channel, while a producer that loses the closing CAS returns false.
+     */
+    private fun acquireCommandAdmission(): Boolean {
+        while (true) {
+            val current = commandAdmission.value
+            if (current.isClosed || current.inFlightSenders == Int.MAX_VALUE) return false
+            if (
+                commandAdmission.compareAndSet(
+                    current,
+                    current.copy(inFlightSenders = current.inFlightSenders + 1),
+                )
+            ) {
+                return true
+            }
+        }
+    }
+
+    private fun releaseCommandAdmission() {
+        while (true) {
+            val current = commandAdmission.value
+            check(current.inFlightSenders > 0) { "Composer command admission pin underflow" }
+            if (
+                commandAdmission.compareAndSet(
+                    current,
+                    current.copy(inFlightSenders = current.inFlightSenders - 1),
+                )
+            ) {
+                return
+            }
+        }
+    }
+
+    /** Records successful queue ownership before the producer pin can release graceful shutdown. */
+    private fun recordAcceptedCommand() {
+        while (true) {
+            val current = commandAdmission.value
+            if (current.hasAcceptedCommand) return
+            if (commandAdmission.compareAndSet(current, current.copy(hasAcceptedCommand = true))) return
+        }
+    }
+
+    /** Returns true only to the caller that owns appending the one graceful Shutdown marker. */
+    private fun closeCommandAdmission(): Boolean {
+        while (true) {
+            val current = commandAdmission.value
+            if (current.isClosed) return false
+            if (commandAdmission.compareAndSet(current, current.copy(isClosed = true))) return true
+        }
+    }
+
+    private suspend fun awaitAdmittedCommandSenders() {
+        commandAdmission.first { state -> state.inFlightSenders == 0 }
+    }
+
+    /**
+     * Starts Molecule only when a lazy presenter already promised to consume a public command.
+     *
+     * The empty lazy-close path remains synchronous. Once a command has returned true, however,
+     * graceful close must let the actor claim its queue before appending Shutdown instead of winning
+     * NOT_STARTED itself and discarding that command.
+     */
+    private suspend fun startLazyActorForAcceptedCommands() {
+        if (
+            !commandAdmission.value.hasAcceptedCommand ||
+            actorLifecycle.value != ComposerActorLifecycle.NOT_STARTED
+        ) {
+            return
+        }
+        models.value
+        actorLifecycle.first { lifecycle -> lifecycle != ComposerActorLifecycle.NOT_STARTED }
+    }
+
+    private fun acceptDraftInput(input: OwnedComposerDraftInput): Boolean {
+        while (true) {
+            if (actorLifecycle.value != ComposerActorLifecycle.RUNNING) return false
+            val current = acceptedDraftInput.value
+            val admission = current.admission ?: return false
+            if (
+                current.isTerminated ||
+                current.sequence == Long.MAX_VALUE ||
+                admission.owner != input.owner ||
+                input.baseContentVersion < admission.minimumContentVersion
+            ) {
+                return false
+            }
+            val accepted =
+                current.copy(
+                    sequence = current.sequence + 1L,
+                    input = input,
+                )
+            if (acceptedDraftInput.compareAndSet(current, accepted)) {
+                // The slot is the delivery contract. If close wins immediately after this CAS, the
+                // actor's final flush still reads the pin even when this wake-up is rejected or its
+                // select clause is prompt-cancelled before executing.
+                draftUpdateSignals.trySend(Unit)
+                return true
+            }
+        }
+    }
+
+    private fun closeDraftInputAdmission(permanently: Boolean = false) {
+        while (true) {
+            val current = acceptedDraftInput.value
+            if (current.isTerminated || (!permanently && current.admission == null)) return
+            val closed =
+                current.copy(
+                    admission = null,
+                    isTerminated = current.isTerminated || permanently,
+                )
+            if (acceptedDraftInput.compareAndSet(current, closed)) return
+        }
+    }
+
+    /** Opens only after the actor has published a fully initialized, editable owner snapshot. */
+    private fun openDraftInputAdmission(snapshot: DiscourseComposerState) {
+        val owner = snapshot.contentOwnerOrNull() ?: return
+        if (!snapshot.canEdit) return
+        val admission = ComposerDraftInputAdmission(owner, snapshot.contentVersion)
+        while (true) {
+            val current = acceptedDraftInput.value
+            if (current.isTerminated) return
+            check(current.input == null) {
+                "Composer draft admission cannot reopen before the previous owner input is consumed"
+            }
+            if (acceptedDraftInput.compareAndSet(current, current.copy(admission = admission))) return
+        }
+    }
+
+    private fun closeActorBeforeStart(): Boolean {
+        // This admission CAS is the input boundary for both graceful and cancelling closes. Any
+        // update accepted before it remains pinned for a running actor; every later update fails.
+        closeDraftInputAdmission(permanently = true)
+        if (
+            !actorLifecycle.compareAndSet(
+                expect = ComposerActorLifecycle.NOT_STARTED,
+                update = ComposerActorLifecycle.CLOSED,
+            )
+        ) {
+            return false
+        }
+        commands.close()
+        draftUpdateSignals.close()
+        actorCompleted.complete(Unit)
+        return true
+    }
 
     private inline fun dispatchOwnedComposerCommand(
         expectedContentVersion: Long,
@@ -459,6 +650,17 @@ public class DiscourseComposerPresenter(
         try {
             runActorScope(state, setState)
         } finally {
+            if (
+                !actorLifecycle.compareAndSet(
+                    expect = ComposerActorLifecycle.RUNNING,
+                    update = ComposerActorLifecycle.FINISHED,
+                )
+            ) {
+                actorLifecycle.compareAndSet(
+                    expect = ComposerActorLifecycle.CLOSED,
+                    update = ComposerActorLifecycle.FINISHED,
+                )
+            }
             actorCompleted.complete(Unit)
         }
     }
@@ -902,8 +1104,17 @@ public class DiscourseComposerPresenter(
                 scheduleAutosave()
             }
 
+            fun acknowledgeDraftInput(accepted: AcceptedComposerDraftInputState) {
+                acceptedDraftInput.compareAndSet(accepted, accepted.copy(input = null))
+            }
+
             fun drainLatestDraftUpdate() {
-                draftUpdates.tryReceive().getOrNull()?.let(::handleDraftUpdate)
+                val accepted = acceptedDraftInput.value
+                val input = accepted.input ?: return
+                handleDraftUpdate(input)
+                // A concurrent callback has a newer sequence and therefore cannot be cleared by an
+                // older handler that finishes later.
+                acknowledgeDraftInput(accepted)
             }
 
             fun consumeLatestDraftSnapshot(snapshot: DiscourseComposerState): DiscourseComposerState {
@@ -916,18 +1127,37 @@ public class DiscourseComposerPresenter(
                                 snapshot.withDraftInput(resolved, snapshot.contentVersion)
                             }
                         } ?: snapshot
-                val latestInput = draftUpdates.tryReceive().getOrNull() ?: return withTransitionInput
-                val resolved = resolveDraftInput(withTransitionInput, latestInput) ?: return withTransitionInput
-                return withTransitionInput.withDraftInput(resolved, withTransitionInput.contentVersion)
-                    ?: withTransitionInput
+                val accepted = acceptedDraftInput.value
+                val latestInput = accepted.input ?: return withTransitionInput
+                val resolved = resolveDraftInput(withTransitionInput, latestInput)
+                if (resolved == null) {
+                    acknowledgeDraftInput(accepted)
+                    return withTransitionInput
+                }
+                val latestSnapshot =
+                    withTransitionInput.withDraftInput(resolved, withTransitionInput.contentVersion)
+                        ?: withTransitionInput
+                acknowledgeDraftInput(accepted)
+                return latestSnapshot
             }
 
             fun startSubmit() {
                 drainLatestDraftUpdate()
+                val preliminary = state()
+                if (!preliminary.canSubmit || submitJob?.isActive == true) return
+
+                // Submission makes the editor read-only. Seal before taking the submitted snapshot
+                // so a callback either wins the CAS and is included below, or observes the seal and
+                // returns false. A failed submission reopens this exact editor epoch in handleEvent.
+                closeDraftInputAdmission()
+                drainLatestDraftUpdate()
                 val snapshot = state()
+                if (!snapshot.canSubmit || submitJob?.isActive == true) {
+                    openDraftInputAdmission(snapshot)
+                    return
+                }
                 val accountId = snapshot.accountId ?: return
                 val target = snapshot.target ?: return
-                if (!snapshot.canSubmit || submitJob?.isActive == true) return
                 autosaveJob?.cancel()
                 val epoch = composerEpoch
                 val generation = snapshot.sessionGeneration
@@ -1188,9 +1418,10 @@ public class DiscourseComposerPresenter(
 
             suspend fun handleSessionChanged(session: DiscourseSessionState) {
                 if (session.generation <= observedSessionGeneration) return
-                // The session manager changes before its StateFlow event reaches this actor. Drain
-                // the latest conflated editor value into the old account's cleanup snapshot so a
-                // final keystroke is not silently reassigned or dropped during logout.
+                // Seal the old owner before taking its durable snapshot. acceptDraftInput uses the
+                // same CAS state, so a callback that wins first is included while every callback that
+                // loses immediately returns false throughout the suspending cleanup below.
+                closeDraftInputAdmission()
                 val previous = consumeLatestDraftSnapshot(state())
                 cancelComposerOperationJobs()
                 cancelActionJobs()
@@ -1267,8 +1498,8 @@ public class DiscourseComposerPresenter(
                 }
                 when (command) {
                     is ComposerCommand.Open -> {
-                        drainLatestDraftUpdate()
-                        val previous = state()
+                        closeDraftInputAdmission()
+                        val previous = consumeLatestDraftSnapshot(state())
                         cancelComposerOperationJobs()
                         cancelUploadTask()
                         startSilentFlush(previous)
@@ -1284,8 +1515,8 @@ public class DiscourseComposerPresenter(
                         ) {
                             return
                         }
-                        drainLatestDraftUpdate()
-                        val previous = state()
+                        closeDraftInputAdmission()
+                        val previous = consumeLatestDraftSnapshot(state())
                         cancelComposerOperationJobs()
                         cancelUploadTask()
                         startSilentFlush(previous)
@@ -1311,7 +1542,8 @@ public class DiscourseComposerPresenter(
                         ) {
                             return
                         }
-                        val previous = state()
+                        closeDraftInputAdmission()
+                        val previous = consumeLatestDraftSnapshot(state())
                         val accountId = previous.accountId
                         val target = previous.target
                         cancelComposerOperationJobs()
@@ -1342,7 +1574,12 @@ public class DiscourseComposerPresenter(
                     }
 
                     ComposerCommand.RetryInitialization -> {
-                        state().target?.let(::startInitialization)
+                        state().target?.let { target ->
+                            closeDraftInputAdmission()
+                            val previous = consumeLatestDraftSnapshot(state())
+                            startSilentFlush(previous)
+                            startInitialization(target)
+                        }
                     }
 
                     is ComposerCommand.Submit -> {
@@ -1455,6 +1692,7 @@ public class DiscourseComposerPresenter(
                                 validationFailure = null,
                             )
                         }
+                        openDraftInputAdmission(state())
                     }
 
                     is ComposerEvent.InitializationFailed -> {
@@ -1559,6 +1797,7 @@ public class DiscourseComposerPresenter(
                                 validationFailure = event.validationFailure,
                             )
                         }
+                        openDraftInputAdmission(state())
                     }
 
                     is ComposerEvent.UploadStateChanged -> {
@@ -1691,7 +1930,7 @@ public class DiscourseComposerPresenter(
                         if (!shutdownRequested) {
                             commands.onReceive { command -> handleCommand(command) }
                         }
-                        draftUpdates.onReceive { input -> handleDraftUpdate(input) }
+                        draftUpdateSignals.onReceive { drainLatestDraftUpdate() }
                         sessionChanges.onReceive { session -> handleSessionChanged(session) }
                         events.onReceive { event -> handleEvent(event) }
                         if (shutdownRequested) {
@@ -1700,8 +1939,12 @@ public class DiscourseComposerPresenter(
                     }
                 }
             } finally {
+                // Stop admission before taking the final pin. An update that wins the preceding CAS
+                // is included; every later callback fails and cannot race the durable snapshot.
+                closeDraftInputAdmission(permanently = true)
                 // Presenter.close() can cancel the actor before the conflated typing channel wins a
-                // select. Capture that last whole-editor value before closing the channel.
+                // select. The CAS pin survives even when a signal was already dequeued by a clause
+                // whose continuation was prompt-cancelled before handleDraftUpdate could execute.
                 val finalSnapshot = consumeLatestDraftSnapshot(state())
                 cancelComposerOperationJobs()
                 cancelActionJobs()
@@ -1713,7 +1956,7 @@ public class DiscourseComposerPresenter(
                     flushDraftIgnoringFailure(finalSnapshot)
                 }
                 commands.close()
-                draftUpdates.close()
+                draftUpdateSignals.close()
                 sessionChanges.close()
                 events.close()
             }
@@ -1975,6 +2218,34 @@ public class DiscourseComposerPresenter(
         }
 
     private fun checkedNowEpochMillis(): Long = nowEpochMillis().also { require(it >= 0L) { "Composer clock cannot be negative" } }
+}
+
+private enum class ComposerActorLifecycle {
+    NOT_STARTED,
+    RUNNING,
+    CLOSED,
+    FINISHED,
+}
+
+/** Immutable CAS state that orders public producers before the one graceful terminal marker. */
+private data class ComposerCommandAdmissionState(
+    val isClosed: Boolean = false,
+    val inFlightSenders: Int = 0,
+    val hasAcceptedCommand: Boolean = false,
+) {
+    init {
+        require(inFlightSenders >= 0) { "Composer in-flight sender count cannot be negative" }
+    }
+}
+
+/** One editable owner epoch allowed to replace the actor's conflated draft pin. */
+private data class ComposerDraftInputAdmission(
+    val owner: ComposerContentOwner,
+    val minimumContentVersion: Long,
+) {
+    init {
+        require(minimumContentVersion >= 0L) { "Composer admission content version cannot be negative" }
+    }
 }
 
 private sealed interface ComposerCommand {
@@ -2285,6 +2556,13 @@ private data class ComposerSessionOwner(
         }
     }
 }
+
+private data class AcceptedComposerDraftInputState(
+    val sequence: Long = 0L,
+    val input: OwnedComposerDraftInput? = null,
+    val admission: ComposerDraftInputAdmission? = null,
+    val isTerminated: Boolean = false,
+)
 
 private data class OwnedComposerDraftInput(
     val value: DiscourseComposerDraftInput,
