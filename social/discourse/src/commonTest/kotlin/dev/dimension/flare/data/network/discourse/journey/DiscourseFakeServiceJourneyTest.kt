@@ -104,22 +104,30 @@ internal class DiscourseFakeServiceJourneyTest {
             val models = presenter.models
 
             try {
-                advanceUntilIdle()
+                val initialState =
+                    models.first { state ->
+                        !state.isFeedLoading && !state.isTaxonomyLoading
+                    }
 
-                assertFalse(models.value.isAuthenticated)
+                // A terminal loading state can also represent a failed request. Keep those
+                // assertions explicit so this synchronization cannot turn a service regression
+                // into a passing empty-state journey.
+                assertNull(initialState.feedFailure)
+                assertNull(initialState.taxonomyFailure)
+                assertFalse(initialState.isAuthenticated)
                 assertEquals(
                     listOf(42L),
-                    models.value.topics.map { topic -> assertNotNull(topic.discourse).ref.topicId },
+                    initialState.topics.map { topic -> assertNotNull(topic.discourse).ref.topicId },
                 )
                 assertEquals(
                     "Development",
-                    models.value.categories
+                    initialState.categories
                         .single()
                         .name,
                 )
                 assertEquals(
                     "Kotlin",
-                    models.value.tags
+                    initialState.tags
                         .single()
                         .name,
                 )
