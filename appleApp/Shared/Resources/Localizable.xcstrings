@@ -1,86 +1,75 @@
 {
-  "sourceLanguage" : "en",
-  "strings" : {
-    "forum.categories" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Categories"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "分类"
-          }
-        }
-      }
-    },
-    "forum.empty.categories" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No categories"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "暂无分类"
-          }
-        }
-      }
-    },
-    "forum.empty.topics" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No topics"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "暂无主题"
-          }
-        }
-      }
-    },
-    "forum.hot" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hot"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "热门"
-          }
-        }
-      }
-    },
-    "forum.latest" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Latest"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最新"
-          }
-        }
-      }
-    }
+  "sourceLanguage": "en",
+  "strings": {
+    "forum.activity": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Activity"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"动态"}}}},
+    "forum.activity_empty": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"No recent activity"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"暂无动态"}}}},
+    "forum.attach": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Attach"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"添加附件"}}}},
+    "forum.bookmark": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Bookmark"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"添加书签"}}}},
+    "forum.cached": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Showing cached content"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"正在显示离线缓存"}}}},
+    "forum.cancel": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Cancel"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"取消"}}}},
+    "forum.cancel_upload": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Cancel upload"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"取消上传"}}}},
+    "forum.categories": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Categories"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"分类"}}}},
+    "forum.challenge_title": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Linux.do verification"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"Linux.do 验证"}}}},
+    "forum.close_topic": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Close topic"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"关闭主题"}}}},
+    "forum.command.close": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Close Editor or Topic"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"关闭编辑器或主题"}}}},
+    "forum.command.menu": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Forum"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"论坛"}}}},
+    "forum.composer": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Composer"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"编辑器"}}}},
+    "forum.composer.tags": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Tags, separated by commas"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"标签（使用逗号分隔）"}}}},
+    "forum.composer.title": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Topic title"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"主题标题"}}}},
+    "forum.continue": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Continue"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"继续"}}}},
+    "forum.days_visited": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Days visited"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"访问天数"}}}},
+    "forum.edit": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Edit"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"编辑"}}}},
+    "forum.empty.categories": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"No categories"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"暂无分类"}}}},
+    "forum.empty.topics": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"No topics"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"暂无主题"}}}},
+    "forum.failure.authentication": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Your session has expired."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"登录状态已失效。"}}}},
+    "forum.failure.challenge": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Complete the Linux.do browser challenge, then retry."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"请先在浏览器完成 Linux.do 验证，然后重试。"}}}},
+    "forum.failure.http": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Linux.do returned an unexpected response."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"Linux.do 返回了异常响应。"}}}},
+    "forum.failure.invalid_response": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"The response could not be read safely."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"无法安全读取服务器响应。"}}}},
+    "forum.failure.network": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Check your connection and try again."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"请检查网络连接后重试。"}}}},
+    "forum.failure.permission": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Your account cannot perform this action."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"当前账号无权执行此操作。"}}}},
+    "forum.failure.rate_limited": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Too many requests. Try again later."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"请求过于频繁，请稍后重试。"}}}},
+    "forum.failure.server": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Linux.do is temporarily unavailable."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"Linux.do 暂时不可用。"}}}},
+    "forum.finish_login": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Finish sign in"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"完成登录"}}}},
+    "forum.hot": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Hot"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"热门"}}}},
+    "forum.image": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Image"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"图片"}}}},
+    "forum.image_unavailable": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Image unavailable"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"图片无法显示"}}}},
+    "forum.latest": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Latest"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"最新"}}}},
+    "forum.like": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Like"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"点赞"}}}},
+    "forum.load_failed": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Unable to load"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"加载失败"}}}},
+    "forum.load_more": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Load more"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"加载更多"}}}},
+    "forum.loading": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Loading"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"加载中"}}}},
+    "forum.login": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Sign in with browser"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"使用浏览器登录"}}}},
+    "forum.login_fallback": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Sign in in FlareDo"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"在 FlareDo 内登录"}}}},
+    "forum.login_required": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Sign in required"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"需要登录"}}}},
+    "forum.login_required_detail": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Sign in to view notifications and your profile."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"登录后可查看通知和个人资料。"}}}},
+    "forum.logout": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Sign out"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"退出登录"}}}},
+    "forum.mark_all_read": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Mark all read"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"全部标为已读"}}}},
+    "forum.new_topic": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"New topic"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"发新主题"}}}},
+    "forum.notifications": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Notifications"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"通知"}}}},
+    "forum.notifications_empty": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"No notifications"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"暂无通知"}}}},
+    "forum.original_post": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Original post"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"主楼"}}}},
+    "forum.posts": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Posts"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"帖子"}}}},
+    "forum.profile": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Profile"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"个人"}}}},
+    "forum.profile_empty": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Profile unavailable"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"无法显示个人资料"}}}},
+    "forum.publish": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Publish"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"发布"}}}},
+    "forum.refresh": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Refresh"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"刷新"}}}},
+    "forum.reply": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Reply"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"回复"}}}},
+    "forum.retry": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Retry"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"重试"}}}},
+    "forum.retry_upload": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Retry upload"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"重试上传"}}}},
+    "forum.search": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Search"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"搜索"}}}},
+    "forum.search_empty": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Search Linux.do"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"搜索 Linux.do"}}}},
+    "forum.search_prompt": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Topics and posts"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"搜索主题和帖子"}}}},
+    "forum.select_topic": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Select a topic"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"选择一个主题"}}}},
+    "forum.spoiler": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Spoiler"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"隐藏内容"}}}},
+    "forum.tags": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Tags"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"标签"}}}},
+    "forum.topic": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Topic"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"主题"}}}},
+    "forum.topics": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Topics"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"主题"}}}},
+    "forum.trust_level": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Trust level"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"信任等级"}}}},
+    "forum.unbookmark": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Remove bookmark"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"取消书签"}}}},
+    "forum.unlike": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Unlike"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"取消点赞"}}}},
+    "forum.unread": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Unread"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"未读"}}}},
+    "forum.uploading": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Uploading"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"正在上传"}}}},
+    "forum.web_login_title": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Linux.do sign in"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"登录 Linux.do"}}}}
   },
-  "version" : "1.0"
+  "version": "1.0"
 }

@@ -19,6 +19,7 @@ import dev.dimension.flare.data.network.discourse.session.SessionOnlySecureCrede
 import dev.dimension.flare.data.network.discourse.session.createDesktopSecureCredentialStore
 import dev.dimension.flare.di.sharedModule
 import dev.dimension.flare.ui.DesktopForumShell
+import dev.dimension.flare.ui.handleDesktopForumShortcut
 import dev.dimension.flare.ui.theme.FlareDoTheme
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.compose.resources.painterResource
@@ -72,6 +73,9 @@ public fun main() {
                 title = "FlareDo",
                 icon = painterResource(Res.drawable.flaredo_logo),
                 state = windowState,
+                onPreviewKeyEvent = { event ->
+                    handleDesktopForumShortcut(event, presenter, composerPresenter)
+                },
             ) {
                 DisposableEffect(presenter) {
                     onDispose { presenter.setForeground(false) }

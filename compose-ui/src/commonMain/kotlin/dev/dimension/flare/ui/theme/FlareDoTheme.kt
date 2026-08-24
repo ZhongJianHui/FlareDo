@@ -119,6 +119,14 @@ private val FlareDoTypography =
                 lineHeight = 16.sp,
                 letterSpacing = 0.sp,
             ),
+        labelSmall =
+            TextStyle(
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Medium,
+                fontSize = 11.sp,
+                lineHeight = 15.sp,
+                letterSpacing = 0.sp,
+            ),
     )
 
 private val FlareDoShapes =

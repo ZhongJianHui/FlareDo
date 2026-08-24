@@ -19,6 +19,7 @@ import dev.dimension.flare.data.network.discourse.realtime.DiscourseMessageBusTr
 import dev.dimension.flare.data.network.discourse.realtime.DiscourseRealtimeCoordinator
 import dev.dimension.flare.data.network.discourse.realtime.MemoryDiscourseMessageBusCursorStore
 import dev.dimension.flare.data.network.discourse.session.DiscourseSessionManager
+import dev.dimension.flare.data.network.discourse.session.DiscourseSessionState
 import dev.dimension.flare.ui.model.DiscourseTopicRef
 import dev.dimension.flare.ui.model.UiAuthor
 import kotlinx.coroutines.CancellationException
@@ -26,9 +27,11 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
@@ -37,11 +40,55 @@ import kotlinx.coroutines.withContext
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class DiscourseForumPresenterStage6Test {
+    @Test
+    fun closeAndJoinWaitsForNonCancellableRequestCleanup() =
+        runTest {
+            val cleanupStarted = CompletableDeferred<Unit>()
+            val releaseCleanup = CompletableDeferred<Unit>()
+            val forumRepository = RecordingPresenterForumRepository()
+            forumRepository.feedHandler = { _, _ ->
+                try {
+                    awaitCancellation()
+                } finally {
+                    withContext(NonCancellable) {
+                        cleanupStarted.complete(Unit)
+                        releaseCleanup.await()
+                    }
+                }
+            }
+            val presenter =
+                stage6Presenter(
+                    forumRepository = forumRepository,
+                    dispatcher = StandardTestDispatcher(testScheduler),
+                )
+            presenter.models
+
+            try {
+                runCurrent()
+                val close = async { presenter.closeAndJoin() }
+                runCurrent()
+
+                assertTrue(cleanupStarted.isCompleted)
+                assertFalse(close.isCompleted, "The host must not tear down Room or Koin before request cleanup")
+
+                releaseCleanup.complete(Unit)
+                advanceUntilIdle()
+
+                assertTrue(close.isCompleted)
+                close.await()
+            } finally {
+                releaseCleanup.complete(Unit)
+                presenter.close()
+                runCurrent()
+            }
+        }
+
     @Test
     fun sessionGenerationSwitchDiscardsOldResultThatIgnoresCancellation() =
         runTest {
@@ -621,6 +668,187 @@ internal class DiscourseForumPresenterStage6Test {
                 assertTrue(requireNotNull(models.value.notifications.snapshot).items.first().read)
             } finally {
                 releaseRefresh.complete(Unit)
+                presenter.close()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun staleNotificationOwnerCannotMutateAReplacementAccount() =
+        runTest {
+            val sessionManager = authenticatedPresenterSession()
+            val originalOwner = assertIs<DiscourseSessionState.Authenticated>(sessionManager.state.value)
+            val accountRepository = RecordingPresenterAccountRepository()
+            accountRepository.notificationHandler = { offset, _ ->
+                notificationPage(
+                    offset = offset,
+                    items = listOf(notification(701L)),
+                    nextOffset = null,
+                )
+            }
+            val presenter =
+                stage6Presenter(
+                    accountRepository = accountRepository,
+                    sessionManager = sessionManager,
+                    dispatcher = StandardTestDispatcher(testScheduler),
+                )
+            val models = presenter.models
+
+            try {
+                advanceUntilIdle()
+                assertTrue(
+                    presenter.dispatch(
+                        DiscourseForumAction.SelectDestination(DiscourseForumDestination.Notifications),
+                    ),
+                )
+                advanceUntilIdle()
+                assertEquals(1, requireNotNull(models.value.notifications.snapshot).unreadCount)
+
+                sessionManager.startAuthenticatedSession(
+                    accountId = "84",
+                    username = "replacement",
+                )
+                advanceUntilIdle()
+                val replacement = assertIs<DiscourseSessionState.Authenticated>(sessionManager.state.value)
+                assertEquals(2L, replacement.generation)
+                assertEquals("84", replacement.accountId)
+                assertEquals(1, requireNotNull(models.value.notifications.snapshot).unreadCount)
+
+                assertTrue(
+                    presenter.markNotificationsRead(
+                        notificationId = null,
+                        expectedSessionGeneration = originalOwner.generation,
+                        expectedAccountId = originalOwner.accountId,
+                    ),
+                )
+                advanceUntilIdle()
+
+                assertTrue(accountRepository.markReadRequests.isEmpty())
+                assertEquals(1, requireNotNull(models.value.notifications.snapshot).unreadCount)
+                assertFalse(models.value.notifications.isMarkingRead)
+            } finally {
+                presenter.close()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun sameAccountReplacementBeforeMarkReadLeaseSkipsRepositoryMutation() =
+        runTest {
+            val sessionManager = authenticatedPresenterSession()
+            val accountRepository = RecordingPresenterAccountRepository()
+            accountRepository.notificationHandler = { offset, _ ->
+                notificationPage(
+                    offset = offset,
+                    items = listOf(notification(751L)),
+                    nextOffset = null,
+                )
+            }
+            val presenter =
+                stage6Presenter(
+                    accountRepository = accountRepository,
+                    sessionManager = sessionManager,
+                    dispatcher = StandardTestDispatcher(testScheduler),
+                )
+            val models = presenter.models
+
+            try {
+                advanceUntilIdle()
+                assertTrue(
+                    presenter.dispatch(
+                        DiscourseForumAction.SelectDestination(DiscourseForumDestination.Notifications),
+                    ),
+                )
+                advanceUntilIdle()
+
+                // The actor accepts the owner-bound command first. The same-account replacement is
+                // queued before its child repository call and must invalidate that exact lease.
+                assertTrue(presenter.dispatch(DiscourseForumAction.MarkNotificationsRead(751L)))
+                launch {
+                    sessionManager.startAuthenticatedSession(accountId = "42", username = "member-again")
+                }
+                advanceUntilIdle()
+
+                assertTrue(accountRepository.markReadRequests.isEmpty())
+                assertEquals(2L, models.value.sessionGeneration)
+            } finally {
+                presenter.close()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun oldGenerationNotificationResultCannotReplaceSameAccountReload() =
+        runTest {
+            val oldRequestStarted = CompletableDeferred<Unit>()
+            val oldResult = CompletableDeferred<DiscourseForumNotificationPage>()
+            val sessionManager = authenticatedPresenterSession()
+            val accountRepository = RecordingPresenterAccountRepository()
+            var calls = 0
+            accountRepository.notificationHandler = { offset, _ ->
+                calls += 1
+                if (calls == 1) {
+                    oldRequestStarted.complete(Unit)
+                    withContext(NonCancellable) { oldResult.await() }
+                } else {
+                    notificationPage(
+                        offset = offset,
+                        items = listOf(notification(802L)),
+                        nextOffset = null,
+                    )
+                }
+            }
+            val presenter =
+                stage6Presenter(
+                    accountRepository = accountRepository,
+                    sessionManager = sessionManager,
+                    dispatcher = StandardTestDispatcher(testScheduler),
+                )
+            val models = presenter.models
+
+            try {
+                advanceUntilIdle()
+                assertTrue(
+                    presenter.dispatch(
+                        DiscourseForumAction.SelectDestination(DiscourseForumDestination.Notifications),
+                    ),
+                )
+                runCurrent()
+                assertTrue(oldRequestStarted.isCompleted)
+
+                sessionManager.startAuthenticatedSession(accountId = "42", username = "member-again")
+                runCurrent()
+                assertEquals(
+                    listOf(802L),
+                    models.value.notifications.snapshot
+                        ?.items
+                        ?.map { it.id },
+                )
+
+                oldResult.complete(
+                    notificationPage(
+                        offset = DiscourseNotificationOffset.Initial,
+                        items = listOf(notification(801L)),
+                        nextOffset = null,
+                    ),
+                )
+                advanceUntilIdle()
+
+                assertEquals(2L, models.value.sessionGeneration)
+                assertEquals(
+                    listOf(802L),
+                    models.value.notifications.snapshot
+                        ?.items
+                        ?.map { it.id },
+                )
+            } finally {
+                oldResult.complete(
+                    notificationPage(
+                        offset = DiscourseNotificationOffset.Initial,
+                        items = emptyList(),
+                        nextOffset = null,
+                    ),
+                )
                 presenter.close()
                 runCurrent()
             }

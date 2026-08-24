@@ -145,14 +145,19 @@ internal class DiscourseOtpSessionExchangeTest {
             var challengeCount = 0
             var csrfRequestCount = 0
             var otpRequestCount = 0
+            var browserClearCount = 0
             val requestOrder = mutableListOf<String>()
             val fixture =
                 exchangeFixture(
                     challengeHandlerFactory = { sessionManager ->
-                        manualChallengeCookieHandler(sessionManager) { fixedOrigin ->
-                            assertEquals(DISCOURSE_ORIGIN, fixedOrigin)
-                            challengeCount += 1
-                        }
+                        manualChallengeCookieHandler(
+                            sessionManager = sessionManager,
+                            onPresent = { fixedOrigin ->
+                                assertEquals(DISCOURSE_ORIGIN, fixedOrigin)
+                                challengeCount += 1
+                            },
+                            onClear = { browserClearCount += 1 },
+                        )
                     },
                 ) { request ->
                     when (request.url.encodedPath) {
@@ -207,6 +212,7 @@ internal class DiscourseOtpSessionExchangeTest {
                 fixture.transport.exchange(acceptedRedirect(), expectedGeneration = 0L)
 
                 assertEquals(1, challengeCount)
+                assertEquals(1, browserClearCount)
                 assertEquals(2, csrfRequestCount)
                 assertEquals(2, otpRequestCount)
                 assertEquals(
@@ -224,14 +230,19 @@ internal class DiscourseOtpSessionExchangeTest {
             var challengeCount = 0
             var otpRequestCount = 0
             var revokeRequestCount = 0
+            var browserClearCount = 0
             val requestOrder = mutableListOf<String>()
             val fixture =
                 exchangeFixture(
                     challengeHandlerFactory = { sessionManager ->
-                        manualChallengeCookieHandler(sessionManager) { fixedOrigin ->
-                            assertEquals(DISCOURSE_ORIGIN, fixedOrigin)
-                            challengeCount += 1
-                        }
+                        manualChallengeCookieHandler(
+                            sessionManager = sessionManager,
+                            onPresent = { fixedOrigin ->
+                                assertEquals(DISCOURSE_ORIGIN, fixedOrigin)
+                                challengeCount += 1
+                            },
+                            onClear = { browserClearCount += 1 },
+                        )
                     },
                 ) { request ->
                     when (request.url.encodedPath) {
@@ -276,6 +287,7 @@ internal class DiscourseOtpSessionExchangeTest {
                 fixture.transport.exchange(acceptedRedirect(), expectedGeneration = 0L)
 
                 assertEquals(1, challengeCount)
+                assertEquals(1, browserClearCount)
                 assertEquals(1, otpRequestCount)
                 assertEquals(2, revokeRequestCount)
                 assertEquals(
@@ -532,6 +544,7 @@ private fun acceptedRedirect(): DiscourseAuthRedirectResult.Accepted =
 private fun manualChallengeCookieHandler(
     sessionManager: DiscourseSessionManager,
     onPresent: (String) -> Unit,
+    onClear: () -> Unit = {},
 ): DiscourseCloudflareChallengeHandler =
     DiscourseManualChallengeCookieHandler(
         presenter =
@@ -556,7 +569,7 @@ private fun manualChallengeCookieHandler(
                     )
 
                 override suspend fun clearLinuxDoCookies() {
-                    error("The challenge flow must not clear browser cookies")
+                    onClear()
                 }
             },
         sessionManager = sessionManager,

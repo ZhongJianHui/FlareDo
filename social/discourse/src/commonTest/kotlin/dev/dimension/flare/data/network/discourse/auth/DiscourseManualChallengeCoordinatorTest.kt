@@ -1,9 +1,14 @@
 package dev.dimension.flare.data.network.discourse.auth
 
 import dev.dimension.flare.data.network.discourse.DISCOURSE_ORIGIN
+import dev.dimension.flare.data.network.discourse.error.DiscourseCloudflareChallengeException
+import dev.dimension.flare.data.network.discourse.session.DiscourseCookieSnapshot
+import dev.dimension.flare.data.network.discourse.session.DiscourseSessionManager
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -111,6 +116,127 @@ internal class DiscourseManualChallengeCoordinatorTest {
             runCurrent()
 
             assertFalse(result.await())
+            assertNull(coordinator.request.value)
+        }
+
+    @Test
+    fun cancellationDuringPresentationStillClearsBrowserHandoff() =
+        runTest {
+            val presentationStarted = CompletableDeferred<Unit>()
+            var clearCalls = 0
+            val handler =
+                DiscourseManualChallengeCookieHandler(
+                    presenter =
+                        DiscourseManualChallengePresenter {
+                            presentationStarted.complete(Unit)
+                            awaitCancellation()
+                        },
+                    cookieBridge =
+                        object : DiscourseWebSessionCookieBridge {
+                            override suspend fun snapshotLinuxDoCookies(): List<DiscourseCookieSnapshot> =
+                                error("Cancellation must stop before snapshot")
+
+                            override suspend fun clearLinuxDoCookies() {
+                                clearCalls += 1
+                            }
+                        },
+                    sessionManager = DiscourseSessionManager(),
+                )
+            val operation =
+                async {
+                    handler.handle(DiscourseCloudflareChallengeException(statusCode = 403))
+                }
+            presentationStarted.await()
+
+            operation.cancel()
+
+            assertFailsWith<CancellationException> { operation.await() }
+            assertEquals(1, clearCalls)
+        }
+
+    @Test
+    fun concurrentHandlerCannotClearTheAcceptedRequestsCookieBuffer() =
+        runTest {
+            val presentationStarted = CompletableDeferred<Unit>()
+            val releasePresentation = CompletableDeferred<Unit>()
+            var clearCalls = 0
+            val handler =
+                DiscourseManualChallengeCookieHandler(
+                    presenter =
+                        DiscourseManualChallengePresenter {
+                            presentationStarted.complete(Unit)
+                            releasePresentation.await()
+                            false
+                        },
+                    cookieBridge =
+                        object : DiscourseWebSessionCookieBridge {
+                            override suspend fun snapshotLinuxDoCookies(): List<DiscourseCookieSnapshot> = emptyList()
+
+                            override suspend fun clearLinuxDoCookies() {
+                                clearCalls += 1
+                            }
+                        },
+                    sessionManager = DiscourseSessionManager(),
+                )
+            val first =
+                async {
+                    handler.handle(DiscourseCloudflareChallengeException(statusCode = 403))
+                }
+            presentationStarted.await()
+
+            assertFalse(handler.handle(DiscourseCloudflareChallengeException(statusCode = 403)))
+            assertEquals(0, clearCalls)
+
+            releasePresentation.complete(Unit)
+            assertFalse(first.await())
+            assertEquals(1, clearCalls)
+        }
+
+    @Test
+    fun appleCompletionWaitsUntilRequestConsumesAndClearsCookieHandoff() =
+        runTest {
+            val coordinator = DiscourseManualChallengeCoordinator()
+            val sessionManager = DiscourseSessionManager()
+            val clearStarted = CompletableDeferred<Unit>()
+            val releaseClear = CompletableDeferred<Unit>()
+            val handler =
+                DiscourseManualChallengeCookieHandler(
+                    presenter = coordinator,
+                    cookieBridge =
+                        object : DiscourseWebSessionCookieBridge {
+                            override suspend fun snapshotLinuxDoCookies(): List<DiscourseCookieSnapshot> =
+                                listOf(
+                                    DiscourseCookieSnapshot(
+                                        name = "cf_clearance",
+                                        value = "bounded-challenge-cookie",
+                                        httpOnly = true,
+                                    ),
+                                )
+
+                            override suspend fun clearLinuxDoCookies() {
+                                clearStarted.complete(Unit)
+                                releaseClear.await()
+                            }
+                        },
+                    sessionManager = sessionManager,
+                )
+            val handling =
+                async {
+                    sessionManager.runForCurrentSession {
+                        handler.handle(DiscourseCloudflareChallengeException(statusCode = 403))
+                    }
+                }
+            runCurrent()
+            val request = requireNotNull(coordinator.request.value)
+            val completion = async { coordinator.completeAfterCookieConsumption(request.requestId) }
+            runCurrent()
+
+            assertTrue(clearStarted.isCompleted)
+            assertFalse(completion.isCompleted)
+
+            releaseClear.complete(Unit)
+            assertTrue(handling.await())
+            assertTrue(completion.await())
             assertNull(coordinator.request.value)
         }
 }

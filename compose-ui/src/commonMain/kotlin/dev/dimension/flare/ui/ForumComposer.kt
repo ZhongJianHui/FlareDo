@@ -4,7 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -42,12 +45,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import compose.icons.FontAwesomeIcons
 import compose.icons.fontawesomeicons.Solid
@@ -301,6 +306,24 @@ internal data class ForumPostActionAvailability(
     val canBookmark: Boolean,
     val bookmarkEnabled: Boolean,
 )
+
+/** Small-window decisions kept separate from composition so boundary behavior stays testable. */
+internal data class ForumComposerLayoutPolicy(
+    val scrollEditor: Boolean,
+    val wrapActions: Boolean,
+)
+
+internal fun forumComposerLayoutPolicyFor(
+    availableWidth: Dp,
+    availableHeight: Dp,
+    fontScale: Float,
+): ForumComposerLayoutPolicy {
+    require(fontScale > 0f) { "Forum composer font scale must be positive" }
+    return ForumComposerLayoutPolicy(
+        scrollEditor = availableHeight < 560.dp,
+        wrapActions = availableWidth < 440.dp || fontScale >= 1.3f,
+    )
+}
 
 internal fun forumCanCreateTopic(state: DiscourseForumState): Boolean = state.isAuthenticated && state.canCreateTopic
 
@@ -911,7 +934,7 @@ private fun ForumComposerHeader(
     onAction: (ForumComposerAction) -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().height(66.dp).padding(start = 18.dp, end = 6.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 66.dp).padding(start = 18.dp, end = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -950,6 +973,7 @@ private fun ForumComposerEditor(
     onPickAttachment: () -> Unit,
 ) {
     var editor by remember { mutableStateOf(state.toForumComposerEditorSnapshot()) }
+    val editorScrollState = rememberScrollState()
     LaunchedEffect(state.contentVersion) {
         editor = state.toForumComposerEditorSnapshot()
     }
@@ -964,118 +988,193 @@ private fun ForumComposerEditor(
         onAction(action)
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        if (state.mode == DiscourseComposerMode.NewTopic) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val layoutPolicy =
+            forumComposerLayoutPolicyFor(
+                availableWidth = maxWidth,
+                availableHeight = maxHeight,
+                fontScale = LocalDensity.current.fontScale,
+            )
+        val editorModifier =
+            if (layoutPolicy.scrollEditor) {
+                Modifier.fillMaxWidth().verticalScroll(editorScrollState)
+            } else {
+                Modifier.fillMaxSize()
+            }
+        Column(
+            modifier = editorModifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            if (state.mode == DiscourseComposerMode.NewTopic) {
+                OutlinedTextField(
+                    value = editor.title,
+                    onValueChange = { value ->
+                        if (isForumComposerTitleInputValid(value)) {
+                            publishDraft(editor.copy(title = value))
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().testTag(ForumTestTags.COMPOSER_TITLE),
+                    enabled = editable,
+                    singleLine = true,
+                    label = { Text(stringResource(Res.string.forum_composer_title)) },
+                )
+            }
             OutlinedTextField(
-                value = editor.title,
+                // This owner-local whole-editor snapshot keeps rapid body/title/tag edits coherent. The
+                // content-version effect still adopts the presenter's atomic upload Markdown insertion.
+                value = editor.raw,
                 onValueChange = { value ->
-                    if (isForumComposerTitleInputValid(value)) {
-                        publishDraft(editor.copy(title = value))
+                    if (isForumComposerRawInputValid(value)) {
+                        publishDraft(editor.copy(raw = value))
                     }
                 },
-                modifier = Modifier.fillMaxWidth().testTag(ForumTestTags.COMPOSER_TITLE),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (layoutPolicy.scrollEditor) {
+                                Modifier.heightIn(min = 140.dp, max = 280.dp)
+                            } else {
+                                Modifier.weight(1f).heightIn(min = 80.dp)
+                            },
+                        ).testTag(ForumTestTags.COMPOSER_BODY),
                 enabled = editable,
-                singleLine = true,
-                label = { Text(stringResource(Res.string.forum_composer_title)) },
+                label = { Text(stringResource(Res.string.forum_composer_body)) },
+            )
+            if (state.mode == DiscourseComposerMode.NewTopic) {
+                OutlinedTextField(
+                    value = editor.tagsText,
+                    onValueChange = { value ->
+                        if (parseForumComposerTags(value) != null) {
+                            publishDraft(editor.copy(tagsText = value))
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().testTag(ForumTestTags.COMPOSER_TAGS),
+                    enabled = editable,
+                    singleLine = true,
+                    label = { Text(stringResource(Res.string.forum_composer_tags)) },
+                    placeholder = { Text(stringResource(Res.string.forum_composer_tags_hint)) },
+                )
+            }
+            ForumComposerMessages(state, pickFailure)
+            ForumUploadStatus(state, onAction)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            ForumComposerActions(
+                state = state,
+                editable = editable,
+                isPicking = isPicking,
+                wrapActions = layoutPolicy.wrapActions,
+                onAction = onAction,
+                onPickAttachment = onPickAttachment,
             )
         }
-        OutlinedTextField(
-            // This owner-local whole-editor snapshot keeps rapid body/title/tag edits coherent. The
-            // content-version effect still adopts the presenter's atomic upload Markdown insertion.
-            value = editor.raw,
-            onValueChange = { value ->
-                if (isForumComposerRawInputValid(value)) {
-                    publishDraft(editor.copy(raw = value))
-                }
-            },
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .heightIn(min = 80.dp)
-                    .testTag(ForumTestTags.COMPOSER_BODY),
-            enabled = editable,
-            label = { Text(stringResource(Res.string.forum_composer_body)) },
-        )
-        if (state.mode == DiscourseComposerMode.NewTopic) {
-            OutlinedTextField(
-                value = editor.tagsText,
-                onValueChange = { value ->
-                    if (parseForumComposerTags(value) != null) {
-                        publishDraft(editor.copy(tagsText = value))
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().testTag(ForumTestTags.COMPOSER_TAGS),
-                enabled = editable,
-                singleLine = true,
-                label = { Text(stringResource(Res.string.forum_composer_tags)) },
-                placeholder = { Text(stringResource(Res.string.forum_composer_tags_hint)) },
-            )
+    }
+}
+
+@Composable
+private fun ForumComposerActions(
+    state: DiscourseComposerState,
+    editable: Boolean,
+    isPicking: Boolean,
+    wrapActions: Boolean,
+    onAction: (ForumComposerAction) -> Unit,
+    onPickAttachment: () -> Unit,
+) {
+    if (wrapActions) {
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            ForumComposerAttachmentButton(state, isPicking, onPickAttachment)
+            ForumComposerDiscardButton(state, onAction)
+            ForumComposerSubmitButton(state, editable, onAction)
         }
-        ForumComposerMessages(state, pickFailure)
-        ForumUploadStatus(state, onAction)
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    } else {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            OutlinedButton(
-                onClick = onPickAttachment,
-                enabled = forumCanPickAttachment(state, isPicking),
-                modifier = Modifier.testTag(ForumTestTags.COMPOSER_ATTACH),
-                shape = RoundedCornerShape(5.dp),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-            ) {
-                if (isPicking) {
-                    CircularProgressIndicator(Modifier.size(15.dp), strokeWidth = 2.dp)
-                } else {
-                    Icon(FontAwesomeIcons.Solid.Paperclip, null, Modifier.size(15.dp))
-                }
-                Spacer(Modifier.width(7.dp))
-                Text(stringResource(Res.string.forum_composer_attach))
-            }
+            ForumComposerAttachmentButton(state, isPicking, onPickAttachment)
             Spacer(Modifier.weight(1f))
-            TextButton(
-                onClick = { onAction(ForumComposerAction.Discard) },
-                enabled = forumCanDismissComposer(state),
-                modifier = Modifier.testTag(ForumTestTags.COMPOSER_DISCARD),
-            ) {
-                Icon(FontAwesomeIcons.Solid.Trash, null, Modifier.size(14.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(stringResource(Res.string.forum_composer_discard))
-            }
-            Button(
-                onClick = { onAction(ForumComposerAction.Submit) },
-                enabled = editable && state.canSubmit,
-                modifier = Modifier.testTag(ForumTestTags.COMPOSER_SUBMIT),
-                shape = RoundedCornerShape(5.dp),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-            ) {
-                if (state.submitStatus == DiscourseComposerSubmitStatus.Submitting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(15.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp,
-                    )
-                } else {
-                    Icon(FontAwesomeIcons.Solid.Plus, null, Modifier.size(14.dp))
-                }
-                Spacer(Modifier.width(7.dp))
-                Text(
-                    stringResource(
-                        if (state.mode == DiscourseComposerMode.Edit) {
-                            Res.string.forum_composer_save_edit
-                        } else {
-                            Res.string.forum_composer_publish
-                        },
-                    ),
-                )
-            }
+            ForumComposerDiscardButton(state, onAction)
+            ForumComposerSubmitButton(state, editable, onAction)
         }
+    }
+}
+
+@Composable
+private fun ForumComposerAttachmentButton(
+    state: DiscourseComposerState,
+    isPicking: Boolean,
+    onPickAttachment: () -> Unit,
+) {
+    OutlinedButton(
+        onClick = onPickAttachment,
+        enabled = forumCanPickAttachment(state, isPicking),
+        modifier = Modifier.testTag(ForumTestTags.COMPOSER_ATTACH),
+        shape = RoundedCornerShape(5.dp),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+    ) {
+        if (isPicking) {
+            CircularProgressIndicator(Modifier.size(15.dp), strokeWidth = 2.dp)
+        } else {
+            Icon(FontAwesomeIcons.Solid.Paperclip, null, Modifier.size(15.dp))
+        }
+        Spacer(Modifier.width(7.dp))
+        Text(stringResource(Res.string.forum_composer_attach))
+    }
+}
+
+@Composable
+private fun ForumComposerDiscardButton(
+    state: DiscourseComposerState,
+    onAction: (ForumComposerAction) -> Unit,
+) {
+    TextButton(
+        onClick = { onAction(ForumComposerAction.Discard) },
+        enabled = forumCanDismissComposer(state),
+        modifier = Modifier.testTag(ForumTestTags.COMPOSER_DISCARD),
+    ) {
+        Icon(FontAwesomeIcons.Solid.Trash, null, Modifier.size(14.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(stringResource(Res.string.forum_composer_discard))
+    }
+}
+
+@Composable
+private fun ForumComposerSubmitButton(
+    state: DiscourseComposerState,
+    editable: Boolean,
+    onAction: (ForumComposerAction) -> Unit,
+) {
+    Button(
+        onClick = { onAction(ForumComposerAction.Submit) },
+        enabled = editable && state.canSubmit,
+        modifier = Modifier.testTag(ForumTestTags.COMPOSER_SUBMIT),
+        shape = RoundedCornerShape(5.dp),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+    ) {
+        if (state.submitStatus == DiscourseComposerSubmitStatus.Submitting) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(15.dp),
+                color = MaterialTheme.colorScheme.onPrimary,
+                strokeWidth = 2.dp,
+            )
+        } else {
+            Icon(FontAwesomeIcons.Solid.Plus, null, Modifier.size(14.dp))
+        }
+        Spacer(Modifier.width(7.dp))
+        Text(
+            stringResource(
+                if (state.mode == DiscourseComposerMode.Edit) {
+                    Res.string.forum_composer_save_edit
+                } else {
+                    Res.string.forum_composer_publish
+                },
+            ),
+        )
     }
 }
 

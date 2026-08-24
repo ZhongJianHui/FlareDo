@@ -753,7 +753,7 @@ private fun ForumProfileMetric(
     modifier: Modifier,
 ) {
     Column(
-        modifier = modifier.height(72.dp).padding(horizontal = 18.dp),
+        modifier = modifier.heightIn(min = 72.dp).padding(horizontal = 18.dp),
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
@@ -861,7 +861,11 @@ private fun ForumSectionPaneHeader(
     onAction: (() -> Unit)? = null,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().height(72.dp).padding(start = 18.dp, end = 8.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 72.dp)
+                .padding(start = 18.dp, end = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {

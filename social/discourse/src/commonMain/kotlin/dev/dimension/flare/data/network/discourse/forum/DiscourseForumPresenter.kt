@@ -22,15 +22,18 @@ import dev.dimension.flare.data.network.discourse.session.StaleDiscourseSessionE
 import dev.dimension.flare.ui.model.UiTimelineV2
 import dev.dimension.flare.ui.presenter.PresenterBase
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Molecule presenter shared by Compose and SwiftUI forum shells.
@@ -49,10 +52,50 @@ public class DiscourseForumPresenter(
     private val realtimeSessionRecovery: DiscourseRealtimeSessionRecovery? = null,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : PresenterBase<DiscourseForumState>(dispatcher) {
-    private val actions = Channel<DiscourseForumAction>(capacity = ACTION_CHANNEL_CAPACITY)
+    private val actions = Channel<QueuedForumAction>(capacity = ACTION_CHANNEL_CAPACITY)
+    private val actorCompleted = CompletableDeferred<Unit>()
 
-    /** Returns false after close or while the bounded UI action queue is full. */
-    public fun dispatch(action: DiscourseForumAction): Boolean = actions.trySend(action).isSuccess
+    /**
+     * Returns false after close or while the bounded UI action queue is full.
+     *
+     * Notification mutations freeze their owner here, at the UI event boundary. The actor compares
+     * that immutable owner again immediately before launching the repository call, so an action
+     * delayed in this bounded channel cannot mutate a replacement account.
+     */
+    public fun dispatch(action: DiscourseForumAction): Boolean {
+        val queued =
+            if (action is DiscourseForumAction.MarkNotificationsRead) {
+                val snapshot = models.value
+                val owner =
+                    ForumSessionOwner.createOrNull(snapshot.sessionGeneration, snapshot.accountId)
+                        ?: return false
+                QueuedForumAction(action, owner)
+            } else {
+                QueuedForumAction(action)
+            }
+        return actions.trySend(queued).isSuccess
+    }
+
+    /** Strict owner-aware notification mutation used by hosts acting on an immutable snapshot. */
+    public fun markNotificationsRead(
+        notificationId: Long?,
+        expectedSessionGeneration: Long,
+        expectedAccountId: String?,
+    ): Boolean {
+        require(notificationId == null || notificationId > 0L) {
+            "Marked notification id must be positive"
+        }
+        val owner =
+            ForumSessionOwner.createOrNull(expectedSessionGeneration, expectedAccountId)
+                ?: return false
+        return actions
+            .trySend(
+                QueuedForumAction(
+                    DiscourseForumAction.MarkNotificationsRead(notificationId),
+                    owner,
+                ),
+            ).isSuccess
+    }
 
     /**
      * Mirrors the host's visible foreground lifecycle without creating a process-global scope.
@@ -76,12 +119,26 @@ public class DiscourseForumPresenter(
             realtimeCoordinator,
             realtimeSessionRecovery,
         ) {
-            runActor(
-                state = { state },
-                setState = { state = it },
-            )
+            try {
+                runActor(
+                    state = { state },
+                    setState = { state = it },
+                )
+            } finally {
+                actorCompleted.complete(Unit)
+            }
         }
         return state
+    }
+
+    /** Cancels presenter work and waits until request and realtime children finish their cleanup. */
+    public suspend fun closeAndJoin() {
+        // Force the lazy Molecule presenter to install its LaunchedEffect before cancellation.
+        models.value
+        withContext(NonCancellable) {
+            close()
+            actorCompleted.await()
+        }
     }
 
     @Suppress("LongMethod", "CyclomaticComplexMethod")
@@ -116,6 +173,16 @@ public class DiscourseForumPresenter(
 
             fun update(transform: (DiscourseForumState) -> DiscourseForumState) {
                 setState(transform(state()))
+            }
+
+            fun ownsNotificationGeneration(expectedGeneration: Long): Boolean {
+                val current = state()
+                val authenticated =
+                    sessionManager.state.value as? DiscourseSessionState.Authenticated
+                        ?: return false
+                return current.sessionGeneration == expectedGeneration &&
+                    authenticated.generation == expectedGeneration &&
+                    current.accountId == authenticated.accountId
             }
 
             fun clearTopicSelection() {
@@ -360,6 +427,30 @@ public class DiscourseForumPresenter(
                     }
                     return
                 }
+                val current = state()
+                val owner =
+                    ForumSessionOwner.createOrNull(current.sessionGeneration, current.accountId)
+                val activeSession = sessionManager.state.value as? DiscourseSessionState.Authenticated
+                if (
+                    owner == null ||
+                    activeSession?.generation != owner.sessionGeneration ||
+                    activeSession.accountId != owner.accountId
+                ) {
+                    notificationsJob?.cancel()
+                    notificationsRequest = notificationsRequest.nextRequestId()
+                    update {
+                        it.copy(
+                            notifications =
+                                it.notifications.copy(
+                                    isLoading = false,
+                                    isAppending = false,
+                                    failure = DiscourseForumFailureKind.Authentication,
+                                    appendFailure = null,
+                                ),
+                        )
+                    }
+                    return
+                }
                 notificationsJob?.cancel()
                 notificationsRequest = notificationsRequest.nextRequestId()
                 val requestId = notificationsRequest
@@ -391,12 +482,31 @@ public class DiscourseForumPresenter(
                 notificationsJob =
                     launch {
                         loadPresenterEvent(
-                            block = { accountRepository.loadNotifications(offset, knownIds) },
+                            block = {
+                                sessionManager.runForAuthenticatedSession(
+                                    owner.sessionGeneration,
+                                    owner.accountId,
+                                ) {
+                                    accountRepository.loadNotifications(offset, knownIds)
+                                }
+                            },
                             success = { loaded ->
                                 check(loaded.offset == offset)
-                                ForumPresenterEvent.NotificationsLoaded(requestId, loaded, append)
+                                ForumPresenterEvent.NotificationsLoaded(
+                                    requestId,
+                                    owner.sessionGeneration,
+                                    loaded,
+                                    append,
+                                )
                             },
-                            failure = { ForumPresenterEvent.NotificationsFailed(requestId, it, append) },
+                            failure = {
+                                ForumPresenterEvent.NotificationsFailed(
+                                    requestId,
+                                    owner.sessionGeneration,
+                                    it,
+                                    append,
+                                )
+                            },
                         )?.let { events.send(it) }
                     }
             }
@@ -409,8 +519,21 @@ public class DiscourseForumPresenter(
                 startNotifications(offset, append)
             }
 
-            fun startMarkNotificationsRead(notificationId: Long?) {
-                val notifications = state().notifications
+            fun startMarkNotificationsRead(
+                notificationId: Long?,
+                expectedOwner: ForumSessionOwner,
+            ) {
+                val current = state()
+                val activeSession = sessionManager.state.value as? DiscourseSessionState.Authenticated
+                if (
+                    current.sessionGeneration != expectedOwner.sessionGeneration ||
+                    current.accountId != expectedOwner.accountId ||
+                    activeSession?.generation != expectedOwner.sessionGeneration ||
+                    activeSession.accountId != expectedOwner.accountId
+                ) {
+                    return
+                }
+                val notifications = current.notifications
                 val snapshot = notifications.snapshot ?: return
                 if (notifications.isLoading || notifications.isAppending || notifications.isMarkingRead) return
                 markReadJob?.cancel()
@@ -424,9 +547,28 @@ public class DiscourseForumPresenter(
                 markReadJob =
                     launch {
                         loadPresenterEvent(
-                            block = { accountRepository.markNotificationsRead(snapshot, notificationId) },
-                            success = { ForumPresenterEvent.NotificationsMarkedRead(requestId, it) },
-                            failure = { ForumPresenterEvent.NotificationsMarkFailed(requestId, it) },
+                            block = {
+                                sessionManager.runForAuthenticatedSession(
+                                    expectedOwner.sessionGeneration,
+                                    expectedOwner.accountId,
+                                ) {
+                                    accountRepository.markNotificationsRead(snapshot, notificationId)
+                                }
+                            },
+                            success = {
+                                ForumPresenterEvent.NotificationsMarkedRead(
+                                    requestId,
+                                    expectedOwner.sessionGeneration,
+                                    it,
+                                )
+                            },
+                            failure = {
+                                ForumPresenterEvent.NotificationsMarkFailed(
+                                    requestId,
+                                    expectedOwner.sessionGeneration,
+                                    it,
+                                )
+                            },
                         )?.let { events.send(it) }
                     }
             }
@@ -473,7 +615,7 @@ public class DiscourseForumPresenter(
             }
 
             fun handleSessionChanged(session: DiscourseSessionState) {
-                if (session.generation == state().sessionGeneration) return
+                if (session.generation <= state().sessionGeneration) return
                 cancelGenerationWork()
                 realtimeCoordinator?.setActiveTopic(null)
                 val previous = state()
@@ -490,6 +632,7 @@ public class DiscourseForumPresenter(
                 update {
                     it.copy(
                         sessionGeneration = session.generation,
+                        accountId = authenticated?.accountId,
                         isAuthenticated = authenticated != null,
                         canCreateTopic = false,
                         accountUsername = authenticated?.username,
@@ -685,7 +828,7 @@ public class DiscourseForumPresenter(
                         }
 
                         is ForumPresenterEvent.Action -> {
-                            when (val action = event.value) {
+                            when (val action = event.value.action) {
                                 is DiscourseForumAction.SelectDestination -> {
                                     clearTopicSelection()
                                     update { it.copy(destination = action.destination) }
@@ -847,7 +990,10 @@ public class DiscourseForumPresenter(
                                 }
 
                                 is DiscourseForumAction.MarkNotificationsRead -> {
-                                    startMarkNotificationsRead(action.notificationId)
+                                    startMarkNotificationsRead(
+                                        action.notificationId,
+                                        checkNotNull(event.value.sessionOwner),
+                                    )
                                 }
                             }
                         }
@@ -1163,7 +1309,12 @@ public class DiscourseForumPresenter(
                         }
 
                         is ForumPresenterEvent.NotificationsLoaded -> {
-                            if (event.requestId != notificationsRequest) continue
+                            if (
+                                event.requestId != notificationsRequest ||
+                                !ownsNotificationGeneration(event.expectedGeneration)
+                            ) {
+                                continue
+                            }
                             update { current ->
                                 val snapshot =
                                     if (event.append && current.notifications.snapshot != null) {
@@ -1186,7 +1337,12 @@ public class DiscourseForumPresenter(
                         }
 
                         is ForumPresenterEvent.NotificationsFailed -> {
-                            if (event.requestId != notificationsRequest) continue
+                            if (
+                                event.requestId != notificationsRequest ||
+                                !ownsNotificationGeneration(event.expectedGeneration)
+                            ) {
+                                continue
+                            }
                             update { current ->
                                 current.copy(
                                     notifications =
@@ -1201,7 +1357,12 @@ public class DiscourseForumPresenter(
                         }
 
                         is ForumPresenterEvent.NotificationsMarkedRead -> {
-                            if (event.requestId != markReadRequest) continue
+                            if (
+                                event.requestId != markReadRequest ||
+                                !ownsNotificationGeneration(event.expectedGeneration)
+                            ) {
+                                continue
+                            }
                             update { current ->
                                 current.copy(
                                     notifications =
@@ -1219,7 +1380,12 @@ public class DiscourseForumPresenter(
                         }
 
                         is ForumPresenterEvent.NotificationsMarkFailed -> {
-                            if (event.requestId != markReadRequest) continue
+                            if (
+                                event.requestId != markReadRequest ||
+                                !ownsNotificationGeneration(event.expectedGeneration)
+                            ) {
+                                continue
+                            }
                             update {
                                 it.copy(
                                     notifications =
@@ -1247,7 +1413,7 @@ public class DiscourseForumPresenter(
 
 private sealed interface ForumPresenterEvent {
     data class Action(
-        val value: DiscourseForumAction,
+        val value: QueuedForumAction,
     ) : ForumPresenterEvent
 
     data class SessionChanged(
@@ -1365,25 +1531,51 @@ private sealed interface ForumPresenterEvent {
 
     data class NotificationsLoaded(
         val requestId: Long,
+        val expectedGeneration: Long,
         val page: DiscourseForumNotificationPage,
         val append: Boolean,
     ) : ForumPresenterEvent
 
     data class NotificationsFailed(
         val requestId: Long,
+        val expectedGeneration: Long,
         val failure: DiscourseForumFailureKind,
         val append: Boolean,
     ) : ForumPresenterEvent
 
     data class NotificationsMarkedRead(
         val requestId: Long,
+        val expectedGeneration: Long,
         val value: DiscourseForumNotificationSnapshot,
     ) : ForumPresenterEvent
 
     data class NotificationsMarkFailed(
         val requestId: Long,
+        val expectedGeneration: Long,
         val failure: DiscourseForumFailureKind,
     ) : ForumPresenterEvent
+}
+
+private data class QueuedForumAction(
+    val action: DiscourseForumAction,
+    val sessionOwner: ForumSessionOwner? = null,
+)
+
+private data class ForumSessionOwner(
+    val sessionGeneration: Long,
+    val accountId: String,
+) {
+    companion object {
+        fun createOrNull(
+            sessionGeneration: Long,
+            accountId: String?,
+        ): ForumSessionOwner? =
+            if (sessionGeneration >= 0L && !accountId.isNullOrBlank()) {
+                ForumSessionOwner(sessionGeneration, accountId)
+            } else {
+                null
+            }
+    }
 }
 
 private suspend fun <T> loadPresenterEvent(

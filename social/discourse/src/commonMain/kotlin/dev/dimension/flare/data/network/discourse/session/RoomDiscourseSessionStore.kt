@@ -292,6 +292,25 @@ public class DiscourseSessionLifecycle(
             }
         }
 
+    /**
+     * Runs a browser handoff step only while the exact persisted-session owner remains active.
+     *
+     * Browser cleanup suspends and can therefore overlap another login. Holding [operationMutex]
+     * prevents lifecycle-managed replacement until cleanup completes, while the second owner check
+     * also detects direct in-memory session replacement before the caller can report success.
+     */
+    internal suspend fun <T> runForAuthenticatedOwner(
+        expectedGeneration: Long,
+        expectedAccountId: String,
+        block: suspend () -> T,
+    ): T =
+        operationMutex.withLock {
+            requireCurrentAuthenticatedOwner(expectedGeneration, expectedAccountId)
+            val result = block()
+            requireCurrentAuthenticatedOwner(expectedGeneration, expectedAccountId)
+            result
+        }
+
     /** Clears memory first and then makes every persisted reference unreachable before returning. */
     public suspend fun logout() {
         withContext(NonCancellable) {
@@ -326,6 +345,20 @@ public class DiscourseSessionLifecycle(
         val actualGeneration = sessionManager.state.value.generation
         if (actualGeneration != expectedGeneration) {
             throw StaleDiscourseSessionException(expectedGeneration, actualGeneration)
+        }
+    }
+
+    private fun requireCurrentAuthenticatedOwner(
+        expectedGeneration: Long,
+        expectedAccountId: String,
+    ) {
+        val current = sessionManager.state.value
+        val authenticated = current as? DiscourseSessionState.Authenticated
+        if (
+            authenticated?.generation != expectedGeneration ||
+            authenticated.accountId != expectedAccountId
+        ) {
+            throw StaleDiscourseSessionException(expectedGeneration, current.generation)
         }
     }
 }

@@ -58,6 +58,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import compose.icons.FontAwesomeIcons
 import compose.icons.fontawesomeicons.Solid
@@ -112,10 +113,96 @@ import org.jetbrains.compose.resources.stringResource
 
 internal val ForumNavigationWidth = 76.dp
 internal val ForumMediumListPaneWidth = 260.dp
-internal val ForumExpandedListPaneWidth = 320.dp
-internal val ForumSupportingPaneWidth = 244.dp
+internal val ForumExpandedListPaneWidth = 280.dp
+internal val ForumSupportingPaneWidth = 200.dp
 internal val ForumPaneDividerWidth = 1.dp
 internal val ForumActiveSpineWidth = 3.dp
+
+private val ForumMinimumMediumDetailPaneWidth = 280.dp
+private val ForumMinimumExpandedListPaneWidth = 220.dp
+private val ForumMinimumExpandedDetailPaneWidth = 360.dp
+private val ForumMinimumSupportingPaneWidth = 168.dp
+
+/** Exact manual pane budget after the navigation rail and dividers have been reserved. */
+internal data class ForumManualMultiPaneLayout(
+    val listPaneWidth: Dp,
+    val detailPaneWidth: Dp,
+    val supportingPaneWidth: Dp?,
+)
+
+/**
+ * Keeps the article pane readable at the 840/900 dp expanded boundaries.
+ *
+ * Desktop cannot use Android's Navigation 3 scene strategy, so its panes share an explicit budget.
+ * Supporting content is the first pane to collapse when the available width cannot preserve a
+ * useful list and a 360 dp article. Preferred widths are reached gradually instead of consuming
+ * all newly available space before the article can grow.
+ */
+internal fun forumManualMultiPaneLayoutFor(
+    workspaceWidth: Dp,
+    layoutClass: ForumLayoutClass,
+): ForumManualMultiPaneLayout {
+    require(layoutClass != ForumLayoutClass.Compact) {
+        "Compact workspaces do not have a multi-pane budget"
+    }
+    val contentWidth =
+        maxOf(
+            0.dp,
+            workspaceWidth - ForumNavigationWidth - ForumPaneDividerWidth,
+        )
+
+    if (layoutClass == ForumLayoutClass.Medium) {
+        val paneBudget = maxOf(0.dp, contentWidth - ForumPaneDividerWidth)
+        val listWidth =
+            minOf(
+                ForumMediumListPaneWidth,
+                maxOf(0.dp, paneBudget - ForumMinimumMediumDetailPaneWidth),
+            )
+        return ForumManualMultiPaneLayout(
+            listPaneWidth = listWidth,
+            detailPaneWidth = maxOf(0.dp, paneBudget - listWidth),
+            supportingPaneWidth = null,
+        )
+    }
+
+    val threePaneBudget = maxOf(0.dp, contentWidth - (ForumPaneDividerWidth * 2))
+    val minimumThreePaneBudget =
+        ForumMinimumExpandedListPaneWidth +
+            ForumMinimumExpandedDetailPaneWidth +
+            ForumMinimumSupportingPaneWidth
+    if (threePaneBudget >= minimumThreePaneBudget) {
+        val extraWidth = threePaneBudget - minimumThreePaneBudget
+        val listExtra =
+            minOf(
+                ForumExpandedListPaneWidth - ForumMinimumExpandedListPaneWidth,
+                extraWidth * 0.6f,
+            )
+        val supportingExtra =
+            minOf(
+                ForumSupportingPaneWidth - ForumMinimumSupportingPaneWidth,
+                extraWidth - listExtra,
+            )
+        val listWidth = ForumMinimumExpandedListPaneWidth + listExtra
+        val supportingWidth = ForumMinimumSupportingPaneWidth + supportingExtra
+        return ForumManualMultiPaneLayout(
+            listPaneWidth = listWidth,
+            detailPaneWidth = threePaneBudget - listWidth - supportingWidth,
+            supportingPaneWidth = supportingWidth,
+        )
+    }
+
+    val twoPaneBudget = maxOf(0.dp, contentWidth - ForumPaneDividerWidth)
+    val listWidth =
+        minOf(
+            ForumExpandedListPaneWidth,
+            maxOf(0.dp, twoPaneBudget - ForumMinimumExpandedDetailPaneWidth),
+        )
+    return ForumManualMultiPaneLayout(
+        listPaneWidth = listWidth,
+        detailPaneWidth = maxOf(0.dp, twoPaneBudget - listWidth),
+        supportingPaneWidth = null,
+    )
+}
 
 private data class ForumRootDestinationItem(
     val destination: DiscourseForumDestination,
@@ -174,6 +261,7 @@ internal fun ForumWorkspaceWithComposer(
             ) {
                 ForumManualPanes(
                     layoutClass = layoutClass,
+                    workspaceWidth = maxWidth,
                     state = state,
                     onAction = onAction,
                     composerState = composerState,
@@ -193,6 +281,7 @@ internal fun ForumWorkspaceWithComposer(
 @Composable
 private fun ForumManualPanes(
     layoutClass: ForumLayoutClass,
+    workspaceWidth: Dp,
     state: DiscourseForumState,
     onAction: (DiscourseForumAction) -> Unit,
     composerState: DiscourseComposerState,
@@ -222,13 +311,14 @@ private fun ForumManualPanes(
         }
 
         ForumLayoutClass.Medium -> {
+            val paneLayout = forumManualMultiPaneLayoutFor(workspaceWidth, layoutClass)
             Row(modifier = Modifier.fillMaxSize()) {
                 ForumPrimaryPane(
                     state,
                     onAction,
                     composerState,
                     onComposerAction,
-                    Modifier.width(ForumMediumListPaneWidth),
+                    Modifier.width(paneLayout.listPaneWidth),
                 )
                 ForumPaneDivider()
                 ForumTopicDetailPane(
@@ -244,13 +334,14 @@ private fun ForumManualPanes(
         }
 
         ForumLayoutClass.Expanded -> {
+            val paneLayout = forumManualMultiPaneLayoutFor(workspaceWidth, layoutClass)
             Row(modifier = Modifier.fillMaxSize()) {
                 ForumPrimaryPane(
                     state,
                     onAction,
                     composerState,
                     onComposerAction,
-                    Modifier.width(ForumExpandedListPaneWidth),
+                    Modifier.width(paneLayout.listPaneWidth),
                 )
                 ForumPaneDivider()
                 ForumTopicDetailPane(
@@ -262,12 +353,14 @@ private fun ForumManualPanes(
                     onComposerAction = onComposerAction,
                     modifier = Modifier.weight(1f),
                 )
-                ForumPaneDivider()
-                ForumSupportingPane(
-                    state,
-                    onAction,
-                    Modifier.width(ForumSupportingPaneWidth),
-                )
+                paneLayout.supportingPaneWidth?.let { supportingPaneWidth ->
+                    ForumPaneDivider()
+                    ForumSupportingPane(
+                        state,
+                        onAction,
+                        Modifier.width(supportingPaneWidth),
+                    )
+                }
             }
         }
     }
@@ -346,7 +439,7 @@ private fun ForumBottomBar(
     onDestinationSelected: (DiscourseForumDestination) -> Unit,
 ) {
     NavigationBar(
-        modifier = Modifier.fillMaxWidth().height(72.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp),
         containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,
     ) {
@@ -365,7 +458,12 @@ private fun ForumBottomBar(
                     )
                 },
                 label = {
-                    Text(item.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        item.label,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 },
             )
         }
@@ -411,7 +509,12 @@ private fun ForumNavigationRail(
                         )
                     },
                     label = {
-                        Text(item.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            item.label,
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     },
                 )
             }
@@ -550,7 +653,7 @@ private fun ForumFeedHeader(
     onNewTopic: () -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().height(72.dp).padding(start = 18.dp, end = 8.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp).padding(start = 18.dp, end = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -891,7 +994,7 @@ private fun ForumTopicPaneHeader(
     onBack: () -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().height(72.dp).padding(horizontal = 8.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp).padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (showBackButton) {
@@ -1091,7 +1194,7 @@ internal fun ForumSupportingPane(
 @Composable
 private fun ForumPaneHeader(title: String) {
     Box(
-        modifier = Modifier.fillMaxWidth().height(72.dp).padding(horizontal = 18.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp).padding(horizontal = 18.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
         Text(

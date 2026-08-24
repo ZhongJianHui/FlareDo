@@ -91,29 +91,62 @@ public class DiscourseLoginService(
      * must never prevent the authoritative in-memory session and vault reference from being destroyed.
      */
     public suspend fun logout() {
+        val owner = sessionManager.state.value as? DiscourseSessionState.Authenticated ?: return
+        logout(owner.generation, owner.accountId)
+    }
+
+    /**
+     * Logs out only the exact authenticated owner captured by a host snapshot.
+     *
+     * The initial comparison rejects callbacks that were already stale when invoked. The lifecycle
+     * performs the final generation CAS under its persistence mutex after remote invalidation, so a
+     * login that replaces this owner while the request is suspended keeps its vault reference and
+     * Cookie jar. Browser cookies are cleared only after that final CAS succeeds.
+     */
+    public suspend fun logout(
+        expectedGeneration: Long,
+        expectedAccountId: String,
+    ): Boolean {
+        require(expectedGeneration >= 0L) { "Expected session generation cannot be negative" }
+        require(expectedAccountId.isNotBlank()) { "Expected account id must not be blank" }
+        val authenticated =
+            (sessionManager.state.value as? DiscourseSessionState.Authenticated)
+                ?.takeIf {
+                    it.generation == expectedGeneration &&
+                        it.accountId == expectedAccountId
+                } ?: return false
+
         var remoteFailure: Throwable? = null
         try {
             authorizationCoordinator.cancelPending()
-            val authenticated = sessionManager.state.value as? DiscourseSessionState.Authenticated
-            authenticated?.username?.let { api.logout(it) }
+            authenticated.username?.let {
+                api.logout(
+                    username = it,
+                    expectedSessionGeneration = expectedGeneration,
+                    expectedAccountId = expectedAccountId,
+                )
+            }
         } catch (failure: Throwable) {
             remoteFailure = failure
         }
 
         var localFailure: Throwable? = null
+        var clearedOwnedSession = false
         withContext(NonCancellable) {
             try {
-                sessionLifecycle.logout()
+                clearedOwnedSession = sessionLifecycle.logoutIfGeneration(expectedGeneration)
             } catch (failure: Throwable) {
                 localFailure = failure
             }
-            cookieBridge.clearLinuxDoCookiesBestEffort()
+            if (clearedOwnedSession) cookieBridge.clearLinuxDoCookiesBestEffort()
         }
 
         // Cancellation that arrived during non-cancellable cleanup wins over ordinary failures.
         currentCoroutineContext().ensureActive()
+        if (!clearedOwnedSession && localFailure == null) return false
         remoteFailure?.let { throw it }
         localFailure?.let { throw it }
+        return true
     }
 
     private suspend fun completeAcceptedRedirect(

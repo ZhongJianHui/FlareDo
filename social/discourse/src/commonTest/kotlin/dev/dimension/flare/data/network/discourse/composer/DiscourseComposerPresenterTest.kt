@@ -683,6 +683,64 @@ internal class DiscourseComposerPresenterTest {
         }
 
     @Test
+    fun staleSubmitCannotCrossAnUploadContentMutation() =
+        runTest {
+            val sessionManager = authenticatedComposerSession()
+            val draftStore = MemoryDiscourseDraftStore()
+            val repository = RecordingComposerRepository(draftStore)
+            val attachment = uploadedAttachment("stale-submit.png")
+            val task = ControllableUploadTask(finishImmediatelyAsFailure = false)
+            repository.uploadTasks += task
+            val presenter =
+                composerPresenter(
+                    repository = repository,
+                    draftStore = draftStore,
+                    sessionManager = sessionManager,
+                    dispatcher = StandardTestDispatcher(testScheduler),
+                    autosaveDelayMillis = 60_000L,
+                )
+            val models = presenter.models
+
+            try {
+                advanceUntilIdle()
+                assertTrue(presenter.openReply(topicId = 42L))
+                advanceUntilIdle()
+                val stale = models.value
+
+                assertTrue(
+                    presenter.startUpload(
+                        request = uploadRequest("stale-submit.png"),
+                        expectedSessionGeneration = stale.sessionGeneration,
+                        expectedAccountId = stale.accountId,
+                        expectedTarget = stale.target,
+                        expectedContentVersion = stale.contentVersion,
+                    ),
+                )
+                runCurrent()
+                task.publish(DiscourseUploadTaskState.Succeeded(attempt = 1L, attachment = attachment))
+                runCurrent()
+                assertTrue(models.value.contentVersion > stale.contentVersion)
+
+                assertTrue(
+                    presenter.submit(
+                        expectedContentVersion = stale.contentVersion,
+                        expectedSessionGeneration = stale.sessionGeneration,
+                        expectedAccountId = stale.accountId,
+                        expectedTarget = stale.target,
+                    ),
+                )
+                runCurrent()
+
+                assertEquals(0, repository.submitCalls)
+                assertEquals(attachment.composerMarkdown, models.value.raw)
+            } finally {
+                task.release.complete(Unit)
+                presenter.close()
+                runCurrent()
+            }
+        }
+
+    @Test
     fun cancelledUploadAttemptIsATerminalTombstoneForLateTaskStates() {
         val attachment = uploadedAttachment("cancelled.png")
         val cancelled =
@@ -1069,6 +1127,233 @@ internal class DiscourseComposerPresenterTest {
                 runCurrent()
             }
         }
+
+    @Test
+    fun sameAccountReplacementBeforeSubmitLeaseSkipsRepositoryMutation() =
+        runTest {
+            val sessionManager = authenticatedComposerSession()
+            val draftStore = MemoryDiscourseDraftStore()
+            val repository = RecordingComposerRepository(draftStore)
+            val presenter =
+                composerPresenter(
+                    repository = repository,
+                    draftStore = draftStore,
+                    sessionManager = sessionManager,
+                    dispatcher = StandardTestDispatcher(testScheduler),
+                    autosaveDelayMillis = 60_000L,
+                )
+            val models = presenter.models
+
+            try {
+                advanceUntilIdle()
+                assertTrue(presenter.openReply(topicId = 42L))
+                advanceUntilIdle()
+                assertTrue(presenter.updateDraft(title = null, raw = "Generation-owned reply"))
+                runCurrent()
+
+                // The actor is resumed first and accepts Submit. The replacement coroutine was
+                // queued before the submit child, so the child must fail its exact-generation lease
+                // before the account-only repository can observe the same account's new cookies.
+                assertTrue(presenter.submit())
+                launch {
+                    sessionManager.startAuthenticatedSession(accountId = "42", username = "member-again")
+                }
+                advanceUntilIdle()
+
+                assertEquals(0, repository.submitCalls)
+                assertEquals(2L, models.value.sessionGeneration)
+            } finally {
+                presenter.close()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun sameAccountReplacementBeforeUploadAndRetryLeasesSkipsTaskExecution() =
+        runTest {
+            val sessionManager = authenticatedComposerSession()
+            val draftStore = MemoryDiscourseDraftStore()
+            val repository = RecordingComposerRepository(draftStore)
+            val staleStartTask = LeaseRecordingUploadTask()
+            val staleRetryTask = LeaseRecordingUploadTask()
+            repository.uploadTasks += staleStartTask
+            repository.uploadTasks += staleRetryTask
+            val presenter =
+                composerPresenter(
+                    repository = repository,
+                    draftStore = draftStore,
+                    sessionManager = sessionManager,
+                    dispatcher = StandardTestDispatcher(testScheduler),
+                )
+            val models = presenter.models
+
+            try {
+                advanceUntilIdle()
+                assertTrue(presenter.openReply(topicId = 42L))
+                advanceUntilIdle()
+
+                assertTrue(presenter.startUpload(uploadRequest("stale-start.png")))
+                launch {
+                    sessionManager.startAuthenticatedSession(accountId = "42", username = "member-again")
+                }
+                advanceUntilIdle()
+                assertEquals(0, staleStartTask.executeCalls)
+
+                assertTrue(presenter.openReply(topicId = 42L))
+                advanceUntilIdle()
+                assertTrue(presenter.startUpload(uploadRequest("stale-retry.png")))
+                advanceUntilIdle()
+                assertEquals(1, staleRetryTask.executeCalls)
+                assertEquals(DiscourseComposerUploadStatus.Failed, models.value.upload.status)
+
+                assertTrue(presenter.retryUpload())
+                launch {
+                    sessionManager.startAuthenticatedSession(accountId = "42", username = "member-third")
+                }
+                advanceUntilIdle()
+                assertEquals(0, staleRetryTask.retryCalls)
+            } finally {
+                presenter.close()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun sameAccountReplacementBeforeLikeAndBookmarkLeasesSkipsRepositoryMutation() =
+        runTest {
+            val sessionManager = authenticatedComposerSession()
+            val draftStore = MemoryDiscourseDraftStore()
+            val repository = RecordingComposerRepository(draftStore)
+            val actionRepository = LeaseRecordingPostActionRepository()
+            actionRepository.seed(accountId = "42", generation = 1L)
+            val presenter =
+                composerPresenter(
+                    repository = repository,
+                    draftStore = draftStore,
+                    postActionRepository = actionRepository,
+                    sessionManager = sessionManager,
+                    dispatcher = StandardTestDispatcher(testScheduler),
+                )
+            val models = presenter.models
+
+            try {
+                advanceUntilIdle()
+                assertEquals(1, models.value.postActions.size)
+                assertTrue(presenter.toggleLike(postId = 501L))
+                launch {
+                    sessionManager.startAuthenticatedSession(accountId = "42", username = "member-again")
+                }
+                advanceUntilIdle()
+                assertEquals(0, actionRepository.toggleLikeCalls)
+
+                actionRepository.seed(accountId = "42", generation = 2L)
+                advanceUntilIdle()
+                assertEquals(1, models.value.postActions.size)
+                assertTrue(presenter.togglePostBookmark(postId = 501L))
+                launch {
+                    sessionManager.startAuthenticatedSession(accountId = "42", username = "member-third")
+                }
+                advanceUntilIdle()
+                assertEquals(0, actionRepository.toggleBookmarkCalls)
+            } finally {
+                presenter.close()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun uploadControlsRebaseAcrossSameBaseDraftInputsButNotUploadMutation() =
+        runTest {
+            val sessionManager = authenticatedComposerSession()
+            val draftStore = MemoryDiscourseDraftStore()
+            val repository = RecordingComposerRepository(draftStore)
+            val task = CancellationRetryUploadTask()
+            repository.uploadTasks += task
+            repository.uploadTasks += LeaseRecordingUploadTask()
+            val presenter =
+                composerPresenter(
+                    repository = repository,
+                    draftStore = draftStore,
+                    sessionManager = sessionManager,
+                    dispatcher = StandardTestDispatcher(testScheduler),
+                    autosaveDelayMillis = 60_000L,
+                )
+            val models = presenter.models
+
+            try {
+                advanceUntilIdle()
+                assertTrue(presenter.openReply(topicId = 42L))
+                advanceUntilIdle()
+                val base = models.value
+
+                fun updateFromBase(raw: String): Boolean =
+                    presenter.updateDraft(
+                        title = null,
+                        raw = raw,
+                        tags = emptyList(),
+                        expectedContentVersion = base.contentVersion,
+                        expectedSessionGeneration = base.sessionGeneration,
+                        expectedAccountId = base.accountId,
+                        expectedTarget = base.target,
+                    )
+
+                assertTrue(updateFromBase("First callback"))
+                runCurrent()
+                assertTrue(
+                    presenter.startUpload(
+                        request = uploadRequest("journal.png"),
+                        expectedSessionGeneration = base.sessionGeneration,
+                        expectedAccountId = base.accountId,
+                        expectedTarget = base.target,
+                        expectedContentVersion = base.contentVersion,
+                    ),
+                )
+                runCurrent()
+                assertTrue(task.started.isCompleted)
+
+                assertTrue(updateFromBase("Second callback"))
+                runCurrent()
+                assertTrue(
+                    presenter.cancelUpload(
+                        expectedContentVersion = base.contentVersion,
+                        expectedSessionGeneration = base.sessionGeneration,
+                        expectedAccountId = base.accountId,
+                        expectedTarget = base.target,
+                    ),
+                )
+                runCurrent()
+                assertEquals(1, task.cancelCalls)
+
+                assertTrue(updateFromBase("Third callback"))
+                runCurrent()
+                assertTrue(
+                    presenter.retryUpload(
+                        expectedContentVersion = base.contentVersion,
+                        expectedSessionGeneration = base.sessionGeneration,
+                        expectedAccountId = base.accountId,
+                        expectedTarget = base.target,
+                    ),
+                )
+                advanceUntilIdle()
+                assertEquals(1, task.retryCalls)
+                assertTrue(models.value.raw.contains("retry.png"))
+
+                assertTrue(
+                    presenter.startUpload(
+                        request = uploadRequest("must-not-start.png"),
+                        expectedSessionGeneration = base.sessionGeneration,
+                        expectedAccountId = base.accountId,
+                        expectedTarget = base.target,
+                        expectedContentVersion = base.contentVersion,
+                    ),
+                )
+                runCurrent()
+                assertEquals(1, repository.createUploadTaskCalls)
+            } finally {
+                presenter.close()
+                runCurrent()
+            }
+        }
 }
 
 private fun composerPresenter(
@@ -1262,6 +1547,74 @@ private class ControllablePostActionRepository : DiscoursePostActionRepository {
         )
 }
 
+private class LeaseRecordingPostActionRepository : DiscoursePostActionRepository {
+    private val target = DiscourseActionTarget.Post(postId = 501L)
+    private val mutableState = MutableStateFlow<DiscoursePostActionSnapshot?>(null)
+
+    override val state: StateFlow<DiscoursePostActionSnapshot?> = mutableState
+    var toggleLikeCalls: Int = 0
+    var toggleBookmarkCalls: Int = 0
+
+    fun seed(
+        accountId: String,
+        generation: Long,
+    ) {
+        mutableState.value =
+            DiscoursePostActionSnapshot(
+                accountId = accountId,
+                sessionGeneration = generation,
+                items =
+                    mapOf(
+                        target to
+                            DiscourseOptimisticActionState(
+                                target = target,
+                                liked = false,
+                                likeCount = 1,
+                                canLike = true,
+                                bookmarked = false,
+                                canBookmark = true,
+                            ),
+                    ),
+            )
+    }
+
+    override suspend fun synchronizeFromServer(
+        accountId: String,
+        article: UiArticle,
+    ) = Unit
+
+    override suspend fun synchronizeFromServer(
+        accountId: String,
+        topic: DiscourseForumTopic,
+    ) = Unit
+
+    override suspend fun clearForSessionChange() {
+        mutableState.value = null
+    }
+
+    override suspend fun toggleLike(
+        accountId: String,
+        postId: Long,
+    ): DiscourseOptimisticMutationResult {
+        toggleLikeCalls += 1
+        return DiscourseOptimisticMutationResult.NotAllowed(
+            state = null,
+            reason = DiscourseActionNotAllowedReason.MissingServerState,
+        )
+    }
+
+    override suspend fun toggleBookmark(
+        accountId: String,
+        target: DiscourseActionTarget,
+    ): DiscourseOptimisticMutationResult {
+        toggleBookmarkCalls += 1
+        return DiscourseOptimisticMutationResult.NotAllowed(
+            state = null,
+            reason = DiscourseActionNotAllowedReason.MissingServerState,
+        )
+    }
+}
+
 private class BlockingComposerDraftStore : DiscourseDraftStore {
     private val delegate = MemoryDiscourseDraftStore()
 
@@ -1436,6 +1789,34 @@ private class CancellationRetryUploadTask : DiscourseUploadTask {
         // Deliberately returns before execute() reaches its cancellation cleanup, matching the
         // production task contract that originally exposed this presenter race.
     }
+}
+
+private class LeaseRecordingUploadTask : DiscourseUploadTask {
+    private val mutableState = MutableStateFlow<DiscourseUploadTaskState>(DiscourseUploadTaskState.Ready)
+
+    override val state: StateFlow<DiscourseUploadTaskState> = mutableState
+    var executeCalls: Int = 0
+    var retryCalls: Int = 0
+
+    override suspend fun execute(): DiscourseUploadTaskState {
+        executeCalls += 1
+        return DiscourseUploadTaskState
+            .Failed(
+                attempt = 1L,
+                failure = DiscourseForumFailureKind.Network,
+            ).also { mutableState.value = it }
+    }
+
+    override suspend fun retry(): DiscourseUploadTaskState {
+        retryCalls += 1
+        return DiscourseUploadTaskState
+            .Failed(
+                attempt = 2L,
+                failure = DiscourseForumFailureKind.Network,
+            ).also { mutableState.value = it }
+    }
+
+    override suspend fun cancel() = Unit
 }
 
 private fun uploadRequest(fileName: String): DiscourseUploadRequest =

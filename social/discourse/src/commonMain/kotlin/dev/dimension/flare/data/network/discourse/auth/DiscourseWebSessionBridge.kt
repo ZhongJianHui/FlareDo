@@ -34,6 +34,12 @@ public interface DiscourseWebSessionCookieBridge {
 public fun interface DiscourseManualChallengePresenter {
     /** Returns true after the user visibly completed the fixed-origin challenge. */
     public suspend fun present(fixedOrigin: String): Boolean
+
+    /**
+     * Acknowledges that request-bound code finished snapshotting and clearing the browser handoff.
+     * Presenters without an externally owned one-use buffer do not need additional coordination.
+     */
+    public suspend fun acknowledgeCookieConsumption() {}
 }
 
 /**
@@ -70,6 +76,8 @@ public class DiscourseManualChallengeCoordinator(
     private data class ActiveRequest(
         val request: DiscourseManualChallengeRequest,
         val result: CompletableDeferred<Boolean>,
+        val cookieConsumption: CompletableDeferred<Unit> = CompletableDeferred(),
+        var waitsForCookieConsumption: Boolean = false,
     )
 
     private val operationMutex: Mutex = Mutex()
@@ -100,20 +108,28 @@ public class DiscourseManualChallengeCoordinator(
                 created
             } ?: return false
 
+        var returnedForCookieConsumption = false
         return try {
             // A platform UI is attached in the host interaction stage. Keeping this wait bounded
             // makes the shared authentication service fail closed if that host is unavailable,
             // destroyed without replying, or has not subscribed yet.
-            withTimeoutOrNull(timeoutMillis) { result.await() } ?: false
+            (withTimeoutOrNull(timeoutMillis) { result.await() } ?: false).also { completed ->
+                returnedForCookieConsumption = completed
+            }
         } finally {
             // Await cancellation does not cancel an independently created CompletableDeferred.
             // Remove this exact request and resolve its orphaned result without masking cancellation.
             withContext(NonCancellable) {
                 operationMutex.withLock {
-                    if (activeRequest?.request?.requestId == request.requestId) {
+                    val current = activeRequest
+                    if (
+                        current?.request?.requestId == request.requestId &&
+                        (!current.waitsForCookieConsumption || !returnedForCookieConsumption)
+                    ) {
                         activeRequest = null
                         mutableRequest.value = null
                         result.complete(false)
+                        current.cookieConsumption.complete(Unit)
                     }
                 }
             }
@@ -121,22 +137,50 @@ public class DiscourseManualChallengeCoordinator(
     }
 
     /** Completes the matching visible request and resumes its authentication exchange once. */
-    public suspend fun complete(requestId: Long): Boolean = resolve(requestId, completed = true)
+    public suspend fun complete(requestId: Long): Boolean = resolve(requestId, completed = true, waitForCookieConsumption = false) != null
+
+    /**
+     * Completes the visible request but returns only after request-bound code consumes the Cookie
+     * handoff. Apple uses this form so releasing its Swift ownership token cannot let a replacement
+     * WebView overwrite the shared buffer before Kotlin snapshots and clears it.
+     */
+    public suspend fun completeAfterCookieConsumption(requestId: Long): Boolean {
+        val completion =
+            resolve(requestId, completed = true, waitForCookieConsumption = true)
+                ?: return false
+        completion.await()
+        return true
+    }
 
     /** Cancels the matching visible request without granting a replay. */
-    public suspend fun cancel(requestId: Long): Boolean = resolve(requestId, completed = false)
+    public suspend fun cancel(requestId: Long): Boolean = resolve(requestId, completed = false, waitForCookieConsumption = false) != null
+
+    override suspend fun acknowledgeCookieConsumption() {
+        operationMutex.withLock {
+            val current = activeRequest ?: return@withLock
+            if (!current.waitsForCookieConsumption || !current.result.isCompleted) return@withLock
+            activeRequest = null
+            mutableRequest.value = null
+            current.cookieConsumption.complete(Unit)
+        }
+    }
 
     private suspend fun resolve(
         requestId: Long,
         completed: Boolean,
-    ): Boolean =
+        waitForCookieConsumption: Boolean,
+    ): CompletableDeferred<Unit>? =
         operationMutex.withLock {
-            val current = activeRequest ?: return@withLock false
-            if (current.request.requestId != requestId) return@withLock false
-            activeRequest = null
+            val current = activeRequest ?: return@withLock null
+            if (current.request.requestId != requestId || current.result.isCompleted) return@withLock null
             mutableRequest.value = null
+            current.waitsForCookieConsumption = completed && waitForCookieConsumption
             current.result.complete(completed)
-            true
+            if (!current.waitsForCookieConsumption) {
+                activeRequest = null
+                current.cookieConsumption.complete(Unit)
+            }
+            current.cookieConsumption
         }
 }
 
@@ -153,18 +197,48 @@ public class DiscourseManualChallengeCookieHandler(
     private val cookieBridge: DiscourseWebSessionCookieBridge,
     private val sessionManager: DiscourseSessionManager,
 ) : DiscourseCloudflareChallengeHandler {
+    private val handoffMutex: Mutex = Mutex()
+
     override suspend fun handle(challenge: DiscourseCloudflareChallengeException): Boolean {
-        if (!presenter.present(DISCOURSE_ORIGIN)) return false
-        // The OTP-created `_t` remains authoritative. A browser may contain a session for another
-        // Linux.do account, so the challenge bridge may contribute proxy cookies but never replace
-        // the request's authenticated Discourse session.
-        val challengeCookies =
-            cookieBridge
-                .snapshotLinuxDoCookies()
-                .filterNot { cookie -> cookie.name == "_t" }
-        if (challengeCookies.isEmpty()) return false
-        sessionManager.mergeCookiesForCurrentRequest(challengeCookies)
-        return true
+        // A failed concurrent presentation does not own the process-wide handoff buffer and must not
+        // clear cookies that the accepted request is about to snapshot.
+        if (!handoffMutex.tryLock()) return false
+        var cookieHandoffAccepted = false
+        return try {
+            cookieHandoffAccepted = presenter.present(DISCOURSE_ORIGIN)
+            if (!cookieHandoffAccepted) {
+                false
+            } else {
+                // The OTP-created `_t` remains authoritative. A browser may contain a session for another
+                // Linux.do account, so the challenge bridge may contribute proxy cookies but never replace
+                // the request's authenticated Discourse session.
+                val challengeCookies =
+                    cookieBridge
+                        .snapshotLinuxDoCookies()
+                        .filterNot { cookie -> cookie.name == "_t" }
+                if (challengeCookies.isEmpty()) {
+                    false
+                } else {
+                    sessionManager.mergeCookiesForCurrentRequest(challengeCookies)
+                    true
+                }
+            }
+        } finally {
+            // Foundation's shared Cookie storage is only a one-use Apple handoff buffer. Clearing it
+            // here, in the request coroutine after the snapshot, avoids retaining `cf_clearance` or
+            // a browser account's `_t` outside the encrypted vault and preserves cancellation safety.
+            withContext(NonCancellable) {
+                try {
+                    try {
+                        cookieBridge.clearLinuxDoCookiesBestEffort()
+                    } finally {
+                        if (cookieHandoffAccepted) presenter.acknowledgeCookieConsumption()
+                    }
+                } finally {
+                    handoffMutex.unlock()
+                }
+            }
+        }
     }
 }
 
@@ -182,7 +256,22 @@ public class DiscourseWebSessionLogin(
     private val sessionLifecycle: DiscourseSessionLifecycle,
     private val api: DiscourseApi,
 ) {
+    private val completionMutex: Mutex = Mutex()
+
     public suspend fun complete(): DiscourseLoginResult.Authenticated {
+        // The loser has no ownership over either the browser buffer or local probe generation. It
+        // therefore fails before entering cleanup, which belongs exclusively to the accepted call.
+        if (!completionMutex.tryLock()) {
+            throw DiscourseAuthExchangeException(DiscourseAuthExchangeFailure.ActiveSession)
+        }
+        return try {
+            completeOwnedHandoff()
+        } finally {
+            completionMutex.unlock()
+        }
+    }
+
+    private suspend fun completeOwnedHandoff(): DiscourseLoginResult.Authenticated {
         var ownedGeneration: Long? = null
         try {
             val bridgedCookies = cookieBridge.snapshotLinuxDoCookies()
@@ -236,8 +325,21 @@ public class DiscourseWebSessionLogin(
             // Successful handoff is not complete while the browser still owns a second copy of
             // `_t`. A cleanup failure therefore enters the catch path, destroys the newly active
             // local session, and makes one final best-effort browser cleanup attempt.
-            withContext(NonCancellable) {
-                cookieBridge.clearLinuxDoCookies()
+            sessionLifecycle.runForAuthenticatedOwner(
+                expectedGeneration = activeState.generation,
+                expectedAccountId = activeState.accountId,
+            ) {
+                withContext(NonCancellable) {
+                    cookieBridge.clearLinuxDoCookies()
+                }
+            }
+            val finalState = sessionManager.state.value
+            val finalOwner = finalState as? DiscourseSessionState.Authenticated
+            if (
+                finalOwner?.generation != activeState.generation ||
+                finalOwner.accountId != activeState.accountId
+            ) {
+                throw StaleDiscourseSessionException(activeState.generation, finalState.generation)
             }
             return DiscourseLoginResult.Authenticated(
                 accountId = user.id.toString(),
@@ -255,8 +357,9 @@ public class DiscourseWebSessionLogin(
 
     private suspend fun clearIncompleteBrowserSession(ownedGeneration: Long?) {
         withContext(NonCancellable) {
-            ownedGeneration?.let { sessionLifecycle.logoutIfGeneration(it) }
-            cookieBridge.clearLinuxDoCookiesBestEffort()
+            val mayClearBrowser =
+                ownedGeneration == null || sessionLifecycle.logoutIfGeneration(ownedGeneration)
+            if (mayClearBrowser) cookieBridge.clearLinuxDoCookiesBestEffort()
         }
     }
 }

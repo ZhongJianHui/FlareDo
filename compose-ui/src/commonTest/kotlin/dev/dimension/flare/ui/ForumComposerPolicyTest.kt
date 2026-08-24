@@ -1,5 +1,6 @@
 package dev.dimension.flare.ui
 
+import androidx.compose.ui.unit.dp
 import dev.dimension.flare.data.network.discourse.composer.DiscourseActionNotAllowedReason
 import dev.dimension.flare.data.network.discourse.composer.DiscourseActionTarget
 import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerMode
@@ -258,6 +259,34 @@ internal class ForumComposerPolicyTest {
         assertEquals(listOf("one", "two"), parseForumComposerTags("one，two"))
         assertNull(parseForumComposerTags((1..21).joinToString(",") { "tag$it" }))
         assertNull(parseForumComposerTags("safe, bad\u0001tag"))
+    }
+
+    @Test
+    fun shortComposerScrollsAndNarrowOrLargeTextActionsWrap() {
+        assertEquals(
+            ForumComposerLayoutPolicy(scrollEditor = true, wrapActions = true),
+            forumComposerLayoutPolicyFor(
+                availableWidth = 400.dp,
+                availableHeight = 400.dp,
+                fontScale = 1f,
+            ),
+        )
+        assertEquals(
+            ForumComposerLayoutPolicy(scrollEditor = false, wrapActions = true),
+            forumComposerLayoutPolicyFor(
+                availableWidth = 480.dp,
+                availableHeight = 700.dp,
+                fontScale = 1.5f,
+            ),
+        )
+        assertEquals(
+            ForumComposerLayoutPolicy(scrollEditor = false, wrapActions = false),
+            forumComposerLayoutPolicyFor(
+                availableWidth = 480.dp,
+                availableHeight = 700.dp,
+                fontScale = 1f,
+            ),
+        )
     }
 
     private fun editableReplyState(): DiscourseComposerState =

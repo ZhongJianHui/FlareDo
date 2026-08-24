@@ -49,6 +49,12 @@ kotlin {
         commonTest.dependencies {
             implementation(kotlin("test"))
         }
+        jvmTest.dependencies {
+            // Compose's desktop test host renders into an offscreen Skiko surface. This keeps the
+            // semantic and pixel-contract tests runnable on CI without an X server or emulator.
+            implementation(libs.compose.ui.test)
+            runtimeOnly(compose.desktop.currentOs)
+        }
     }
 }
 

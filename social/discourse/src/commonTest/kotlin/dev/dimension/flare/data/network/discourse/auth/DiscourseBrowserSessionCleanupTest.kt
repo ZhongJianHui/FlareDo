@@ -13,6 +13,7 @@ import dev.dimension.flare.data.network.discourse.session.DiscourseSessionStore
 import dev.dimension.flare.data.network.discourse.session.PersistedDiscourseSession
 import dev.dimension.flare.data.network.discourse.session.SecureCredentialRef
 import dev.dimension.flare.data.network.discourse.session.SessionOnlySecureCredentialStore
+import dev.dimension.flare.data.network.discourse.session.StaleDiscourseSessionException
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.MockRequestHandleScope
@@ -33,11 +34,68 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 internal class DiscourseBrowserSessionCleanupTest {
+    @Test
+    fun ownerReplacementDuringPendingAuthorizationCleanupSkipsRemoteLogout() =
+        runTest {
+            val bridge = RecordingCookieBridge()
+            val attemptStore = BlockingCancelAttemptStore()
+            val requests = mutableListOf<HttpRequestData>()
+            val fixture =
+                authenticatedLoginFixture(
+                    bridge = bridge,
+                    attemptStore = attemptStore,
+                ) { request ->
+                    requests += request
+                    error("A stale logout must not reach the network")
+                }
+
+            try {
+                val originalOwner = assertIs<DiscourseSessionState.Authenticated>(fixture.sessionManager.state.value)
+                val logout =
+                    async {
+                        fixture.loginService.logout(
+                            expectedGeneration = originalOwner.generation,
+                            expectedAccountId = originalOwner.accountId,
+                        )
+                    }
+                attemptStore.consumeStarted.await()
+
+                fixture.sessionStore.lifecycle.activate(
+                    expectedGeneration = originalOwner.generation,
+                    accountId = "84",
+                    username = "replacement",
+                    cookies = listOf(sessionCookie("replacement-session")),
+                )
+                val replacement = assertIs<DiscourseSessionState.Authenticated>(fixture.sessionManager.state.value)
+                val replacementReference = replacement.credentialRef
+
+                attemptStore.releaseConsume.complete(Unit)
+                assertFalse(logout.await())
+
+                assertEquals(replacement, fixture.sessionManager.state.value)
+                assertEquals("84", fixture.sessionStore.current?.accountId)
+                assertEquals(replacementReference, fixture.sessionStore.current?.credentialRef)
+                assertEquals(
+                    "replacement-session",
+                    fixture.sessionManager.cookieStorage
+                        .snapshot()
+                        .single { it.name == "_t" }
+                        .value,
+                )
+                assertTrue(requests.isEmpty())
+                assertEquals(0, bridge.clearCalls)
+            } finally {
+                attemptStore.releaseConsume.complete(Unit)
+                fixture.close()
+            }
+        }
+
     @Test
     fun fallbackHandoffPersistsSessionBeforeClearingBrowserCookies() =
         runTest {
@@ -66,6 +124,100 @@ internal class DiscourseBrowserSessionCleanupTest {
                         ?.value,
                 )
             } finally {
+                fixture.close()
+            }
+        }
+
+    @Test
+    fun concurrentFallbackCompletionCannotClearTheAcceptedHandoff() =
+        runTest {
+            val snapshotStarted = CompletableDeferred<Unit>()
+            val releaseSnapshot = CompletableDeferred<Unit>()
+            val bridge =
+                RecordingCookieBridge(
+                    cookies = listOf(sessionCookie("browser-session")),
+                    beforeSnapshot = {
+                        snapshotStarted.complete(Unit)
+                        releaseSnapshot.await()
+                    },
+                )
+            val fixture =
+                browserFixture(bridge) { request ->
+                    assertEquals("/session/current.json", request.url.encodedPath)
+                    respondJson(CURRENT_SESSION_JSON)
+                }
+
+            try {
+                val accepted = async { fixture.webLogin.complete() }
+                snapshotStarted.await()
+
+                val rejected =
+                    assertFailsWith<DiscourseAuthExchangeException> {
+                        fixture.webLogin.complete()
+                    }
+                assertEquals(DiscourseAuthExchangeFailure.ActiveSession, rejected.reason)
+                assertEquals(0, bridge.clearCalls)
+
+                releaseSnapshot.complete(Unit)
+                assertEquals("42", accepted.await().accountId)
+                assertEquals(1, bridge.clearCalls)
+            } finally {
+                releaseSnapshot.complete(Unit)
+                fixture.close()
+            }
+        }
+
+    @Test
+    fun fallbackClearDetectsDirectOwnerReplacementAndDoesNotClearItAgain() =
+        runTest {
+            val clearStarted = CompletableDeferred<Unit>()
+            val releaseClear = CompletableDeferred<Unit>()
+            val bridge =
+                RecordingCookieBridge(
+                    cookies = listOf(sessionCookie("browser-session")),
+                    beforeClear = {
+                        clearStarted.complete(Unit)
+                        releaseClear.await()
+                    },
+                )
+            val fixture =
+                browserFixture(bridge) { request ->
+                    assertEquals("/session/current.json", request.url.encodedPath)
+                    respondJson(CURRENT_SESSION_JSON)
+                }
+
+            try {
+                val login = async { runCatching { fixture.webLogin.complete() } }
+                clearStarted.await()
+                val oldOwner = assertIs<DiscourseSessionState.Authenticated>(fixture.sessionManager.state.value)
+
+                // Lifecycle-managed replacement is serialized by the handoff lock. This direct
+                // manager transition models an already-started replacement that wins independently;
+                // the post-clear owner CAS must reject stale success without logging it out or
+                // performing a second broad browser clear.
+                fixture.sessionManager.startAuthenticatedSession(
+                    accountId = oldOwner.accountId,
+                    username = "replacement",
+                    credentialRef = oldOwner.credentialRef,
+                    cookieSnapshot = listOf(sessionCookie("replacement-session")),
+                    expectedGeneration = oldOwner.generation,
+                )
+                val replacement = assertIs<DiscourseSessionState.Authenticated>(fixture.sessionManager.state.value)
+                releaseClear.complete(Unit)
+
+                val failure = login.await().exceptionOrNull()
+                assertIs<StaleDiscourseSessionException>(failure)
+                assertEquals(replacement, fixture.sessionManager.state.value)
+                assertEquals(
+                    "replacement-session",
+                    fixture.sessionManager.cookieStorage
+                        .snapshot()
+                        .single { it.name == "_t" }
+                        .value,
+                )
+                assertEquals(1, bridge.clearCalls)
+            } finally {
+                releaseClear.complete(Unit)
                 fixture.close()
             }
         }
@@ -198,9 +350,10 @@ private data class BrowserFixture(
 
 private suspend fun authenticatedLoginFixture(
     bridge: RecordingCookieBridge,
+    attemptStore: DiscourseAuthAttemptStore = MemoryDiscourseAuthAttemptStore(),
     handler: suspend MockRequestHandleScope.(HttpRequestData) -> HttpResponseData,
 ): BrowserFixture =
-    browserFixture(bridge, handler).also { fixture ->
+    browserFixture(bridge, attemptStore, handler).also { fixture ->
         fixture.sessionStore.lifecycle.activate(
             expectedGeneration = 0L,
             accountId = "42",
@@ -211,6 +364,7 @@ private suspend fun authenticatedLoginFixture(
 
 private fun browserFixture(
     bridge: RecordingCookieBridge,
+    attemptStore: DiscourseAuthAttemptStore = MemoryDiscourseAuthAttemptStore(),
     handler: suspend MockRequestHandleScope.(HttpRequestData) -> HttpResponseData,
 ): BrowserFixture {
     val cookieStorage = DiscourseCookieStorage()
@@ -219,17 +373,16 @@ private fun browserFixture(
     val client = createDiscourseHttpClient(MockEngine(handler), cookieStorage)
     val api = DefaultDiscourseApi(createDiscourseWireTransport(client), sessionManager)
     val credentialStore = SessionOnlySecureCredentialStore()
-    val attempts = MemoryDiscourseAuthAttemptStore()
     val authorizationCoordinator =
         DiscourseAuthorizationCoordinator(
             keyPairGenerator = DiscourseRsaPkcs1KeyPairGenerator { _ -> error("RSA generation is not expected") },
             tokenGenerator = DiscourseAuthTokenGenerator { _ -> error("Token generation is not expected") },
             credentialStore = credentialStore,
-            attemptStore = attempts,
+            attemptStore = attemptStore,
         )
     val redirectProcessor =
         DiscourseAuthRedirectProcessor(
-            attemptStore = attempts,
+            attemptStore = attemptStore,
             credentialStore = credentialStore,
             decryptor = DiscourseRsaPkcs1Decryptor { _, _ -> error("RSA decryption is not expected") },
             nowEpochMillis = { 1_000L },
@@ -266,6 +419,37 @@ private fun browserFixture(
     )
 }
 
+private class BlockingCancelAttemptStore : DiscourseAuthAttemptStore {
+    val consumeStarted = CompletableDeferred<Unit>()
+    val releaseConsume = CompletableDeferred<Unit>()
+    private var attempt: DiscourseAuthAttempt? =
+        DiscourseAuthAttempt(
+            id = "pending-attempt",
+            privateKeyRef = SecureCredentialRef("pending-private-key"),
+            nonce = "pending-nonce",
+            clientId = "pending-client",
+            createdAtEpochMillis = 1L,
+            expiresAtEpochMillis = 60_001L,
+        )
+
+    override suspend fun replace(attempt: DiscourseAuthAttempt): DiscourseAuthAttempt? {
+        val previous = this.attempt
+        this.attempt = attempt
+        return previous
+    }
+
+    override suspend fun peek(): DiscourseAuthAttempt? = attempt
+
+    override suspend fun consume(expectedId: String): DiscourseAuthAttempt? {
+        consumeStarted.complete(Unit)
+        releaseConsume.await()
+        val current = attempt
+        if (current?.id != expectedId) return null
+        attempt = null
+        return current
+    }
+}
+
 private class RecordingSessionStore(
     sessionManager: DiscourseSessionManager,
 ) : DiscourseSessionStore {
@@ -294,17 +478,23 @@ private class RecordingSessionStore(
 private class RecordingCookieBridge(
     private val cookies: List<DiscourseCookieSnapshot> = emptyList(),
     private val clearFailure: Throwable? = null,
+    private val beforeSnapshot: suspend () -> Unit = {},
+    private val beforeClear: suspend () -> Unit = {},
 ) : DiscourseWebSessionCookieBridge {
     var clearCalls: Int = 0
         private set
     var clearObservedActiveContext: Boolean = false
         private set
 
-    override suspend fun snapshotLinuxDoCookies(): List<DiscourseCookieSnapshot> = cookies.toList()
+    override suspend fun snapshotLinuxDoCookies(): List<DiscourseCookieSnapshot> {
+        beforeSnapshot()
+        return cookies.toList()
+    }
 
     override suspend fun clearLinuxDoCookies() {
         clearCalls += 1
         clearObservedActiveContext = currentCoroutineContext().isActive
+        beforeClear()
         clearFailure?.let { throw it }
     }
 }

@@ -22,8 +22,6 @@ kotlin {
             appleTarget.binaries.framework {
                 baseName = "KotlinSharedUI"
                 isStatic = true
-                export(projects.shared)
-                export(projects.social.discourse)
 
                 if (appleTarget.name.startsWith("macos")) {
                     linkerOpts.add("-lsqlite3")
@@ -33,8 +31,17 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            api(projects.shared)
-            api(projects.social.discourse)
+            implementation(projects.shared)
+            implementation(projects.social.discourse)
+        }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
+        }
+        getByName("appleMain").dependencies {
+            implementation(project.dependencies.platform(libs.koin.bom))
+            implementation(libs.koin.core)
+            implementation(libs.kotlinx.coroutines.core)
         }
     }
 }

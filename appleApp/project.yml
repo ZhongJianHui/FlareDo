@@ -41,7 +41,7 @@ settings:
     SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
     SWIFT_EMIT_LOC_STRINGS: YES
     SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY: YES
-    SWIFT_VERSION: "6.3"
+    SWIFT_VERSION: "6.0"
   configs:
     Debug:
       KOTLIN_FRAMEWORK_VARIANT: debugFramework
@@ -131,6 +131,43 @@ targets:
         INFOPLIST_FILE: macos/Info.plist
         OTHER_LDFLAGS: "$(inherited) -lsqlite3 -ObjC -framework KotlinSharedUI"
 
+  iOSTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: iOS
+    settings:
+      base:
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        "FRAMEWORK_SEARCH_PATHS[sdk=iphoneos*]":
+          - "$(inherited)"
+          - "$(SRCROOT)/../apple-shared/build/bin/iosArm64/$(KOTLIN_FRAMEWORK_VARIANT)"
+        "FRAMEWORK_SEARCH_PATHS[sdk=iphonesimulator*]":
+          - "$(inherited)"
+          - "$(SRCROOT)/../apple-shared/build/bin/iosSimulatorArm64/$(KOTLIN_FRAMEWORK_VARIANT)"
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.zhongjianhui.flaredo.tests.ios
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/FlareDo.app/FlareDo"
+
+  macOSTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: macOS
+    settings:
+      base:
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        FRAMEWORK_SEARCH_PATHS:
+          - "$(inherited)"
+          - "$(SRCROOT)/../apple-shared/build/bin/macosArm64/$(KOTLIN_FRAMEWORK_VARIANT)"
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.zhongjianhui.flaredo.tests.macos
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/FlareDo.app/Contents/MacOS/FlareDo"
+
 schemes:
   iOS:
     build:
@@ -140,6 +177,8 @@ schemes:
       config: Debug
     test:
       config: Debug
+      targets:
+        - iOSTests
     profile:
       config: Release
     analyze:
@@ -155,6 +194,8 @@ schemes:
       config: Debug
     test:
       config: Debug
+      targets:
+        - macOSTests
     profile:
       config: Release
     analyze:

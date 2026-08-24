@@ -302,6 +302,30 @@ public class DiscourseSessionManager(
             }
         }
 
+    /**
+     * Acquires a request lease only for the exact authenticated owner captured by the caller.
+     *
+     * The current lease is captured under [transitionMutex] by [runForCurrentSession], then checked
+     * before [block] can fetch CSRF or reach the wire. A replacement that happens after this check
+     * cancels the same generation-bound operation. This closes the gap where a delayed destructive
+     * callback could otherwise acquire credentials belonging to the replacement account.
+     */
+    public suspend fun <T> runForAuthenticatedSession(
+        expectedGeneration: Long,
+        expectedAccountId: String,
+        block: suspend DiscourseSessionState.Authenticated.() -> T,
+    ): T =
+        runForCurrentSession {
+            val authenticated = this as? DiscourseSessionState.Authenticated
+            if (
+                authenticated?.generation != expectedGeneration ||
+                authenticated.accountId != expectedAccountId
+            ) {
+                throw StaleDiscourseSessionException(expectedGeneration, generation)
+            }
+            authenticated.block()
+        }
+
     private fun logoutLocked() {
         val previousState = mutableState.value
         val nextGeneration = previousState.generation.nextGeneration()

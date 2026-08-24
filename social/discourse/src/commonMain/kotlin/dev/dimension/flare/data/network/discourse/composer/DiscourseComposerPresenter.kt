@@ -80,10 +80,56 @@ public class DiscourseComposerPresenter(
     ): Boolean = dispatch(ComposerCommand.Open(DiscourseComposerTarget.Edit(topicId, postId, postNumber)))
 
     /** Closes the editor after scheduling a cancellation-safe flush of unsaved local text. */
-    public fun closeComposer(): Boolean = dispatch(ComposerCommand.Close)
+    public fun closeComposer(): Boolean {
+        val snapshot = models.value
+        return closeComposer(
+            expectedContentVersion = snapshot.contentVersion,
+            expectedSessionGeneration = snapshot.sessionGeneration,
+            expectedAccountId = snapshot.accountId,
+            expectedTarget = snapshot.target,
+        )
+    }
+
+    /** Strict owner-aware close used by hosts acting on a potentially delayed UI event. */
+    public fun closeComposer(
+        expectedContentVersion: Long,
+        expectedSessionGeneration: Long,
+        expectedAccountId: String?,
+        expectedTarget: DiscourseComposerTarget?,
+    ): Boolean =
+        dispatchOwnedComposerCommand(
+            expectedContentVersion,
+            expectedSessionGeneration,
+            expectedAccountId,
+            expectedTarget,
+            ComposerCommand::Close,
+        )
 
     /** Explicitly removes the active local draft. Login/logout never dispatches this command. */
-    public fun discardDraft(): Boolean = dispatch(ComposerCommand.Discard)
+    public fun discardDraft(): Boolean {
+        val snapshot = models.value
+        return discardDraft(
+            expectedContentVersion = snapshot.contentVersion,
+            expectedSessionGeneration = snapshot.sessionGeneration,
+            expectedAccountId = snapshot.accountId,
+            expectedTarget = snapshot.target,
+        )
+    }
+
+    /** Strict owner-aware discard that cannot delete a replacement editor's durable draft. */
+    public fun discardDraft(
+        expectedContentVersion: Long,
+        expectedSessionGeneration: Long,
+        expectedAccountId: String?,
+        expectedTarget: DiscourseComposerTarget?,
+    ): Boolean =
+        dispatchOwnedComposerCommand(
+            expectedContentVersion,
+            expectedSessionGeneration,
+            expectedAccountId,
+            expectedTarget,
+            ComposerCommand::Discard,
+        )
 
     /** Retries initialization without using sanitized cooked HTML as editable source. */
     public fun retryInitialization(): Boolean = dispatch(ComposerCommand.RetryInitialization)
@@ -139,7 +185,32 @@ public class DiscourseComposerPresenter(
     }
 
     /** Persists the latest conflated input and submits exactly that durable draft. */
-    public fun submit(): Boolean = dispatch(ComposerCommand.Submit)
+    public fun submit(): Boolean {
+        val snapshot = models.value
+        return submit(
+            expectedContentVersion = snapshot.contentVersion,
+            expectedSessionGeneration = snapshot.sessionGeneration,
+            expectedAccountId = snapshot.accountId,
+            expectedTarget = snapshot.target,
+        )
+    }
+
+    /** Strict owner-aware submission used by hosts acting on an immutable editor snapshot. */
+    public fun submit(
+        expectedContentVersion: Long,
+        expectedSessionGeneration: Long,
+        expectedAccountId: String?,
+        expectedTarget: DiscourseComposerTarget?,
+    ): Boolean {
+        require(expectedContentVersion >= 0L) { "Expected composer content version cannot be negative" }
+        val expectedOwner =
+            ComposerContentOwner.createOrNull(
+                sessionGeneration = expectedSessionGeneration,
+                accountId = expectedAccountId,
+                target = expectedTarget,
+            ) ?: return false
+        return dispatch(ComposerCommand.Submit(expectedOwner, expectedContentVersion))
+    }
 
     /**
      * Starts one transport upload only when the delayed picker result still owns this exact editor.
@@ -208,25 +279,136 @@ public class DiscourseComposerPresenter(
     }
 
     /** Cancels the currently executing upload. */
-    public fun cancelUpload(): Boolean = dispatch(ComposerCommand.CancelUpload)
+    public fun cancelUpload(): Boolean {
+        val snapshot = models.value
+        return cancelUpload(
+            expectedContentVersion = snapshot.contentVersion,
+            expectedSessionGeneration = snapshot.sessionGeneration,
+            expectedAccountId = snapshot.accountId,
+            expectedTarget = snapshot.target,
+        )
+    }
+
+    /** Strict owner-aware cancellation that cannot cancel a replacement editor's upload. */
+    public fun cancelUpload(
+        expectedContentVersion: Long,
+        expectedSessionGeneration: Long,
+        expectedAccountId: String?,
+        expectedTarget: DiscourseComposerTarget?,
+    ): Boolean =
+        dispatchOwnedComposerCommand(
+            expectedContentVersion,
+            expectedSessionGeneration,
+            expectedAccountId,
+            expectedTarget,
+            ComposerCommand::CancelUpload,
+        )
 
     /** Explicitly retries the same failed or cancelled upload task. */
-    public fun retryUpload(): Boolean = dispatch(ComposerCommand.RetryUpload)
+    public fun retryUpload(): Boolean {
+        val snapshot = models.value
+        return retryUpload(
+            expectedContentVersion = snapshot.contentVersion,
+            expectedSessionGeneration = snapshot.sessionGeneration,
+            expectedAccountId = snapshot.accountId,
+            expectedTarget = snapshot.target,
+        )
+    }
+
+    /** Strict owner-aware retry that cannot upload bytes selected by a replacement editor. */
+    public fun retryUpload(
+        expectedContentVersion: Long,
+        expectedSessionGeneration: Long,
+        expectedAccountId: String?,
+        expectedTarget: DiscourseComposerTarget?,
+    ): Boolean =
+        dispatchOwnedComposerCommand(
+            expectedContentVersion,
+            expectedSessionGeneration,
+            expectedAccountId,
+            expectedTarget,
+            ComposerCommand::RetryUpload,
+        )
 
     /** Seeds post permissions and server state before exposing like/bookmark controls. */
-    public fun synchronizePostActions(article: UiArticle): Boolean = dispatch(ComposerCommand.SynchronizeArticle(article))
+    public fun synchronizePostActions(article: UiArticle): Boolean {
+        val snapshot = models.value
+        return synchronizePostActions(article, snapshot.sessionGeneration, snapshot.accountId)
+    }
+
+    /** Strict session-owned post seed for a forum snapshot that may outlive an account switch. */
+    public fun synchronizePostActions(
+        article: UiArticle,
+        expectedSessionGeneration: Long,
+        expectedAccountId: String?,
+    ): Boolean =
+        dispatchOwnedAction(expectedSessionGeneration, expectedAccountId) { owner ->
+            ComposerCommand.SynchronizeArticle(article, owner)
+        }
 
     /** Seeds topic bookmark permissions and server state. */
-    public fun synchronizeTopicActions(topic: DiscourseForumTopic): Boolean = dispatch(ComposerCommand.SynchronizeTopic(topic))
+    public fun synchronizeTopicActions(topic: DiscourseForumTopic): Boolean {
+        val snapshot = models.value
+        return synchronizeTopicActions(topic, snapshot.sessionGeneration, snapshot.accountId)
+    }
+
+    /** Strict session-owned topic seed for a forum snapshot that may outlive an account switch. */
+    public fun synchronizeTopicActions(
+        topic: DiscourseForumTopic,
+        expectedSessionGeneration: Long,
+        expectedAccountId: String?,
+    ): Boolean =
+        dispatchOwnedAction(expectedSessionGeneration, expectedAccountId) { owner ->
+            ComposerCommand.SynchronizeTopic(topic, owner)
+        }
 
     /** Starts a single-flight optimistic like toggle for one post. */
-    public fun toggleLike(postId: Long): Boolean = dispatch(ComposerCommand.ToggleLike(DiscourseActionTarget.Post(postId)))
+    public fun toggleLike(postId: Long): Boolean {
+        val snapshot = models.value
+        return toggleLike(postId, snapshot.sessionGeneration, snapshot.accountId)
+    }
+
+    /** Strict session-owned like mutation for delayed platform UI events. */
+    public fun toggleLike(
+        postId: Long,
+        expectedSessionGeneration: Long,
+        expectedAccountId: String?,
+    ): Boolean =
+        dispatchOwnedAction(expectedSessionGeneration, expectedAccountId) { owner ->
+            ComposerCommand.ToggleLike(DiscourseActionTarget.Post(postId), owner)
+        }
 
     /** Starts a single-flight optimistic bookmark toggle for one post. */
-    public fun togglePostBookmark(postId: Long): Boolean = dispatch(ComposerCommand.ToggleBookmark(DiscourseActionTarget.Post(postId)))
+    public fun togglePostBookmark(postId: Long): Boolean {
+        val snapshot = models.value
+        return togglePostBookmark(postId, snapshot.sessionGeneration, snapshot.accountId)
+    }
+
+    /** Strict session-owned post bookmark mutation for delayed platform UI events. */
+    public fun togglePostBookmark(
+        postId: Long,
+        expectedSessionGeneration: Long,
+        expectedAccountId: String?,
+    ): Boolean =
+        dispatchOwnedAction(expectedSessionGeneration, expectedAccountId) { owner ->
+            ComposerCommand.ToggleBookmark(DiscourseActionTarget.Post(postId), owner)
+        }
 
     /** Starts a single-flight optimistic bookmark toggle for one topic. */
-    public fun toggleTopicBookmark(topicId: Long): Boolean = dispatch(ComposerCommand.ToggleBookmark(DiscourseActionTarget.Topic(topicId)))
+    public fun toggleTopicBookmark(topicId: Long): Boolean {
+        val snapshot = models.value
+        return toggleTopicBookmark(topicId, snapshot.sessionGeneration, snapshot.accountId)
+    }
+
+    /** Strict session-owned topic bookmark mutation for delayed platform UI events. */
+    public fun toggleTopicBookmark(
+        topicId: Long,
+        expectedSessionGeneration: Long,
+        expectedAccountId: String?,
+    ): Boolean =
+        dispatchOwnedAction(expectedSessionGeneration, expectedAccountId) { owner ->
+            ComposerCommand.ToggleBookmark(DiscourseActionTarget.Topic(topicId), owner)
+        }
 
     @Composable
     override fun body(): DiscourseComposerState {
@@ -241,6 +423,34 @@ public class DiscourseComposerPresenter(
     }
 
     private fun dispatch(command: ComposerCommand): Boolean = commands.trySend(command).isSuccess
+
+    private inline fun dispatchOwnedComposerCommand(
+        expectedContentVersion: Long,
+        expectedSessionGeneration: Long,
+        expectedAccountId: String?,
+        expectedTarget: DiscourseComposerTarget?,
+        command: (ComposerContentOwner, Long) -> ComposerCommand,
+    ): Boolean {
+        require(expectedContentVersion >= 0L) { "Expected composer content version cannot be negative" }
+        val owner =
+            ComposerContentOwner.createOrNull(
+                expectedSessionGeneration,
+                expectedAccountId,
+                expectedTarget,
+            ) ?: return false
+        return dispatch(command(owner, expectedContentVersion))
+    }
+
+    private inline fun dispatchOwnedAction(
+        expectedSessionGeneration: Long,
+        expectedAccountId: String?,
+        command: (ComposerSessionOwner) -> ComposerCommand,
+    ): Boolean {
+        val owner =
+            ComposerSessionOwner.createOrNull(expectedSessionGeneration, expectedAccountId)
+                ?: return false
+        return dispatch(command(owner))
+    }
 
     private suspend fun runActor(
         state: () -> DiscourseComposerState,
@@ -385,6 +595,43 @@ public class DiscourseComposerPresenter(
                     // that cannot be safely rebased must not overwrite it or remove its attachment.
                     null
                 }
+            }
+
+            /**
+             * Accepts a command after rapid editor callbacks only when every intervening mutation
+             * is another whole-editor snapshot derived from the command's exact rendered base.
+             * Upload insertion, a callback from a newer base, and every owner transition remain
+             * strict CAS failures. This lets UpdateDraft + Submit/Close form one user gesture
+             * without allowing a genuinely stale command to act on replacement content.
+             */
+            fun ownsCurrentOrConflatedDraft(
+                expectedOwner: ComposerContentOwner,
+                expectedContentVersion: Long,
+            ): Boolean {
+                val current = state()
+                if (current.contentOwnerOrNull() != expectedOwner) return false
+                if (expectedContentVersion == contentVersion) return true
+                if (expectedContentVersion > contentVersion) return false
+
+                var cursor = expectedContentVersion
+                val firstMutation =
+                    contentMutations.indexOfFirst { mutation ->
+                        mutation.fromVersion == expectedContentVersion
+                    }
+                if (firstMutation < 0) return false
+                for (index in firstMutation until contentMutations.size) {
+                    val mutation = contentMutations[index]
+                    if (mutation.fromVersion != cursor) return false
+                    if (
+                        mutation !is ComposerContentMutation.DraftInputApplied ||
+                        mutation.inputBaseVersion != expectedContentVersion
+                    ) {
+                        return false
+                    }
+                    cursor = mutation.toVersion
+                    if (cursor == contentVersion) return true
+                }
+                return false
             }
 
             fun renderPostActions() {
@@ -717,8 +964,10 @@ public class DiscourseComposerPresenter(
                 val current = state()
                 val accountId = current.accountId ?: return
                 if (
-                    current.contentOwnerOrNull() != command.expectedOwner ||
-                    current.contentVersion != command.expectedContentVersion ||
+                    !ownsCurrentOrConflatedDraft(
+                        command.expectedOwner,
+                        command.expectedContentVersion,
+                    ) ||
                     !current.canEdit ||
                     current.upload.status in
                     setOf(
@@ -766,7 +1015,15 @@ public class DiscourseComposerPresenter(
                             ),
                     )
                 }
-                uploadJob = launchUpload(task, taskEpoch, generation, retry = false, events = events)
+                uploadJob =
+                    launchUpload(
+                        task = task,
+                        taskEpoch = taskEpoch,
+                        generation = generation,
+                        accountId = accountId,
+                        retry = false,
+                        events = events,
+                    )
             }
 
             fun retryUpload() {
@@ -800,6 +1057,7 @@ public class DiscourseComposerPresenter(
                 val precedingControl = uploadControlJob
                 val taskEpoch = uploadTaskEpoch
                 val generation = current.sessionGeneration
+                val accountId = current.accountId ?: return
                 // Leave the retryable terminal state synchronously so another queued command cannot
                 // start a duplicate attempt while cancellation is still finishing.
                 update {
@@ -826,6 +1084,7 @@ public class DiscourseComposerPresenter(
                                 task = task,
                                 taskEpoch = taskEpoch,
                                 generation = generation,
+                                accountId = accountId,
                                 retry = true,
                                 events = events,
                             ).join()
@@ -835,6 +1094,7 @@ public class DiscourseComposerPresenter(
                             task = task,
                             taskEpoch = taskEpoch,
                             generation = generation,
+                            accountId = accountId,
                             retry = true,
                             events = events,
                         )
@@ -881,7 +1141,9 @@ public class DiscourseComposerPresenter(
                 actionSeedJobs[requestId] =
                     launch {
                         try {
-                            block(accountId)
+                            sessionManager.runForAuthenticatedSession(generation, accountId) {
+                                block(accountId)
+                            }
                         } catch (cancelled: CancellationException) {
                             throw cancelled
                         } catch (_: StaleDiscourseSessionException) {
@@ -914,14 +1176,18 @@ public class DiscourseComposerPresenter(
                             requestId = requestId,
                             generation = generation,
                             key = key,
-                            block = { block(accountId) },
+                            block = {
+                                sessionManager.runForAuthenticatedSession(generation, accountId) {
+                                    block(accountId)
+                                }
+                            },
                         )?.let { events.send(it) }
                     }
                 actionJobs[key] = ActionOperation(requestId, job)
             }
 
             suspend fun handleSessionChanged(session: DiscourseSessionState) {
-                if (session.generation == observedSessionGeneration) return
+                if (session.generation <= observedSessionGeneration) return
                 // The session manager changes before its StateFlow event reaches this actor. Drain
                 // the latest conflated editor value into the old account's cleanup snapshot so a
                 // final keystroke is not silently reassigned or dropped during logout.
@@ -1009,7 +1275,15 @@ public class DiscourseComposerPresenter(
                         startInitialization(command.target)
                     }
 
-                    ComposerCommand.Close -> {
+                    is ComposerCommand.Close -> {
+                        if (
+                            !ownsCurrentOrConflatedDraft(
+                                command.expectedOwner,
+                                command.expectedContentVersion,
+                            )
+                        ) {
+                            return
+                        }
                         drainLatestDraftUpdate()
                         val previous = state()
                         cancelComposerOperationJobs()
@@ -1028,7 +1302,15 @@ public class DiscourseComposerPresenter(
                         )
                     }
 
-                    ComposerCommand.Discard -> {
+                    is ComposerCommand.Discard -> {
+                        if (
+                            !ownsCurrentOrConflatedDraft(
+                                command.expectedOwner,
+                                command.expectedContentVersion,
+                            )
+                        ) {
+                            return
+                        }
                         val previous = state()
                         val accountId = previous.accountId
                         val target = previous.target
@@ -1063,35 +1345,61 @@ public class DiscourseComposerPresenter(
                         state().target?.let(::startInitialization)
                     }
 
-                    ComposerCommand.Submit -> {
-                        startSubmit()
+                    is ComposerCommand.Submit -> {
+                        if (
+                            ownsCurrentOrConflatedDraft(
+                                command.expectedOwner,
+                                command.expectedContentVersion,
+                            )
+                        ) {
+                            startSubmit()
+                        }
                     }
 
                     is ComposerCommand.StartUpload -> {
                         startUpload(command)
                     }
 
-                    ComposerCommand.CancelUpload -> {
-                        cancelUpload()
+                    is ComposerCommand.CancelUpload -> {
+                        if (
+                            ownsCurrentOrConflatedDraft(
+                                command.expectedOwner,
+                                command.expectedContentVersion,
+                            )
+                        ) {
+                            cancelUpload()
+                        }
                     }
 
-                    ComposerCommand.RetryUpload -> {
-                        retryUpload()
+                    is ComposerCommand.RetryUpload -> {
+                        if (
+                            ownsCurrentOrConflatedDraft(
+                                command.expectedOwner,
+                                command.expectedContentVersion,
+                            )
+                        ) {
+                            retryUpload()
+                        }
                     }
 
                     is ComposerCommand.SynchronizeArticle -> {
-                        startActionSeed { accountId ->
-                            postActionRepository.synchronizeFromServer(accountId, command.article)
+                        if (command.owns(state())) {
+                            startActionSeed { accountId ->
+                                postActionRepository.synchronizeFromServer(accountId, command.article)
+                            }
                         }
                     }
 
                     is ComposerCommand.SynchronizeTopic -> {
-                        startActionSeed { accountId ->
-                            postActionRepository.synchronizeFromServer(accountId, command.topic)
+                        if (command.owns(state())) {
+                            startActionSeed { accountId ->
+                                postActionRepository.synchronizeFromServer(accountId, command.topic)
+                            }
                         }
                     }
 
                     is ComposerCommand.ToggleLike -> {
+                        if (!command.owns(state()) || command.target !in state().postActions.map { it.target }) return
                         startActionMutation(
                             ActionOperationKey(command.target, ActionKind.Like),
                         ) { accountId ->
@@ -1100,6 +1408,7 @@ public class DiscourseComposerPresenter(
                     }
 
                     is ComposerCommand.ToggleBookmark -> {
+                        if (!command.owns(state()) || command.target !in state().postActions.map { it.target }) return
                         startActionMutation(
                             ActionOperationKey(command.target, ActionKind.Bookmark),
                         ) { accountId ->
@@ -1417,14 +1726,18 @@ public class DiscourseComposerPresenter(
         target: DiscourseComposerTarget,
     ): ComposerEvent? =
         try {
-            val constraints =
-                (target as? DiscourseComposerTarget.NewTopic)?.let {
-                    repository.loadNewTopicConstraints(accountId, it.categoryId)
-                }
-            // An edit must reach the authenticated raw endpoint even when a local draft exists.
-            val authoritativeRaw =
-                (target as? DiscourseComposerTarget.Edit)?.let {
-                    repository.loadEditableSource(accountId, it).raw
+            val (constraints, authoritativeRaw) =
+                sessionManager.runForAuthenticatedSession(generation, accountId) {
+                    val loadedConstraints =
+                        (target as? DiscourseComposerTarget.NewTopic)?.let {
+                            repository.loadNewTopicConstraints(accountId, it.categoryId)
+                        }
+                    // An edit must reach the authenticated raw endpoint even when a local draft exists.
+                    val loadedRaw =
+                        (target as? DiscourseComposerTarget.Edit)?.let {
+                            repository.loadEditableSource(accountId, it).raw
+                        }
+                    loadedConstraints to loadedRaw
                 }
             val draft = draftStore.load(accountId, target)
             ComposerEvent.Initialized(
@@ -1540,7 +1853,9 @@ public class DiscourseComposerPresenter(
                     version,
                     accountId,
                     target,
-                    repository.submit(accountId, target),
+                    sessionManager.runForAuthenticatedSession(generation, accountId) {
+                        repository.submit(accountId, target)
+                    },
                 ),
             )
         } catch (cancelled: CancellationException) {
@@ -1594,6 +1909,7 @@ public class DiscourseComposerPresenter(
         task: DiscourseUploadTask,
         taskEpoch: Long,
         generation: Long,
+        accountId: String,
         retry: Boolean,
         events: Channel<ComposerEvent>,
     ): Job =
@@ -1605,7 +1921,10 @@ public class DiscourseComposerPresenter(
                     }
                 }
             try {
-                val terminal = if (retry) task.retry() else task.execute()
+                val terminal =
+                    sessionManager.runForAuthenticatedSession(generation, accountId) {
+                        if (retry) task.retry() else task.execute()
+                    }
                 events.send(ComposerEvent.UploadStateChanged(taskEpoch, generation, terminal))
             } catch (cancelled: CancellationException) {
                 throw cancelled
@@ -1663,13 +1982,22 @@ private sealed interface ComposerCommand {
         val target: DiscourseComposerTarget,
     ) : ComposerCommand
 
-    data object Close : ComposerCommand
+    data class Close(
+        val expectedOwner: ComposerContentOwner,
+        val expectedContentVersion: Long,
+    ) : ComposerCommand
 
-    data object Discard : ComposerCommand
+    data class Discard(
+        val expectedOwner: ComposerContentOwner,
+        val expectedContentVersion: Long,
+    ) : ComposerCommand
 
     data object RetryInitialization : ComposerCommand
 
-    data object Submit : ComposerCommand
+    data class Submit(
+        val expectedOwner: ComposerContentOwner,
+        val expectedContentVersion: Long,
+    ) : ComposerCommand
 
     data class StartUpload(
         val request: DiscourseUploadRequest,
@@ -1677,24 +2005,34 @@ private sealed interface ComposerCommand {
         val expectedContentVersion: Long,
     ) : ComposerCommand
 
-    data object CancelUpload : ComposerCommand
+    data class CancelUpload(
+        val expectedOwner: ComposerContentOwner,
+        val expectedContentVersion: Long,
+    ) : ComposerCommand
 
-    data object RetryUpload : ComposerCommand
+    data class RetryUpload(
+        val expectedOwner: ComposerContentOwner,
+        val expectedContentVersion: Long,
+    ) : ComposerCommand
 
     data class SynchronizeArticle(
         val article: UiArticle,
+        val expectedOwner: ComposerSessionOwner,
     ) : ComposerCommand
 
     data class SynchronizeTopic(
         val topic: DiscourseForumTopic,
+        val expectedOwner: ComposerSessionOwner,
     ) : ComposerCommand
 
     data class ToggleLike(
         val target: DiscourseActionTarget.Post,
+        val expectedOwner: ComposerSessionOwner,
     ) : ComposerCommand
 
     data class ToggleBookmark(
         val target: DiscourseActionTarget,
+        val expectedOwner: ComposerSessionOwner,
     ) : ComposerCommand
 
     data object Shutdown : ComposerCommand
@@ -1928,6 +2266,26 @@ private data class ComposerContentOwner(
     }
 }
 
+private data class ComposerSessionOwner(
+    val sessionGeneration: Long,
+    val accountId: String,
+) {
+    init {
+        require(sessionGeneration >= 0L) { "Composer session generation cannot be negative" }
+        require(accountId.isNotBlank()) { "Composer session account cannot be blank" }
+    }
+
+    companion object {
+        fun createOrNull(
+            sessionGeneration: Long,
+            accountId: String?,
+        ): ComposerSessionOwner? {
+            if (sessionGeneration < 0L || accountId.isNullOrBlank()) return null
+            return ComposerSessionOwner(sessionGeneration, accountId)
+        }
+    }
+}
+
 private data class OwnedComposerDraftInput(
     val value: DiscourseComposerDraftInput,
     val baseContentVersion: Long,
@@ -1969,13 +2327,25 @@ private sealed interface ComposerContentMutation {
 private fun DiscourseComposerState.contentOwnerOrNull(): ComposerContentOwner? =
     ComposerContentOwner.createOrNull(sessionGeneration, accountId, target)
 
+private fun ComposerCommand.ToggleLike.owns(state: DiscourseComposerState): Boolean =
+    expectedOwner == ComposerSessionOwner.createOrNull(state.sessionGeneration, state.accountId)
+
+private fun ComposerCommand.ToggleBookmark.owns(state: DiscourseComposerState): Boolean =
+    expectedOwner == ComposerSessionOwner.createOrNull(state.sessionGeneration, state.accountId)
+
+private fun ComposerCommand.SynchronizeArticle.owns(state: DiscourseComposerState): Boolean =
+    expectedOwner == ComposerSessionOwner.createOrNull(state.sessionGeneration, state.accountId)
+
+private fun ComposerCommand.SynchronizeTopic.owns(state: DiscourseComposerState): Boolean =
+    expectedOwner == ComposerSessionOwner.createOrNull(state.sessionGeneration, state.accountId)
+
 private val ComposerCommand.blocksWhileSubmitting: Boolean
     get() =
         this is ComposerCommand.Open ||
-            this === ComposerCommand.Close ||
-            this === ComposerCommand.Discard ||
+            this is ComposerCommand.Close ||
+            this is ComposerCommand.Discard ||
             this === ComposerCommand.RetryInitialization ||
-            this === ComposerCommand.Submit
+            this is ComposerCommand.Submit
 
 private fun String.appendComposerMarkdown(markdown: String): String {
     val separator = if (isBlank() || endsWith('\n')) "" else "\n\n"

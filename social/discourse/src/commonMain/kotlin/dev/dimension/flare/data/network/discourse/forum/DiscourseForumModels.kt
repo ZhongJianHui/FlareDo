@@ -228,6 +228,8 @@ public data class DiscourseForumState(
     val selectedPostNumber: Int? = null,
     val selectedTopic: DiscourseForumTopic? = null,
     val sessionGeneration: Long = -1L,
+    /** Stable authenticated identity paired with [sessionGeneration]; never derived from username. */
+    val accountId: String? = null,
     val isAuthenticated: Boolean = false,
     /**
      * True only when the active authenticated feed response explicitly grants topic creation.

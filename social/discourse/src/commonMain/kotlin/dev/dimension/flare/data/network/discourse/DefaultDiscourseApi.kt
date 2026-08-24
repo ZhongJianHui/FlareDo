@@ -180,6 +180,19 @@ internal class DefaultDiscourseApi(
         mutate { csrfToken -> wire.logout(username = username, csrfToken = csrfToken) }
     }
 
+    override suspend fun logout(
+        username: String,
+        expectedSessionGeneration: Long,
+        expectedAccountId: String,
+    ) {
+        requireUsername(username)
+        require(expectedSessionGeneration >= 0L) { "Expected session generation cannot be negative" }
+        require(expectedAccountId.isNotBlank()) { "Expected account id must not be blank" }
+        mutate(expectedSessionGeneration, expectedAccountId) { csrfToken ->
+            wire.logout(username = username, csrfToken = csrfToken)
+        }
+    }
+
     override suspend fun userBookmarks(
         username: String,
         page: DiscourseListPage,
@@ -382,6 +395,34 @@ internal class DefaultDiscourseApi(
                 // The guard belongs to this lease and runs before even the CSRF fetch. Checking the
                 // observable state outside runForCurrentSession would race with login and logout.
                 requireAuthenticatedBeforeWireAccess(required = true)
+                val firstToken =
+                    sessionManager.csrfTokenStore.getOrFetch {
+                        wire.csrf().csrf
+                    }
+                try {
+                    block(firstToken)
+                } catch (csrfFailure: DiscourseCsrfException) {
+                    sessionManager.invalidateCsrfToken(firstToken)
+                    val refreshedToken =
+                        sessionManager.csrfTokenStore.getOrFetch {
+                            wire.csrf().csrf
+                        }
+                    block(refreshedToken)
+                }
+            }
+        }
+
+    /** Owner-aware mutation variant used for destructive callbacks captured before a suspension. */
+    private suspend fun <T> mutate(
+        expectedSessionGeneration: Long,
+        expectedAccountId: String,
+        block: suspend (String) -> T,
+    ): T =
+        translateTransportFailures {
+            sessionManager.runForAuthenticatedSession(
+                expectedGeneration = expectedSessionGeneration,
+                expectedAccountId = expectedAccountId,
+            ) {
                 val firstToken =
                     sessionManager.csrfTokenStore.getOrFetch {
                         wire.csrf().csrf
