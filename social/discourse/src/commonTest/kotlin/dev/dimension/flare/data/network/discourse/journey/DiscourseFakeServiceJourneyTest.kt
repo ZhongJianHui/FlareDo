@@ -70,6 +70,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
@@ -154,7 +156,11 @@ internal class DiscourseFakeServiceJourneyTest {
                         ?.postNumber,
                 )
 
-                val streamRequest = service.requestsFor(HttpMethod.Get, "/t/42/posts.json").single()
+                val streamRequest =
+                    service
+                        .snapshot()
+                        .requestsFor(HttpMethod.Get, "/t/42/posts.json")
+                        .single()
                 assertEquals(listOf("401", "402"), streamRequest.query["post_ids[]"])
                 assertNull(streamRequest.query["include_suggested"])
             } finally {
@@ -217,7 +223,11 @@ internal class DiscourseFakeServiceJourneyTest {
                         ?.postId,
                 )
 
-                val search = service.requestsFor(HttpMethod.Get, "/search.json").single()
+                val search =
+                    service
+                        .snapshot()
+                        .requestsFor(HttpMethod.Get, "/search.json")
+                        .single()
                 assertEquals(listOf("journey"), search.query["q"])
                 assertEquals(listOf("post"), search.query["type_filter"])
                 assertNull(search.query["page"], "Logical search page one must be omitted on the wire")
@@ -268,7 +278,7 @@ internal class DiscourseFakeServiceJourneyTest {
                         "/user-api-key/revoke",
                         "/session/current.json",
                     ),
-                    service.requests.map(JourneyRequest::path),
+                    service.snapshot().requestPaths,
                 )
             } finally {
                 login.close()
@@ -370,8 +380,9 @@ internal class DiscourseFakeServiceJourneyTest {
                         "/post_actions",
                         "/bookmarks.json",
                     ),
-                    service.requests
-                        .map(JourneyRequest::path)
+                    service
+                        .snapshot()
+                        .requestPaths
                         .filter { it in WRITE_JOURNEY_PATHS },
                 )
             } finally {
@@ -425,14 +436,15 @@ internal class DiscourseFakeServiceJourneyTest {
                 val notifications = assertNotNull(realtimeState.notifications.snapshot)
                 assertEquals(1, notifications.unreadCount)
                 assertEquals(8101L, notifications.items.single().id)
-                assertEquals(1, service.authenticatedMessageBusPollCount)
-                assertTrue(service.requestsFor(HttpMethod.Get, "/notifications").size >= 2)
+                val realtimeFixture = service.snapshot()
+                assertEquals(1, realtimeFixture.authenticatedMessageBusPollCount)
+                assertTrue(realtimeFixture.requestsFor(HttpMethod.Get, "/notifications").size >= 2)
 
                 // Backgrounding first cancels the authenticated long-poll branch and prevents a
                 // guest replacement subscription from obscuring the logout cleanup assertion.
                 presenter.setForeground(false)
                 runCurrent()
-                val pollsBeforeLogout = service.authenticatedMessageBusPollCount
+                val pollsBeforeLogout = service.snapshot().authenticatedMessageBusPollCount
 
                 val owner = assertIs<DiscourseSessionState.Authenticated>(service.sessionManager.state.value)
                 assertTrue(login.service.logout(owner.generation, owner.accountId))
@@ -445,9 +457,10 @@ internal class DiscourseFakeServiceJourneyTest {
                 assertTrue(service.cookieStorage.snapshot().isEmpty())
                 assertNull(sessionStore.persisted)
                 assertEquals(1, login.cookieBridge.clearCount)
-                assertEquals(pollsBeforeLogout, service.authenticatedMessageBusPollCount)
                 assertNull(loggedOutState.notifications.snapshot)
-                assertEquals(1, service.requestsFor(HttpMethod.Delete, "/session/fixture-member").size)
+                val loggedOutFixture = service.snapshot()
+                assertEquals(pollsBeforeLogout, loggedOutFixture.authenticatedMessageBusPollCount)
+                assertEquals(1, loggedOutFixture.requestsFor(HttpMethod.Delete, "/session/fixture-member").size)
             } finally {
                 presenter.closeAndJoin()
                 transport.close()
@@ -508,10 +521,13 @@ private fun FakeLinuxDoService.forumGraph(): JourneyForumGraph {
 private class FakeLinuxDoService : AutoCloseable {
     val cookieStorage = DiscourseCookieStorage(nowEpochMillis = { 10_000L })
     val sessionManager = DiscourseSessionManager(cookieStorage = cookieStorage)
-    val requests: MutableList<JourneyRequest> = mutableListOf()
-    var authenticatedMessageBusPollCount: Int = 0
-        private set
 
+    // Ktor's MockEngine executes handlers on its engine dispatcher, so initial REST loads,
+    // MessageBus refreshes, and test assertions can touch fixture state from different threads.
+    // A common coroutine mutex keeps every mutable observation race-free across all KMP targets.
+    private val fixtureStateMutex = Mutex()
+    private val requests: MutableList<JourneyRequest> = mutableListOf()
+    private var authenticatedMessageBusPollCount: Int = 0
     private var notificationAvailable: Boolean = false
     private val engine = MockEngine { request -> handle(request) }
     val client: HttpClient = createDiscourseHttpClient(engine, cookieStorage)
@@ -531,10 +547,13 @@ private class FakeLinuxDoService : AutoCloseable {
         )
     }
 
-    fun requestsFor(
-        method: HttpMethod,
-        path: String,
-    ): List<JourneyRequest> = requests.filter { it.method == method && it.path == path }
+    suspend fun snapshot(): JourneyServiceSnapshot =
+        fixtureStateMutex.withLock {
+            JourneyServiceSnapshot(
+                requests = requests.toList(),
+                authenticatedMessageBusPollCount = authenticatedMessageBusPollCount,
+            )
+        }
 
     override fun close() {
         client.close()
@@ -560,7 +579,9 @@ private class FakeLinuxDoService : AutoCloseable {
                         .associate { it.key to it.value.toList() },
                 body = body,
             )
-        requests += recorded
+        fixtureStateMutex.withLock {
+            requests += recorded
+        }
 
         return when (request.method to recorded.path) {
             HttpMethod.Get to "/categories.json" -> {
@@ -603,7 +624,11 @@ private class FakeLinuxDoService : AutoCloseable {
                 recorded.requireAuthenticated()
                 check(recorded.query["offset"] == null)
                 check(recorded.query["limit"] == listOf("60"))
-                respondJson(if (notificationAvailable) NOTIFICATION_FIXTURE else EMPTY_NOTIFICATIONS_FIXTURE)
+                val notificationFixture =
+                    fixtureStateMutex.withLock {
+                        if (notificationAvailable) NOTIFICATION_FIXTURE else EMPTY_NOTIFICATIONS_FIXTURE
+                    }
+                respondJson(notificationFixture)
             }
 
             HttpMethod.Get to "/session/csrf" -> {
@@ -668,8 +693,10 @@ private class FakeLinuxDoService : AutoCloseable {
                 recorded.requireAuthenticated()
                 val pollBody = checkNotNull(recorded.body)
                 check(pollBody.contains("\"/notification/7101\""))
-                authenticatedMessageBusPollCount += 1
-                notificationAvailable = true
+                fixtureStateMutex.withLock {
+                    authenticatedMessageBusPollCount += 1
+                    notificationAvailable = true
+                }
                 respondJson(MESSAGE_BUS_FIXTURE)
             }
 
@@ -712,6 +739,18 @@ private data class JourneyRequest(
             "Unsafe journey request omitted the in-memory CSRF token"
         }
     }
+}
+
+private data class JourneyServiceSnapshot(
+    val requests: List<JourneyRequest>,
+    val authenticatedMessageBusPollCount: Int,
+) {
+    val requestPaths: List<String> = requests.map(JourneyRequest::path)
+
+    fun requestsFor(
+        method: HttpMethod,
+        path: String,
+    ): List<JourneyRequest> = requests.filter { it.method == method && it.path == path }
 }
 
 private fun HttpRequestData.bodyTextOrNull(): String? =
