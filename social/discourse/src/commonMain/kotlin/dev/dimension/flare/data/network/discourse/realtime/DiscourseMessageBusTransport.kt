@@ -26,7 +26,11 @@ import io.ktor.http.content.TextContent
 import io.ktor.http.contentType
 import io.ktor.utils.io.cancel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.buffer
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
 import kotlinx.io.IOException
 import kotlinx.serialization.SerializationException
@@ -62,7 +66,7 @@ internal class DefaultDiscourseMessageBusTransport(
     private val crossOriginClient: Lazy<HttpClient> = lazy(crossOriginClientFactory)
 
     override fun poll(request: DiscourseMessageBusPollRequest): Flow<DiscourseMessageBusBatch> =
-        flow {
+        channelFlow {
             translateMessageBusTransportFailures {
                 val endpoint = request.endpoint
                 val requestClient =
@@ -110,13 +114,10 @@ internal class DefaultDiscourseMessageBusTransport(
                                 framed = framed,
                             ) { frame ->
                                 val batch = batchDecoder.decode(frame, request.channels.keys)
-                                try {
-                                    emit(batch)
-                                } catch (cancellation: CancellationException) {
-                                    throw cancellation
-                                } catch (collectorFailure: Throwable) {
-                                    throw DiscourseMessageBusCollectorFailure(collectorFailure)
-                                }
+                                // Ktor may resume this streaming callback on its engine IO
+                                // dispatcher. channelFlow.send is context-safe while remaining a
+                                // structured child of the collector; a plain flow emit is not.
+                                send(batch)
                             }
                         } finally {
                             // The streaming statement also performs cleanup after this callback,
@@ -125,7 +126,7 @@ internal class DefaultDiscourseMessageBusTransport(
                         }
                     }
             }
-        }
+        }.buffer(Channel.RENDEZVOUS).preserveCollectorFailureIdentity()
 
     private fun DiscourseMessageBusPollRequest.toJsonBody(): String {
         val payload =
@@ -183,18 +184,46 @@ private fun createCookieLessMessageBusClient(): HttpClient =
         }
     }
 
-/** Keeps downstream collector failures outside transport/network exception classification. */
+/**
+ * Keeps downstream failures outside the producer coroutine and its transport classification.
+ *
+ * `channelFlow` is required for Ktor callbacks that resume on an engine dispatcher, but that
+ * coroutine boundary may copy exceptions for stack-trace recovery. The outer `flow` emits in the
+ * collector context and unwraps the marker after the producer has completed its `finally` cleanup,
+ * preserving the exact downstream exception instance expected by ordinary Flow collection.
+ */
+private fun Flow<DiscourseMessageBusBatch>.preserveCollectorFailureIdentity(): Flow<DiscourseMessageBusBatch> =
+    flow {
+        try {
+            collect { batch ->
+                try {
+                    emit(batch)
+                } catch (cancellation: CancellationException) {
+                    throw cancellation
+                } catch (collectorFailure: Throwable) {
+                    throw DiscourseMessageBusCollectorFailure(collectorFailure)
+                }
+            }
+        } catch (collectorFailure: DiscourseMessageBusCollectorFailure) {
+            throw collectorFailure.originalFailure()
+        }
+    }
+
 private class DiscourseMessageBusCollectorFailure(
     val original: Throwable,
-) : RuntimeException()
+) : RuntimeException(original)
+
+private fun DiscourseMessageBusCollectorFailure.originalFailure(): Throwable {
+    var failure = original
+    while (failure is DiscourseMessageBusCollectorFailure) failure = failure.original
+    return failure
+}
 
 private suspend fun <T> translateMessageBusTransportFailures(block: suspend () -> T): T =
     try {
         block()
     } catch (cancellation: CancellationException) {
         throw cancellation
-    } catch (collectorFailure: DiscourseMessageBusCollectorFailure) {
-        throw collectorFailure.original
     } catch (known: DiscourseException) {
         throw known
     } catch (_: HttpRequestTimeoutException) {
