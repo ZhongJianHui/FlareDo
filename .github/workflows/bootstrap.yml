@@ -99,9 +99,10 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Test the real Android Keystore
+      - name: Test real Android security boundaries
         run: >-
           ./gradlew
+          :app:flaredoAuthApi30DebugAndroidTest
           :social:discourse:flaredoApi30AndroidDeviceTest
           -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
           --stacktrace
@@ -113,6 +114,7 @@ jobs:
           name: android-verification
           path: |
             app/build/reports/screenshotTest/preview/debug
+            app/build/reports/androidTests
             social/discourse/build/reports/androidTests
           if-no-files-found: warn
           retention-days: 7

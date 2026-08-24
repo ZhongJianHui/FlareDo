@@ -30,11 +30,12 @@ enum class DiscourseAuthRedirectSinkResult {
 }
 
 /**
- * Temporary Android-to-common bridge for Stage 5.
+ * Android-to-common authorization bridge.
  *
- * The eventual application/Koin integration implements this interface and performs RSA signature,
- * nonce, expiry, and one-time-consumption checks. A rejection is fail-closed and never causes the
- * redirect Activity to launch a destination supplied by the incoming Intent.
+ * The application/Koin integration performs bounded RSA PKCS#1 v1.5 callback decryption, verifies
+ * the nonce and expiry, and atomically consumes the one-time authorization attempt. A rejection is
+ * fail-closed and never causes the redirect Activity to launch a destination supplied by the
+ * incoming Intent.
  */
 fun interface DiscourseAuthRedirectSink {
     /** Must be main-safe because the Android bridge invokes it from an Activity lifecycle scope. */

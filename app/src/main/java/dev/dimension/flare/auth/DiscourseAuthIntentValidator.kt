@@ -118,4 +118,6 @@ private const val ALLOWED_ACTIVITY_FLAGS: Int =
     Intent.FLAG_ACTIVITY_NEW_TASK or
         Intent.FLAG_ACTIVITY_CLEAR_TOP or
         Intent.FLAG_ACTIVITY_SINGLE_TOP or
-        Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT
+        Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT or
+        // Android mirrors the exported Activity's excludeFromRecents manifest policy here.
+        Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS

@@ -19,6 +19,17 @@ android {
         versionName = "0.1.0"
     }
 
+    testOptions {
+        managedDevices {
+            localDevices.create("flaredoAuthApi30") {
+                device = "Pixel 2"
+                apiLevel = 30
+                // The auth tests need real Activity/Intent dispatch but no graphical hardware.
+                systemImageSource = "aosp-atd"
+            }
+        }
+    }
+
     buildTypes {
         release {
             // Release signing and distribution are intentionally outside the source tree.
@@ -40,6 +51,9 @@ dependencies {
 
     screenshotTestImplementation(libs.screenshot.validation.api)
     screenshotTestImplementation(libs.compose.ui.tooling)
+    androidTestImplementation(kotlin("test-junit"))
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.ktor.client.core)
     testImplementation(kotlin("test-junit"))
     testImplementation(libs.kotlinx.coroutines.test)
 
