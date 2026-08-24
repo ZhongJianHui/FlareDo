@@ -273,18 +273,102 @@ jobs:
           $makeAppx.DirectoryName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           Write-Host "Using $($makeAppx.FullName)"
 
-      - name: Test JVM and real CurrentUser DPAPI
+      - name: Check Windows JVM formatting
+        shell: pwsh
+        run: ./gradlew.bat :desktopApp:ktlintCheck --no-daemon --no-parallel --stacktrace
+
+      - name: Test shared JVM
+        shell: pwsh
+        run: ./gradlew.bat :shared:jvmTest --no-daemon --no-parallel --stacktrace
+
+      - name: Test Discourse JVM and real CurrentUser DPAPI
         shell: pwsh
         env:
           FLAREDO_REQUIRE_DESKTOP_VAULT: "1"
         run: >-
           ./gradlew.bat
-          :desktopApp:ktlintCheck
-          :shared:jvmTest
           :social:discourse:jvmTest
-          :compose-ui:jvmTest
-          :desktopApp:test
+          --no-daemon
+          --no-parallel
           --stacktrace
+
+      - name: Test Compose desktop UI
+        shell: pwsh
+        run: >-
+          ./gradlew.bat
+          :compose-ui:jvmTest
+          --no-daemon
+          --no-parallel
+          --stacktrace
+
+      - name: Test Windows desktop callback broker
+        shell: pwsh
+        env:
+          FLAREDO_REQUIRE_DESKTOP_VAULT: "1"
+        run: >-
+          ./gradlew.bat
+          :desktopApp:test
+          --tests dev.dimension.flare.DesktopAuthCallbackTest
+          --no-daemon
+          --no-parallel
+          --stacktrace
+
+      - name: Test remaining Windows desktop lifecycle
+        shell: pwsh
+        env:
+          FLAREDO_REQUIRE_DESKTOP_VAULT: "1"
+        run: >-
+          ./gradlew.bat
+          :desktopApp:test
+          --tests dev.dimension.flare.DesktopDiscourseHostModuleTest
+          --tests dev.dimension.flare.DesktopLifecycleTest
+          --tests dev.dimension.flare.TaoWebViewSmokeTest
+          --no-daemon
+          --no-parallel
+          --stacktrace
+
+      - name: Annotate Windows test failures
+        if: ${{ failure() && !cancelled() }}
+        shell: pwsh
+        run: |
+          $roots = @(
+            "shared/build/test-results",
+            "social/discourse/build/test-results",
+            "compose-ui/build/test-results",
+            "desktopApp/build/test-results"
+          )
+          $reports = $roots | ForEach-Object {
+            if (Test-Path $_) {
+              Get-ChildItem -Path $_ -Recurse -Filter "TEST-*.xml" -File
+            }
+          }
+          foreach ($report in @($reports)) {
+            [xml]$xml = Get-Content -Path $report.FullName -Raw
+            foreach ($case in @($xml.testsuite.testcase)) {
+              if ($null -ne $case.failure -or $null -ne $case.error) {
+                $identity = "$($case.classname).$($case.name)"
+                $identity = $identity.Replace("%", "%25").Replace("`r", "%0D").Replace("`n", "%0A")
+                Write-Output "::error title=Windows test failure::$identity"
+              }
+            }
+          }
+
+      - name: Upload Windows test diagnostics
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: windows-test-diagnostics
+          path: |
+            shared/build/test-results/**
+            shared/build/reports/tests/**
+            social/discourse/build/test-results/**
+            social/discourse/build/reports/tests/**
+            compose-ui/build/test-results/**
+            compose-ui/build/reports/tests/**
+            desktopApp/build/test-results/**
+            desktopApp/build/reports/tests/**
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Build unsigned AppX
         shell: pwsh

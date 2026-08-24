@@ -89,8 +89,8 @@ internal fun claimDesktopInstance(
     val lock =
         try {
             // Windows byte-range locks are mandatory, including for another handle in the same
-            // process. Keep the ownership byte immediately after the five-byte port field so a
-            // secondary process can read offsets 0..4 while it probes the locked primary.
+            // process. Files.readString performs one EOF probe after a full five-byte port, so
+            // offset 5 must remain unlocked as a guard and ownership starts at offset 6.
             channel.tryLock(INSTANCE_LOCK_POSITION, INSTANCE_LOCK_LENGTH, false)
         } catch (_: OverlappingFileLockException) {
             null
@@ -531,7 +531,7 @@ private val PORT_PATTERN = Regex("[1-9][0-9]{0,4}")
 private const val LOOPBACK_HOST: String = "127.0.0.1"
 private const val MAX_TCP_PORT: Int = 65_535
 private const val MAX_PORT_TEXT_LENGTH: Long = 5L
-private const val INSTANCE_LOCK_POSITION: Long = MAX_PORT_TEXT_LENGTH
+private const val INSTANCE_LOCK_POSITION: Long = MAX_PORT_TEXT_LENGTH + 1L
 private const val INSTANCE_LOCK_LENGTH: Long = 1L
 private const val MAX_DESKTOP_CALLBACK_BYTES: Int = 16 * 1024
 private const val MAX_PENDING_CALLBACKS: Int = 4
