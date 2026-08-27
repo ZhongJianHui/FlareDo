@@ -1,5 +1,6 @@
 package dev.dimension.flare.data.network.discourse.realtime
 
+import dev.dimension.flare.data.network.discourse.error.DiscourseCloudflareChallengeException
 import dev.dimension.flare.data.network.discourse.session.DiscourseSessionManager
 import dev.dimension.flare.data.network.discourse.session.DiscourseSessionState
 import dev.dimension.flare.data.network.discourse.session.StaleDiscourseSessionException
@@ -108,13 +109,22 @@ public data class DiscourseSessionRecoveryRequest(
  *
  * [catchUp] runs after every foreground/session/subscription transition and must finish before the
  * first poll for that snapshot. [refresh] must fetch REST state or enqueue that exact idempotent
- * fetch. [recoverSession] receives the generation it may replace, allowing login/logout code to use
- * generation CAS and avoid recovering an already replaced account.
+ * fetch. [handleChallenge] runs inside the same generation-bound request lease that received a
+ * Cloudflare challenge, so a platform can merge clearance cookies without opening an account-
+ * switching race. [recoverSession] receives the generation it may replace, allowing login/logout
+ * code to use generation CAS and avoid recovering an already replaced account.
  */
 public interface DiscourseRealtimeCallbacks {
     public suspend fun catchUp(request: DiscourseRealtimeCatchUp)
 
     public suspend fun refresh(request: DiscourseRealtimeRefresh)
+
+    /**
+     * Presents a fixed-origin manual challenge and merges its clearance into the active request.
+     * Returning true grants one retry of the complete catch-up/subscription pipeline. The default
+     * is false for hosts that do not provide a browser challenge surface.
+     */
+    public suspend fun handleChallenge(challenge: DiscourseCloudflareChallengeException): Boolean = false
 
     public suspend fun recoverSession(request: DiscourseSessionRecoveryRequest)
 
@@ -311,20 +321,52 @@ public class DiscourseRealtimeCoordinator(
                 check(actualAccountId == subscription.accountId) {
                     "Realtime subscription entered a different account"
                 }
-                catchUpWithRetry(subscription.toCatchUp(), callbacks)
-                // Resolve shared-session material only inside this immutable generation lease. The
-                // endpoint remains a local stack value and is discarded when this child is cancelled.
-                val endpoint = endpointProvider.endpoint(this)
-                try {
-                    messageBus.run(
-                        subscription = subscription,
-                        endpoint = endpoint,
-                        refresh = callbacks::refresh,
-                    )
-                } finally {
-                    // Idempotent with MessageBus.run's cleanup and covers cancellation in the small
-                    // handoff boundary between a suspending provider and MessageBus ownership.
-                    (endpoint as? DiscourseMessageBusEndpoint.SharedSession)?.clear()
+                var challengeHandled = false
+                while (true) {
+                    try {
+                        catchUpWithRetry(subscription.toCatchUp(), callbacks)
+                        // Resolve shared-session material inside this immutable generation lease.
+                        // The endpoint remains a local stack value and is discarded after each
+                        // challenge retry or cancellation.
+                        val endpoint = endpointProvider.endpoint(this)
+                        try {
+                            messageBus.run(
+                                subscription = subscription,
+                                endpoint = endpoint,
+                                refresh = callbacks::refresh,
+                            )
+                        } finally {
+                            // Idempotent with MessageBus.run's cleanup and covers cancellation in
+                            // the small handoff boundary between provider and bus ownership.
+                            (endpoint as? DiscourseMessageBusEndpoint.SharedSession)?.clear()
+                        }
+                        break
+                    } catch (challenge: DiscourseCloudflareChallengeException) {
+                        val handled =
+                            if (challengeHandled) {
+                                false
+                            } else {
+                                try {
+                                    callbacks.handleChallenge(challenge)
+                                } catch (cancellation: CancellationException) {
+                                    throw cancellation
+                                } catch (stale: StaleDiscourseSessionException) {
+                                    throw stale
+                                } catch (_: Exception) {
+                                    // A platform bridge failure is still a failed challenge handoff.
+                                    // Collapse its implementation details into the sanitized terminal
+                                    // challenge reason instead of leaving the pipeline dormant.
+                                    false
+                                }
+                            }
+                        if (!handled) {
+                            throw challenge
+                        }
+                        // A challenge may happen during catch-up, endpoint discovery, or a poll
+                        // refresh. Reconcile all of those phases from the beginning after the
+                        // handler has merged clearance cookies into this request lease.
+                        challengeHandled = true
+                    }
                 }
             }
             null

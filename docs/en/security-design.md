@@ -160,9 +160,19 @@ the CSRF/OTP portion may be replayed once. After `_t` exists, only the failed
 revoke or identity request is retried, so a consumed OTP is not replayed. A second
 challenge is surfaced. Challenge handoff may merge proxy state such as
 `cf_clearance`, but it explicitly excludes the browser's `_t`, preventing a
-different browser account from replacing the OTP-created session. The manual
-challenge wait is bounded to 180 seconds by default, and one-use browser state is
-cleared in `NonCancellable` cleanup.
+different browser account from replacing the OTP-created session. On Android,
+the restricted WebView and the Ktor client use the same system WebView User-Agent
+so Cloudflare's browser-bound clearance remains valid during the one permitted
+replay and the isolated fallback-session probe. The manual challenge wait is
+bounded to 180 seconds by default, and one-use browser state is cleared in
+`NonCancellable` cleanup.
+
+Realtime catch-up and MessageBus requests use the same one-replay challenge
+budget. When a challenge is received, the foreground host presents the fixed
+Linux.do browser surface while the original generation-bound request lease is
+still active, merges only the bounded challenge-cookie snapshot, and reruns the
+complete reconciliation pipeline. A cancelled or second challenge falls back
+to the terminal recovery UI without silently switching accounts.
 
 ## Android callback and Intent hardening
 

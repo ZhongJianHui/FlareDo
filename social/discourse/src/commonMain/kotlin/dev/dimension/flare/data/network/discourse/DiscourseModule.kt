@@ -79,7 +79,18 @@ public val discourseModule: Module =
         single<SecureCredentialStore> { SessionOnlySecureCredentialStore() } onClose { store ->
             (store as? SessionOnlySecureCredentialStore)?.close()
         }
-        single { createDiscourseHttpClient(cookieStorage = get()) } onClose { client ->
+        single<DiscourseHttpUserAgentProvider> { DiscourseHttpUserAgentProvider { null } }
+        // Hosts with a restricted browser override this with the user-mediated challenge bridge.
+        // Keeping a fail-closed default lets anonymous/shared graphs resolve a coordinator safely.
+        single<DiscourseCloudflareChallengeHandler> {
+            DiscourseCloudflareChallengeHandler { false }
+        }
+        single {
+            createDiscourseHttpClient(
+                cookieStorage = get(),
+                userAgent = get<DiscourseHttpUserAgentProvider>().userAgent(),
+            )
+        } onClose { client ->
             client?.close()
         }
         single<DiscourseMessageBusCursorStore> { MemoryDiscourseMessageBusCursorStore() }
@@ -163,6 +174,7 @@ public val discourseModule: Module =
                 sessionManager = get(),
                 realtimeCoordinator = get(),
                 realtimeSessionRecovery = get(),
+                realtimeChallengeHandler = get(),
             )
         }
         // Composer actors own bounded channels and generation-bound child jobs, so each screen
@@ -191,9 +203,6 @@ public val discourseAuthenticationModule: Module =
         single<DiscourseAuthTokenGenerator> { createPlatformDiscourseAuthTokenGenerator() }
         single { DiscourseManualChallengeCoordinator() }
         single<DiscourseManualChallengePresenter> { get<DiscourseManualChallengeCoordinator>() }
-        single<DiscourseCloudflareChallengeHandler> {
-            DiscourseCloudflareChallengeHandler { false }
-        }
         single {
             DiscourseAuthorizationCoordinator(
                 keyPairGenerator = get(),
@@ -253,7 +262,9 @@ public val discourseAuthenticationModule: Module =
                 challengeCoordinator = get(),
             )
         }
-        single<DiscourseWebSessionProbe> { DefaultDiscourseWebSessionProbe() }
+        single<DiscourseWebSessionProbe> {
+            DefaultDiscourseWebSessionProbe(userAgentProvider = get())
+        }
         single {
             DiscourseWebSessionLogin(
                 cookieBridge = get(),

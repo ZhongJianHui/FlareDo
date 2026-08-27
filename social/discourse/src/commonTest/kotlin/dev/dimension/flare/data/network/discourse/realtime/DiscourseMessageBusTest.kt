@@ -1,10 +1,15 @@
 package dev.dimension.flare.data.network.discourse.realtime
 
+import dev.dimension.flare.data.network.discourse.auth.DiscourseManualChallengeCookieHandler
+import dev.dimension.flare.data.network.discourse.auth.DiscourseManualChallengePresenter
+import dev.dimension.flare.data.network.discourse.auth.DiscourseWebSessionCookieBridge
 import dev.dimension.flare.data.network.discourse.error.DiscourseAuthenticationException
+import dev.dimension.flare.data.network.discourse.error.DiscourseCloudflareChallengeException
 import dev.dimension.flare.data.network.discourse.error.DiscoursePermissionException
 import dev.dimension.flare.data.network.discourse.error.DiscourseRateLimitException
 import dev.dimension.flare.data.network.discourse.error.DiscourseServerException
 import dev.dimension.flare.data.network.discourse.session.DiscourseCookieRevisionContext
+import dev.dimension.flare.data.network.discourse.session.DiscourseCookieSnapshot
 import dev.dimension.flare.data.network.discourse.session.DiscourseSessionManager
 import dev.dimension.flare.data.network.discourse.session.DiscourseSessionState
 import kotlinx.coroutines.CancellationException
@@ -366,6 +371,185 @@ internal class DiscourseMessageBusTest {
                 callbacks.recoveries,
             )
             assertEquals(1, transport.requests.size)
+        }
+
+    @Test
+    fun cloudflareChallengeIsPresentedInsideTheLeaseAndRetriesTheWholePipelineOnce() =
+        runTest {
+            val challengeStatuses = mutableListOf<Int>()
+            val transport =
+                RecordingTransport { request ->
+                    if (request.sequence == 1L) {
+                        flow { throw DiscourseCloudflareChallengeException(statusCode = 403) }
+                    } else {
+                        flow { awaitCancellation() }
+                    }
+                }
+            val callbacks =
+                RecordingCallbacks(
+                    onChallenge = { challenge ->
+                        challengeStatuses += challenge.statusCode
+                        assertEquals(
+                            0L,
+                            currentCoroutineContext()[DiscourseCookieRevisionContext]?.generation,
+                        )
+                        true
+                    },
+                )
+            val holder =
+                coordinator(
+                    sessionManager = DiscourseSessionManager(),
+                    transport = transport,
+                    callbacks = callbacks,
+                )
+
+            backgroundScope.launch { holder.value.run(callbacks) }
+            holder.value.setForeground(true)
+            runCurrent()
+
+            assertEquals(listOf(403), challengeStatuses)
+            assertEquals(2, callbacks.catchUps.size)
+            assertTrue(callbacks.recoveries.isEmpty())
+            assertEquals(listOf(1L, 2L), transport.requests.map { it.sequence })
+        }
+
+    @Test
+    fun secondCloudflareChallengeRemainsTerminalAfterOneReplay() =
+        runTest {
+            val challengeStatuses = mutableListOf<Int>()
+            val transport =
+                RecordingTransport {
+                    flow { throw DiscourseCloudflareChallengeException(statusCode = 429) }
+                }
+            val callbacks =
+                RecordingCallbacks(
+                    onChallenge = { challenge ->
+                        challengeStatuses += challenge.statusCode
+                        true
+                    },
+                )
+            val holder =
+                coordinator(
+                    sessionManager = DiscourseSessionManager(),
+                    transport = transport,
+                    callbacks = callbacks,
+                )
+
+            backgroundScope.launch { holder.value.run(callbacks) }
+            holder.value.setForeground(true)
+            runCurrent()
+            runCurrent()
+
+            // The handler owns one replay budget; a second challenge is surfaced without opening
+            // another browser handoff.
+            assertEquals(listOf(429), challengeStatuses)
+            assertEquals(
+                listOf(
+                    DiscourseSessionRecoveryRequest(
+                        expectedSessionGeneration = 0L,
+                        reason = DiscourseSessionRecoveryReason.ManualChallengeRequired,
+                    ),
+                ),
+                callbacks.recoveries,
+            )
+            assertEquals(listOf(1L, 2L), transport.requests.map { it.sequence })
+        }
+
+    @Test
+    fun challengeBridgeFailureUsesTheSanitizedTerminalRecoveryReason() =
+        runTest {
+            val transport =
+                RecordingTransport {
+                    flow { throw DiscourseCloudflareChallengeException(statusCode = 403) }
+                }
+            val callbacks =
+                RecordingCallbacks(
+                    onChallenge = { error("fixture browser bridge failure") },
+                )
+            val holder =
+                coordinator(
+                    sessionManager = DiscourseSessionManager(),
+                    transport = transport,
+                    callbacks = callbacks,
+                )
+
+            backgroundScope.launch { holder.value.run(callbacks) }
+            holder.value.setForeground(true)
+            runCurrent()
+
+            assertEquals(
+                listOf(
+                    DiscourseSessionRecoveryRequest(
+                        expectedSessionGeneration = 0L,
+                        reason = DiscourseSessionRecoveryReason.ManualChallengeRequired,
+                    ),
+                ),
+                callbacks.recoveries,
+            )
+            assertEquals(1, callbacks.challenges.size)
+            assertEquals(listOf(1L), transport.requests.map { it.sequence })
+        }
+
+    @Test
+    fun manualChallengeHandlerMergesClearanceBeforeRealtimeRetry() =
+        runTest {
+            val manager = DiscourseSessionManager()
+            manager.startAuthenticatedSession(
+                accountId = "42",
+                cookieSnapshot =
+                    listOf(
+                        DiscourseCookieSnapshot(
+                            name = "_t",
+                            value = "owner-session",
+                            httpOnly = true,
+                        ),
+                    ),
+            )
+            val handler =
+                DiscourseManualChallengeCookieHandler(
+                    presenter = DiscourseManualChallengePresenter { true },
+                    cookieBridge =
+                        object : DiscourseWebSessionCookieBridge {
+                            override suspend fun snapshotLinuxDoCookies(): List<DiscourseCookieSnapshot> =
+                                listOf(
+                                    DiscourseCookieSnapshot(
+                                        name = "cf_clearance",
+                                        value = "verified-clearance",
+                                        httpOnly = true,
+                                    ),
+                                )
+
+                            override suspend fun clearLinuxDoCookies() = Unit
+                        },
+                    sessionManager = manager,
+                )
+            val transport =
+                RecordingTransport { request ->
+                    if (request.sequence == 1L) {
+                        flow { throw DiscourseCloudflareChallengeException(statusCode = 403) }
+                    } else {
+                        flow { awaitCancellation() }
+                    }
+                }
+            val callbacks =
+                RecordingCallbacks(
+                    onChallenge = { challenge -> handler.handle(challenge) },
+                )
+            val holder = coordinator(manager, transport, callbacks)
+
+            backgroundScope.launch { holder.value.run(callbacks) }
+            holder.value.setForeground(true)
+            runCurrent()
+
+            assertEquals(2, callbacks.catchUps.size)
+            assertEquals(
+                mapOf(
+                    "_t" to "owner-session",
+                    "cf_clearance" to "verified-clearance",
+                ),
+                manager.cookieStorage.snapshot().associate { it.name to it.value },
+            )
+            assertTrue(callbacks.recoveries.isEmpty())
         }
 
     @Test
@@ -780,11 +964,13 @@ private data class CoordinatorHolder(
 
 private class RecordingCallbacks(
     private val onCatchUp: suspend (DiscourseRealtimeCatchUp) -> Unit = {},
+    private val onChallenge: suspend (DiscourseCloudflareChallengeException) -> Boolean = { false },
 ) : DiscourseRealtimeCallbacks {
     val catchUps = mutableListOf<DiscourseRealtimeCatchUp>()
     val refreshes = mutableListOf<DiscourseRealtimeRefresh>()
     val recoveries = mutableListOf<DiscourseSessionRecoveryRequest>()
     val pipelineFailures = mutableListOf<Long>()
+    val challenges = mutableListOf<DiscourseCloudflareChallengeException>()
 
     override suspend fun catchUp(request: DiscourseRealtimeCatchUp) {
         catchUps += request
@@ -793,6 +979,11 @@ private class RecordingCallbacks(
 
     override suspend fun refresh(request: DiscourseRealtimeRefresh) {
         refreshes += request
+    }
+
+    override suspend fun handleChallenge(challenge: DiscourseCloudflareChallengeException): Boolean {
+        challenges += challenge
+        return onChallenge(challenge)
     }
 
     override suspend fun recoverSession(request: DiscourseSessionRecoveryRequest) {

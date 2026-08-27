@@ -28,6 +28,13 @@ private const val LINUX_DO_HOST: String = "linux.do"
 private const val CONNECT_TIMEOUT_MILLIS: Long = 15_000
 private const val REQUEST_TIMEOUT_MILLIS: Long = 30_000
 private const val SOCKET_TIMEOUT_MILLIS: Long = 30_000
+private const val MAX_USER_AGENT_CHARS: Int = 1_024
+
+/** Supplies the browser identity that Cloudflare binds to a manual challenge Cookie. */
+public fun interface DiscourseHttpUserAgentProvider {
+    /** Returns the exact restricted-browser User-Agent, or null when a host has no browser bridge. */
+    public fun userAgent(): String?
+}
 
 /**
  * Reads only the allocation-bounded prefix used to identify explicit CSRF or proxy challenges.
@@ -63,9 +70,21 @@ private val FixedDiscourseOrigin =
         }
     }
 
+private class DiscourseDefaultHeadersConfig {
+    var userAgent: String? = null
+}
+
 private val DiscourseDefaultHeaders =
-    createClientPlugin("DiscourseDefaultHeaders") {
+    createClientPlugin("DiscourseDefaultHeaders", ::DiscourseDefaultHeadersConfig) {
+        val userAgent = pluginConfig.userAgent?.requireValidDiscourseUserAgent()
+
         onRequest { request, _ ->
+            if (userAgent != null) {
+                // Clearance Cookies are bound to the browser identity that solved the challenge.
+                // Request builders cannot replace this host-owned value after the binding is set.
+                request.headers.remove(HttpHeaders.UserAgent)
+                request.headers.append(HttpHeaders.UserAgent, userAgent)
+            }
             if (request.headers[HttpHeaders.Accept] == null) {
                 request.headers.append(HttpHeaders.Accept, ContentType.Application.Json.toString())
             }
@@ -88,7 +107,10 @@ private val DiscourseDefaultHeaders =
  * leaks OkHttp/Darwin resources when Koin closes only the client. Each actual implementation uses
  * `HttpClient(OkHttp)` or `HttpClient(Darwin)` and applies [configureDiscourseHttpClient].
  */
-internal expect fun createDiscourseHttpClient(cookieStorage: DiscourseCookieStorage): HttpClient
+internal expect fun createDiscourseHttpClient(
+    cookieStorage: DiscourseCookieStorage,
+    userAgent: String? = null,
+): HttpClient
 
 /**
  * Builds a client around [engine]. Tests pass Ktor's `MockEngine` through this overload so request
@@ -97,13 +119,17 @@ internal expect fun createDiscourseHttpClient(cookieStorage: DiscourseCookieStor
 internal fun createDiscourseHttpClient(
     engine: HttpClientEngine,
     cookieStorage: DiscourseCookieStorage,
+    userAgent: String? = null,
 ): HttpClient =
     HttpClient(engine) {
-        configureDiscourseHttpClient(cookieStorage)
+        configureDiscourseHttpClient(cookieStorage, userAgent)
     }
 
 /** Shared protocol configuration used by both managed platform clients and test-owned engines. */
-internal fun HttpClientConfig<*>.configureDiscourseHttpClient(cookieStorage: DiscourseCookieStorage) {
+internal fun HttpClientConfig<*>.configureDiscourseHttpClient(
+    cookieStorage: DiscourseCookieStorage,
+    userAgent: String? = null,
+) {
     expectSuccess = true
     followRedirects = false
 
@@ -159,7 +185,9 @@ internal fun HttpClientConfig<*>.configureDiscourseHttpClient(cookieStorage: Dis
 
     // Ktor's logging plugin is intentionally absent: Cookie, Set-Cookie, CSRF, draft bodies,
     // and upload bytes must never enter application or CI logs.
-    install(DiscourseDefaultHeaders)
+    install(DiscourseDefaultHeaders) {
+        this.userAgent = userAgent
+    }
 }
 
 private fun String?.acceptsHtml(): Boolean =
@@ -170,3 +198,13 @@ private fun String?.acceptsHtml(): Boolean =
             false
         }
     }
+
+private fun String.requireValidDiscourseUserAgent(): String {
+    require(isNotBlank() && length <= MAX_USER_AGENT_CHARS) {
+        "The Discourse browser User-Agent size is invalid"
+    }
+    require(all { character -> character.code in 0x20..0x7e }) {
+        "The Discourse browser User-Agent contains a forbidden character"
+    }
+    return this
+}

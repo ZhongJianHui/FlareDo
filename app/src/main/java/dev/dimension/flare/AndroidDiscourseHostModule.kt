@@ -1,8 +1,10 @@
 package dev.dimension.flare
 
 import android.app.Application
+import android.webkit.WebSettings
 import dev.dimension.flare.data.database.FlareDoDatabase
 import dev.dimension.flare.data.database.createAndroidFlareDoDatabase
+import dev.dimension.flare.data.network.discourse.DiscourseHttpUserAgentProvider
 import dev.dimension.flare.data.network.discourse.auth.AndroidDiscourseRsaPkcs1Crypto
 import dev.dimension.flare.data.network.discourse.auth.AndroidDiscourseWebSessionCookieBridge
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthAttemptStore
@@ -34,11 +36,23 @@ import org.koin.dsl.onClose
  * Keeping this as a module factory makes the production override order explicit and lets host graph
  * tests replace only Android services that cannot execute against the local mock framework.
  */
-internal fun createAndroidDiscourseHostModule(application: Application): Module =
-    createAndroidDiscourseHostModule(
+internal fun createAndroidDiscourseHostModule(application: Application): Module {
+    // Resolve this on the main thread during Application.onCreate. The restricted WebView uses the
+    // same platform default, preserving Cloudflare's User-Agent binding across Cookie handoff. A
+    // device without an available WebView provider remains usable for ordinary API access; its
+    // challenge surface will fail closed when it is actually requested.
+    val browserUserAgent =
+        try {
+            WebSettings.getDefaultUserAgent(application)
+        } catch (_: RuntimeException) {
+            null
+        }
+    return createAndroidDiscourseHostModule(
         databaseFactory = { createAndroidFlareDoDatabase(application) },
         credentialStoreFactory = { AndroidKeystoreCredentialStore(application) },
+        httpUserAgentProvider = DiscourseHttpUserAgentProvider { browserUserAgent },
     )
+}
 
 /** Testable core of the Android module; production callers use the [Application] overload. */
 internal fun createAndroidDiscourseHostModule(
@@ -46,6 +60,7 @@ internal fun createAndroidDiscourseHostModule(
     credentialStoreFactory: () -> SecureCredentialStore,
     webCookieBridgeFactory: () -> DiscourseWebSessionCookieBridge =
         { AndroidDiscourseWebSessionCookieBridge() },
+    httpUserAgentProvider: DiscourseHttpUserAgentProvider = DiscourseHttpUserAgentProvider { null },
 ): Module =
     module {
         single { databaseFactory() } onClose { database ->
@@ -85,6 +100,7 @@ internal fun createAndroidDiscourseHostModule(
                 cookieValidator = get(),
             )
         }
+        single<DiscourseHttpUserAgentProvider> { httpUserAgentProvider }
         single<DiscourseWebSessionCookieBridge> {
             webCookieBridgeFactory()
         }

@@ -1,5 +1,6 @@
 package dev.dimension.flare
 
+import dev.dimension.flare.data.network.discourse.DiscourseHttpUserAgentProvider
 import dev.dimension.flare.data.network.discourse.auth.AndroidDiscourseWebSessionCookieBridge
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthAttemptStore
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationPresenter
@@ -28,6 +29,7 @@ import org.koin.dsl.module
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -56,6 +58,8 @@ class AndroidDiscourseHostModuleTest {
                     createAndroidDiscourseHostModule(
                         databaseFactory = { error("The local JVM must not open Android Room") },
                         credentialStoreFactory = { SessionOnlySecureCredentialStore() },
+                        httpUserAgentProvider =
+                            DiscourseHttpUserAgentProvider { "fixture-android-webview" },
                     ),
                     localAndroidSystemOverrides,
                 )
@@ -71,6 +75,10 @@ class AndroidDiscourseHostModuleTest {
             )
             assertIs<DiscourseManualChallengeCookieHandler>(
                 application.koin.get<DiscourseCloudflareChallengeHandler>(),
+            )
+            assertEquals(
+                "fixture-android-webview",
+                application.koin.get<DiscourseHttpUserAgentProvider>().userAgent(),
             )
         } finally {
             application.close()

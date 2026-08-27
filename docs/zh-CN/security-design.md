@@ -121,8 +121,15 @@ request ID，不接收响应正文、path、Cookie 或 exception。
 一个认证 exchange 只有一次 challenge/replay 预算。在 `_t` 尚未产生时，CSRF/OTP 部分
 最多重放一次；`_t` 产生后只重试失败的 revoke 或 identity 请求，因此不会重放已消费的
 OTP。第二次 challenge 会直接上报。challenge handoff 可以合并 `cf_clearance` 等代理状态，
-但会明确排除浏览器 `_t`，避免其他浏览器账号替换 OTP 建立的 session。手工 challenge
-默认最多等待 180 秒，一次性浏览器状态在 `NonCancellable` 清理中删除。
+但会明确排除浏览器 `_t`，避免其他浏览器账号替换 OTP 建立的 session。在 Android 上，
+受限 WebView 与 Ktor client 使用相同的系统 WebView User-Agent，使 Cloudflare 绑定浏览器的
+clearance 在一次允许的重放和隔离的备用 session probe 中保持有效。手工 challenge 默认最多
+等待 180 秒，一次性浏览器状态在 `NonCancellable` 清理中删除。
+
+Realtime catch-up 和 MessageBus 请求共用一次 replay challenge 预算。收到 challenge 后，前台
+宿主会在原 generation-bound request lease 仍然有效时展示固定的 Linux.do 浏览器页面，只合并
+有界的 challenge Cookie 快照，然后重新执行完整的 reconciliation pipeline。取消或第二次
+challenge 会回到终止恢复 UI，不会静默切换账号。
 
 ## Android 回调和 Intent 加固
 

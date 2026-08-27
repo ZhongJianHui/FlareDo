@@ -1,6 +1,7 @@
 package dev.dimension.flare.data.network.discourse.auth
 
 import dev.dimension.flare.data.network.discourse.DefaultDiscourseApi
+import dev.dimension.flare.data.network.discourse.DiscourseHttpUserAgentProvider
 import dev.dimension.flare.data.network.discourse.createDiscourseHttpClient
 import dev.dimension.flare.data.network.discourse.createDiscourseWireTransport
 import dev.dimension.flare.data.network.discourse.session.DiscourseCookieSnapshot
@@ -61,9 +62,8 @@ internal fun interface DiscourseWebSessionProbe {
  */
 internal class DefaultDiscourseWebSessionProbe(
     private val cookieStorageFactory: () -> DiscourseCookieStorage = { DiscourseCookieStorage() },
-    private val clientFactory: (DiscourseCookieStorage) -> HttpClient = { storage ->
-        createDiscourseHttpClient(cookieStorage = storage)
-    },
+    private val clientFactory: ((DiscourseCookieStorage) -> HttpClient)? = null,
+    private val userAgentProvider: DiscourseHttpUserAgentProvider = DiscourseHttpUserAgentProvider { null },
 ) : DiscourseWebSessionProbe {
     override suspend fun probe(cookies: List<DiscourseCookieSnapshot>): DiscourseWebSessionProbeResult {
         val storage = cookieStorageFactory()
@@ -71,7 +71,12 @@ internal class DefaultDiscourseWebSessionProbe(
         var primaryFailure: Throwable? = null
         try {
             storage.importSnapshot(cookies)
-            val isolatedClient = clientFactory(storage)
+            val isolatedClient =
+                clientFactory?.invoke(storage)
+                    ?: createDiscourseHttpClient(
+                        cookieStorage = storage,
+                        userAgent = userAgentProvider.userAgent(),
+                    )
             client = isolatedClient
             val isolatedSessionManager =
                 DiscourseSessionManager(

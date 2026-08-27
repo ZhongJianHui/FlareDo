@@ -6,6 +6,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import dev.dimension.flare.data.network.discourse.auth.DiscourseCloudflareChallengeHandler
+import dev.dimension.flare.data.network.discourse.error.DiscourseCloudflareChallengeException
 import dev.dimension.flare.data.network.discourse.error.DiscourseException
 import dev.dimension.flare.data.network.discourse.paging.DiscourseNotificationOffset
 import dev.dimension.flare.data.network.discourse.paging.DiscourseSearchPage
@@ -52,6 +54,7 @@ public class DiscourseForumPresenter(
     private val realtimeCoordinator: DiscourseRealtimeCoordinator? = null,
     private val realtimeSessionRecovery: DiscourseRealtimeSessionRecovery? = null,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
+    private val realtimeChallengeHandler: DiscourseCloudflareChallengeHandler? = null,
 ) : PresenterBase<DiscourseForumState>(dispatcher) {
     private val actions = Channel<QueuedForumAction>(capacity = ACTION_CHANNEL_CAPACITY)
     private val actorCompleted = CompletableDeferred<Unit>()
@@ -810,6 +813,9 @@ public class DiscourseForumPresenter(
                             }
                         }
                     }
+
+                    override suspend fun handleChallenge(challenge: DiscourseCloudflareChallengeException): Boolean =
+                        realtimeChallengeHandler?.handle(challenge) == true
 
                     override suspend fun recoverSession(request: DiscourseSessionRecoveryRequest) {
                         val recovered = realtimeSessionRecovery?.recover(request) == true

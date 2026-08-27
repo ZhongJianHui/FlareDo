@@ -13,8 +13,9 @@ import kotlinx.coroutines.withContext
  * Implementations must compare [DiscourseSessionRecoveryRequest.expectedSessionGeneration] before
  * deleting any state. A delayed 401/403 from an old long poll must never clear credentials that
  * belong to a newer account generation. The boolean result is false when the request was stale,
- * belonged to a guest session, requires the separate user-mediated Cloudflare flow, or local
- * persistence could not safely make the current vault reference unreachable.
+ * belonged to a guest session, had a failed or exhausted user-mediated Cloudflare handoff, or local
+ * persistence could not safely make the current vault reference unreachable. A successful
+ * challenge handoff is consumed by [DiscourseRealtimeCoordinator] before this recovery callback.
  */
 public fun interface DiscourseRealtimeSessionRecovery {
     public suspend fun recover(request: DiscourseSessionRecoveryRequest): Boolean

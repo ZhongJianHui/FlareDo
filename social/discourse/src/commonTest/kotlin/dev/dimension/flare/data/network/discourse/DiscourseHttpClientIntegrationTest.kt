@@ -8,6 +8,7 @@ import dev.dimension.flare.data.network.discourse.session.StaleDiscourseSessionE
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.http.ContentType
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
@@ -42,15 +43,23 @@ internal class DiscourseHttpClientIntegrationTest {
                     assertEquals(ContentType.Application.Json.toString(), request.headers[HttpHeaders.Accept])
                     assertEquals("zh-CN,zh;q=0.9,en;q=0.7", request.headers[HttpHeaders.AcceptLanguage])
                     assertEquals("XMLHttpRequest", request.headers["X-Requested-With"])
+                    assertEquals("fixture-restricted-browser", request.headers[HttpHeaders.UserAgent])
                     respond(
                         content = "{}",
                         headers = jsonHeaders(),
                     )
                 }
-            val client = createDiscourseHttpClient(engine, DiscourseCookieStorage())
+            val client =
+                createDiscourseHttpClient(
+                    engine = engine,
+                    cookieStorage = DiscourseCookieStorage(),
+                    userAgent = "fixture-restricted-browser",
+                )
 
             try {
-                client.get("$DISCOURSE_ORIGIN/site.json")
+                client.get("$DISCOURSE_ORIGIN/site.json") {
+                    header(HttpHeaders.UserAgent, "caller-controlled-agent")
+                }
                 client.get("https://linux.do:443/site.json")
                 assertFailsWith<IllegalStateException> {
                     client.get("https://outside.invalid/site.json")

@@ -454,6 +454,7 @@ private fun createRestrictedAndroidWebView(
         setBackgroundColor(android.graphics.Color.TRANSPARENT)
         settings.apply {
             // Discourse and Cloudflare require JavaScript, but no native JavaScript bridge exists.
+            userAgentString = WebSettings.getDefaultUserAgent(context.applicationContext)
             javaScriptEnabled = true
             domStorageEnabled = true
             javaScriptCanOpenWindowsAutomatically = false

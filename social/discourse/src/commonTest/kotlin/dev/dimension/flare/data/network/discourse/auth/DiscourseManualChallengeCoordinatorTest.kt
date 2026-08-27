@@ -4,6 +4,7 @@ import dev.dimension.flare.data.network.discourse.DISCOURSE_ORIGIN
 import dev.dimension.flare.data.network.discourse.error.DiscourseCloudflareChallengeException
 import dev.dimension.flare.data.network.discourse.session.DiscourseCookieSnapshot
 import dev.dimension.flare.data.network.discourse.session.DiscourseSessionManager
+import dev.dimension.flare.data.network.discourse.session.StaleDiscourseSessionException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -16,6 +17,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -239,5 +241,66 @@ internal class DiscourseManualChallengeCoordinatorTest {
             assertTrue(handling.await())
             assertTrue(completion.await())
             assertNull(coordinator.request.value)
+        }
+
+    @Test
+    fun generationReplacementCancelsChallengeBeforeItCanMergeBrowserCookies() =
+        runTest {
+            val sessionManager = DiscourseSessionManager()
+            sessionManager.startAuthenticatedSession(
+                accountId = "42",
+                cookieSnapshot =
+                    listOf(
+                        DiscourseCookieSnapshot(
+                            name = "_t",
+                            value = "old-session",
+                            httpOnly = true,
+                        ),
+                    ),
+            )
+            val presentationStarted = CompletableDeferred<Unit>()
+            val handler =
+                DiscourseManualChallengeCookieHandler(
+                    presenter =
+                        DiscourseManualChallengePresenter {
+                            presentationStarted.complete(Unit)
+                            awaitCancellation()
+                        },
+                    cookieBridge =
+                        object : DiscourseWebSessionCookieBridge {
+                            override suspend fun snapshotLinuxDoCookies(): List<DiscourseCookieSnapshot> =
+                                error("A cancelled challenge must not snapshot browser cookies")
+
+                            override suspend fun clearLinuxDoCookies() = Unit
+                        },
+                    sessionManager = sessionManager,
+                )
+            val operation =
+                async {
+                    runCatching {
+                        sessionManager.runForCurrentSession {
+                            handler.handle(DiscourseCloudflareChallengeException(statusCode = 403))
+                        }
+                    }.exceptionOrNull()
+                }
+            presentationStarted.await()
+
+            sessionManager.startAuthenticatedSession(
+                accountId = "84",
+                cookieSnapshot =
+                    listOf(
+                        DiscourseCookieSnapshot(
+                            name = "_t",
+                            value = "replacement-session",
+                            httpOnly = true,
+                        ),
+                    ),
+            )
+
+            assertIs<StaleDiscourseSessionException>(operation.await())
+            assertEquals(
+                mapOf("_t" to "replacement-session"),
+                sessionManager.cookieStorage.snapshot().associate { it.name to it.value },
+            )
         }
 }
