@@ -29,11 +29,38 @@ private const val CONNECT_TIMEOUT_MILLIS: Long = 15_000
 private const val REQUEST_TIMEOUT_MILLIS: Long = 30_000
 private const val SOCKET_TIMEOUT_MILLIS: Long = 30_000
 private const val MAX_USER_AGENT_CHARS: Int = 1_024
+private val AndroidWebViewMarker = Regex("[;\\s]*\\bwv\\b[;\\s]*(?=\\))")
+private val AndroidWebViewVersionMarker = Regex("Version/[^ ]+ *")
 
 /** Supplies the browser identity that Cloudflare binds to a manual challenge Cookie. */
 public fun interface DiscourseHttpUserAgentProvider {
     /** Returns the exact restricted-browser User-Agent, or null when a host has no browser bridge. */
     public fun userAgent(): String?
+}
+
+/**
+ * Removes Android WebView-only UA markers before a browser-bound challenge begins.
+ *
+ * Android appends `; wv` and the legacy `Version/4.0` token to its default WebView UA. Cloudflare
+ * and hCaptcha can treat that combination as an embedded, non-browser client. The returned value
+ * is shared by the restricted WebView and Ktor client so a clearance Cookie is not rebound to two
+ * different identities. Invalid or absent input returns null and leaves the platform default in
+ * control.
+ */
+public fun sanitizeAndroidDiscourseBrowserUserAgent(userAgent: String?): String? {
+    val candidate = userAgent?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+    if (
+        candidate.length > MAX_USER_AGENT_CHARS ||
+        candidate.any { character -> character.code !in 0x20..0x7e }
+    ) {
+        return null
+    }
+    val sanitized =
+        candidate
+            .replace(AndroidWebViewMarker, "")
+            .replace(AndroidWebViewVersionMarker, "")
+            .trim()
+    return sanitized.takeIf { it.isNotEmpty() && it.length <= MAX_USER_AGENT_CHARS }
 }
 
 /**

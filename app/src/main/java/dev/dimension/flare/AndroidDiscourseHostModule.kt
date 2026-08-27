@@ -21,6 +21,7 @@ import dev.dimension.flare.data.network.discourse.forum.DiscourseForumCache
 import dev.dimension.flare.data.network.discourse.forum.roomDiscourseForumCache
 import dev.dimension.flare.data.network.discourse.realtime.DiscourseMessageBusCursorStore
 import dev.dimension.flare.data.network.discourse.realtime.roomDiscourseMessageBusCursorStore
+import dev.dimension.flare.data.network.discourse.sanitizeAndroidDiscourseBrowserUserAgent
 import dev.dimension.flare.data.network.discourse.session.AndroidKeystoreCredentialStore
 import dev.dimension.flare.data.network.discourse.session.DiscourseSessionManager
 import dev.dimension.flare.data.network.discourse.session.DiscourseSessionStore
@@ -43,7 +44,7 @@ internal fun createAndroidDiscourseHostModule(application: Application): Module 
     // challenge surface will fail closed when it is actually requested.
     val browserUserAgent =
         try {
-            WebSettings.getDefaultUserAgent(application)
+            sanitizeAndroidDiscourseBrowserUserAgent(WebSettings.getDefaultUserAgent(application))
         } catch (_: RuntimeException) {
             null
         }

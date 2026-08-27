@@ -1,6 +1,6 @@
 # 安全设计
 
-最后一次按源码核对：2026-08-24
+最后一次按源码核对：2026-08-27
 
 本文记录 FlareDo 的安全边界和已实现控制。它是一份工程设计说明，不代表形式化验证或
 独立安全审计。当前版本只支持一个活动中的 Linux.do 账号，每个已认证操作都绑定到该
@@ -111,6 +111,25 @@ prompt coroutine cancellation 在所有权转移后误删 Cookie。
 
 受限浏览器仍必须执行 Linux.do/Cloudflare 所需 JavaScript 和 subresource。它不能作为
 对抗已失陷 Linux.do 源或浏览器引擎的沙箱。
+
+#### Android mini 密码登录
+
+Android 备用密码登录把凭据保留在原生 Compose 输入框中，只使用一个短生命周期的受限
+WebView 完成人机验证和同源请求。WebView 首先加载固定的
+`https://linux.do/session/csrf` bootstrap URL。如果 Cloudflare 展示验证页，用户在同一个
+WebView 内完成验证；只有确认验证页消失后，应用才通过 `loadDataWithBaseURL` 注入小型页面，
+并保持 `https://linux.do` 文档源。
+
+注入页面显式渲染 hCaptcha，并在 WebView 网络栈内完成完整顺序：`GET /session/csrf`、
+`POST /captcha/hcaptcha/create.json`（失败时有界回退到 `/hcaptcha/create.json`），再
+`POST /session.json`。第三方 Cookie 只在这个临时 profile 中启用，并随受限浏览器状态一同
+清除。JavaScript bridge 使用每次请求随机 nonce、阶段 allowlist、有界响应正文、有界
+captcha token，并拒绝控制字符；服务端原始响应不会进入共享状态或日志。
+
+收到成功响应后，应用等待非空根 `_t` Cookie，再沿用现有隔离 session probe 和 actor 所有权
+确认后的 `CompleteRestrictedBrowser` handoff。TOTP 重试复用同一个 WebView，不会再次发送
+hCaptcha token；一次 CSRF challenge 重试只有在重新完成浏览器 bootstrap 后，才会复用尚未消费
+的 token。
 
 ### Cloudflare challenge
 

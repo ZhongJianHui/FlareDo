@@ -1,6 +1,6 @@
 # Security design
 
-Last reviewed against the source tree: 2026-08-24
+Last reviewed against the source tree: 2026-08-27
 
 This document records the security boundaries and implemented controls of
 FlareDo. It is an engineering design description, not a claim of formal
@@ -147,6 +147,30 @@ from erasing cookies after ownership has moved.
 The restricted browser can still run JavaScript and load subresources required
 by Linux.do and Cloudflare. It is not a sandbox against a compromised Linux.do
 origin or browser engine.
+
+#### Android mini password login
+
+Android's fallback password surface keeps the credentials in native Compose
+fields and uses one short-lived restricted WebView only for verification and
+same-origin requests. The WebView first loads the fixed `https://linux.do/session/csrf`
+bootstrap URL. If Cloudflare presents a challenge, the user completes it in that
+same WebView; only after the challenge page is gone does the app inject a small
+`loadDataWithBaseURL` document whose origin remains `https://linux.do`.
+
+The injected document explicitly renders hCaptcha and performs the complete
+sequence in the WebView network stack: `GET /session/csrf`, `POST
+/captcha/hcaptcha/create.json` (with the bounded `/hcaptcha/create.json`
+fallback), then `POST /session.json`. Third-party cookies are enabled only for
+this temporary profile and are cleared with the rest of the restricted browser
+state. The JavaScript bridge uses a random per-request nonce, allowlisted phases,
+bounded response bodies, bounded captcha tokens, and rejects control characters;
+server response text is never exposed to shared state or logs.
+
+After a successful response, the app waits for a non-empty root `_t` Cookie and
+then uses the existing isolated session probe and actor-owned
+`CompleteRestrictedBrowser` handoff. TOTP retries reuse the same WebView without
+re-sending the hCaptcha token, while a single CSRF challenge retry may reuse an
+unconsumed token only after the browser bootstrap completes again.
 
 ### Cloudflare challenge handling
 

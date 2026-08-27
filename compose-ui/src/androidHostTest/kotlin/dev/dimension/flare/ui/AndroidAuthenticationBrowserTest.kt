@@ -1,6 +1,7 @@
 package dev.dimension.flare.ui
 
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationAction
+import dev.dimension.flare.data.network.discourse.auth.DiscoursePasswordLoginResponseParser
 import dev.dimension.flare.data.network.discourse.auth.DiscourseRestrictedBrowserMode
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -18,6 +19,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 internal class AndroidAuthenticationBrowserTest {
@@ -563,5 +565,115 @@ internal class AndroidAuthenticationBrowserTest {
         assertFalse(second === first)
         assertFalse(second.isPrepared.value)
         assertTrue(shouldPrepareAndroidRestrictedBrowser(second.isPrepared.value, handoffInProgress = false))
+    }
+
+    @Test
+    fun miniLoginBootstrapsThroughTheFixedSameOriginCsrfEndpoint() {
+        assertEquals("https://linux.do/session/csrf", MINI_LOGIN_BOOTSTRAP_URL)
+        assertTrue(MINI_LOGIN_BOOTSTRAP_URL.startsWith("https://linux.do/"))
+    }
+
+    @Test
+    fun miniLoginHtmlUsesExplicitHcaptchaAndTheWebViewOwnedLoginSequence() {
+        val html = buildMiniLoginHtml("nonce", "Complete the check")
+
+        assertTrue(html.contains("https://js.hcaptcha.com/1/api.js?onload=flareDoCaptchaLoaded&render=explicit"))
+        assertTrue(html.contains("window.hcaptcha.render('flaredo-captcha'"))
+        assertTrue(html.contains("fetch('/session/csrf'"))
+        assertTrue(html.contains("'/captcha/hcaptcha/create.json'"))
+        assertTrue(html.contains("'/hcaptcha/create.json'"))
+        assertTrue(html.contains("catch (_) {"))
+        assertTrue(html.contains("sendResult('hcaptcha', captchaStatus, '')"))
+        assertTrue(html.contains("fetch('/session.json'"))
+        assertTrue(html.contains("credentials:'include'"))
+    }
+
+    @Test
+    fun miniLoginHtmlEscapesBridgeNonceAndVisibleInstructionAsJson() {
+        val nonce = "nonce\"\\\n"
+        val instruction = "<img src=x onerror=alert(1)>\""
+        val html = buildMiniLoginHtml(nonce, instruction)
+
+        assertTrue(html.contains("var nonce = ${quoteMiniLoginJson(nonce)};"))
+        assertTrue(html.contains("textContent = ${quoteMiniLoginJson(instruction)};"))
+        assertTrue(html.contains("textContent ="))
+        assertFalse(html.contains("<p id=\"instruction\" class=\"tip\">$instruction</p>"))
+    }
+
+    @Test
+    fun miniLoginInvocationJsonEscapesAllCredentialArguments() {
+        val invocation =
+            buildMiniLoginInvocation(
+                identifier = "user\"\\\n",
+                password = "p\u0000ass",
+                hcaptchaToken = "token\"",
+                secondFactorToken = null,
+            )
+
+        assertTrue(invocation.startsWith("window.__flareDoLogin("))
+        assertTrue(invocation.contains(quoteMiniLoginJson("user\"\\\n")))
+        assertTrue(invocation.contains(quoteMiniLoginJson("p\u0000ass")))
+        assertTrue(invocation.contains(quoteMiniLoginJson("token\"")))
+        assertTrue(invocation.endsWith(",null);"))
+    }
+
+    @Test
+    fun javascriptBooleanParserAcceptsOnlyBooleanResults() {
+        assertEquals(true, parseJavascriptBoolean("true"))
+        assertEquals(true, parseJavascriptBoolean("\"true\""))
+        assertEquals(false, parseJavascriptBoolean(" false "))
+        assertEquals(false, parseJavascriptBoolean("\"false\""))
+        assertEquals(null, parseJavascriptBoolean(null))
+        assertEquals(null, parseJavascriptBoolean("1"))
+        assertEquals(null, parseJavascriptBoolean("null"))
+        assertEquals(null, parseJavascriptBoolean("TRUE"))
+    }
+
+    @Test
+    fun miniLoginBridgeRejectsWrongNonceAndUnboundedResponses() {
+        val events = mutableListOf<AndroidMiniLoginEvent>()
+        val bridge = AndroidMiniLoginJavascriptBridge("expected", events::add)
+
+        bridge.ready("wrong")
+        bridge.captcha("wrong", "token")
+        bridge.result("wrong", "session", 200, "{}")
+        bridge.result("expected", "unknown", 200, "{}")
+        bridge.result("expected", "session", 600, "{}")
+        bridge.result("expected", "session", 200, "\u0000")
+        bridge.result(
+            "expected",
+            "session",
+            200,
+            "x".repeat(DiscoursePasswordLoginResponseParser.MAX_RESPONSE_CHARS + 1),
+        )
+
+        assertTrue(events.isEmpty())
+    }
+
+    @Test
+    fun miniLoginBridgePublishesOnlyValidatedEvents() {
+        val events = mutableListOf<AndroidMiniLoginEvent>()
+        val bridge = AndroidMiniLoginJavascriptBridge("expected", events::add)
+
+        bridge.ready("expected")
+        bridge.captcha("expected", "captcha-token")
+        bridge.result("expected", "session", 200, "{\"user\":{\"id\":1}}")
+        bridge.captchaUnavailable("expected")
+
+        assertEquals(4, events.size)
+        assertIs<AndroidMiniLoginEvent.PageReady>(events[0])
+        assertEquals(
+            AndroidMiniLoginEvent.CaptchaPassed("captcha-token"),
+            events[1],
+        )
+        assertEquals(
+            AndroidMiniLoginEvent.LoginResponse(
+                phase = "session",
+                statusCode = 200,
+                body = "{\"user\":{\"id\":1}}",
+            ),
+            events[2],
+        )
+        assertIs<AndroidMiniLoginEvent.CaptchaUnavailable>(events[3])
     }
 }
