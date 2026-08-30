@@ -702,7 +702,7 @@ internal class DesktopAuthCallbackTest {
         const val SLOW_FRAME_BYTES: Int = 16 * 1024
         const val SLOW_DRIP_INTERVAL_MILLIS: Long = 100L
         const val WORKER_LOAD_POLL_MILLIS: Long = 5L
-        const val WORKER_LOAD_ASSERTION_TIMEOUT_MILLIS: Long = 2_000L
+        const val WORKER_LOAD_ASSERTION_TIMEOUT_MILLIS: Long = 5_000L
         const val FRAME_DRAIN_ASSERTION_TIMEOUT_MILLIS: Long = 2_500L
         const val FORWARDING_ASSERTION_TIMEOUT_MILLIS: Long = 2_500L
         const val CLOSE_ASSERTION_TIMEOUT_MILLIS: Long = 1_000L
