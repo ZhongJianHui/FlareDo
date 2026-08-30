@@ -16,6 +16,8 @@ import dev.dimension.flare.data.network.discourse.auth.DiscourseManualChallengeC
 import dev.dimension.flare.data.network.discourse.auth.DiscourseManualChallengeCoordinator
 import dev.dimension.flare.data.network.discourse.auth.DiscourseRsaPkcs1Decryptor
 import dev.dimension.flare.data.network.discourse.auth.DiscourseRsaPkcs1KeyPairGenerator
+import dev.dimension.flare.data.network.discourse.auth.DiscourseSavedLoginStore
+import dev.dimension.flare.data.network.discourse.auth.RoomDiscourseSavedLoginStore
 import dev.dimension.flare.data.network.discourse.auth.DiscourseWebSessionCookieBridge
 import dev.dimension.flare.data.network.discourse.auth.DiscourseWebSessionLogin
 import dev.dimension.flare.data.network.discourse.auth.RoomDiscourseAuthAttemptStore
@@ -949,6 +951,12 @@ private fun createAppleDiscourseHostModule(databasePath: String): Module =
                 dao = get<FlareDoDatabase>().secureVaultReferenceDao(),
                 credentialStore = get(),
                 cookieValidator = get<DiscourseSessionManager>().cookieStorage,
+            )
+        }
+        single<DiscourseSavedLoginStore> {
+            RoomDiscourseSavedLoginStore(
+                dao = get<FlareDoDatabase>().secureVaultReferenceDao(),
+                credentialStore = get(),
             )
         }
         single<DiscourseWebSessionCookieBridge> { AppleDiscourseWebSessionCookieBridge() }

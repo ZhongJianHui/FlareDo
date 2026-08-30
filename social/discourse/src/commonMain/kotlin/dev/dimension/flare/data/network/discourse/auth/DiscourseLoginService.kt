@@ -9,6 +9,7 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
+import kotlin.time.Clock
 
 /** Host-facing result which never carries a callback URI or temporary authorization secret. */
 public sealed interface DiscourseLoginResult {
@@ -80,6 +81,44 @@ public class DiscourseLoginService(
 
     /** Cancels an unfinished browser flow and deletes its one-use private key. */
     public suspend fun cancelAuthorization(): Boolean = authorizationCoordinator.cancelPending()
+
+    /**
+     * Consumes one FlareDo QR capability through the same OTP exchange and vault activation as a
+     * browser callback. The payload is closed on every path and can never be replayed by this caller.
+     */
+    public suspend fun consumeQrLogin(payload: DiscourseQrLoginPayload): DiscourseLoginResult.Authenticated {
+        val guest =
+            sessionManager.state.value as? DiscourseSessionState.Guest
+                ?: run {
+                    payload.close()
+                    throw DiscourseQrLoginException(DiscourseQrLoginFailure.ActiveSession)
+                }
+        if (payload.isExpired(Clock.System.now().toEpochMilliseconds())) {
+            payload.close()
+            throw DiscourseQrLoginException(DiscourseQrLoginFailure.Expired)
+        }
+        val secrets = DiscourseAuthSecrets(payload.copyApiKey(), payload.copyOtp())
+        return try {
+            completeAcceptedRedirect(
+                redirect =
+                    DiscourseAuthRedirectResult.Accepted(
+                        secrets = secrets,
+                        clientId = DISCOURSE_QR_LOGIN_EXCHANGE_CLIENT_ID,
+                        apiVersion = DISCOURSE_QR_LOGIN_VERSION,
+                    ),
+                expectedGeneration = guest.generation,
+            ) as DiscourseLoginResult.Authenticated
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (failure: DiscourseQrLoginException) {
+            throw failure
+        } catch (failure: Throwable) {
+            throw DiscourseQrLoginException(DiscourseQrLoginFailure.ExchangeFailed, failure)
+        } finally {
+            secrets.close()
+            payload.close()
+        }
+    }
 
     /**
      * Destroys every app-owned copy of the web session even when remote logout fails or is cancelled.

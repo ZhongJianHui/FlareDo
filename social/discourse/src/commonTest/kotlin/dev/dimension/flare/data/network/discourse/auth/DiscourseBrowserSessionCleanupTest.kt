@@ -25,6 +25,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.URLBuilder
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -39,6 +40,8 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -824,6 +827,171 @@ internal class DiscourseBrowserSessionCleanupTest {
                 fixture.close()
             }
         }
+
+    @Test
+    fun qrLoginUsesOneOtpExchangeRevokesKeyAndActivatesVaultSession() =
+        runTest {
+            val bridge = RecordingCookieBridge()
+            val fixture =
+                browserFixture(bridge) { request ->
+                    when (request.url.encodedPath) {
+                        "/session/csrf" -> {
+                            respondJson("{\"csrf\":\"qr-csrf\"}")
+                        }
+
+                        "/session/otp/abcdef" -> {
+                            respond(
+                                content = "",
+                                status = HttpStatusCode.Found,
+                                headers =
+                                    Headers.build {
+                                        append(HttpHeaders.Location, "/")
+                                        append(
+                                            HttpHeaders.SetCookie,
+                                            "_t=qr-session; Path=/; Secure; HttpOnly; SameSite=Lax",
+                                        )
+                                    },
+                            )
+                        }
+
+                        "/user-api-key/revoke" -> {
+                            assertEquals("qr-api-key", request.headers["User-Api-Key"])
+                            respond("", HttpStatusCode.OK)
+                        }
+
+                        "/session/current.json" -> {
+                            respondJson(CURRENT_SESSION_JSON)
+                        }
+
+                        else -> {
+                            error("Unexpected QR login request")
+                        }
+                    }
+                }
+            val payload =
+                DiscourseQrLoginPayload(
+                    apiKey = "qr-api-key".encodeToByteArray(),
+                    otp = "abcdef".encodeToByteArray(),
+                    username = "member",
+                    expiresAtEpochMillis = Long.MAX_VALUE,
+                )
+            try {
+                val result = fixture.loginService.consumeQrLogin(payload)
+
+                assertEquals("42", result.accountId)
+                assertEquals("member", result.username)
+                val active = assertIs<DiscourseSessionState.Authenticated>(fixture.sessionManager.state.value)
+                assertEquals("42", active.accountId)
+                assertEquals(
+                    "qr-session",
+                    fixture.sessionManager.cookieStorage
+                        .snapshot()
+                        .single()
+                        .value,
+                )
+                assertFailsWith<IllegalStateException> { payload.copyOtp() }
+            } finally {
+                fixture.close()
+            }
+        }
+
+    @Test
+    @OptIn(ExperimentalEncodingApi::class)
+    fun qrShareGenerationAuthenticatesNonceAndRevokesDisplayedCredential() =
+        runTest {
+            var requestCount = 0
+            val redirect =
+                URLBuilder(DiscourseUserApiAuthorization.AUTH_REDIRECT)
+                    .apply {
+                        parameters.append(
+                            "payload",
+                            Base64.Default.encode("payload-marker".encodeToByteArray()),
+                        )
+                        parameters.append(
+                            "oneTimePassword",
+                            Base64.Default.encode("otp-marker".encodeToByteArray()),
+                        )
+                    }.buildString()
+            val fixture =
+                authenticatedLoginFixture(RecordingCookieBridge()) { request ->
+                    requestCount += 1
+                    when (request.url.encodedPath) {
+                        "/session/csrf" -> {
+                            respondJson("{\"csrf\":\"qr-create-csrf\"}")
+                        }
+
+                        "/user-api-key" -> {
+                            assertEquals("qr-create-csrf", request.headers["X-CSRF-Token"])
+                            respondJson("{\"redirect_url\":\"$redirect\"}")
+                        }
+
+                        "/user-api-key/revoke" -> {
+                            assertEquals("qr-api-key", request.headers["User-Api-Key"])
+                            respond("", HttpStatusCode.OK)
+                        }
+
+                        else -> {
+                            error("Unexpected QR share request")
+                        }
+                    }
+                }
+            var nextToken = 0
+            val qrService =
+                DiscourseQrLoginService(
+                    client = fixture.client,
+                    api =
+                        DefaultDiscourseApi(
+                            createDiscourseWireTransport(fixture.client),
+                            fixture.sessionManager,
+                        ),
+                    sessionManager = fixture.sessionManager,
+                    loginService = fixture.loginService,
+                    keyPairGenerator =
+                        DiscourseRsaPkcs1KeyPairGenerator {
+                            DiscourseRsaPkcs1KeyPair(
+                                publicKeySpkiPem = qrPublicKeyPem(),
+                                privateKeyPkcs8 = ByteArray(256) { 0x5a },
+                            )
+                        },
+                    decryptor =
+                        DiscourseRsaPkcs1Decryptor { _, ciphertext ->
+                            when (ciphertext.decodeToString()) {
+                                "payload-marker" -> {
+                                    "{\"key\":\"qr-api-key\",\"nonce\":\"qr-token-2\",\"api\":1}"
+                                        .encodeToByteArray()
+                                }
+
+                                "otp-marker" -> {
+                                    "abcdef".encodeToByteArray()
+                                }
+
+                                else -> {
+                                    error("Unexpected encrypted QR field")
+                                }
+                            }
+                        },
+                    tokenGenerator =
+                        DiscourseAuthTokenGenerator { count ->
+                            assertEquals(32, count)
+                            "qr-token-${++nextToken}"
+                        },
+                    credentialStore = fixture.credentialStore,
+                    nowEpochMillis = { 10_000L },
+                )
+            try {
+                val payload = qrService.createShare()
+
+                assertEquals("member", payload.username)
+                assertEquals(610_000L, payload.expiresAtEpochMillis)
+                assertEquals("qr-api-key", payload.copyApiKey().decodeToString())
+                assertEquals("abcdef", payload.copyOtp().decodeToString())
+                assertTrue(qrService.revokeAndClose(payload))
+                assertEquals(3, requestCount)
+                assertFailsWith<IllegalStateException> { payload.copyApiKey() }
+            } finally {
+                fixture.close()
+            }
+        }
 }
 
 private data class BrowserFixture(
@@ -1058,3 +1226,11 @@ private fun MockRequestHandleScope.respondJson(
 
 private const val CURRENT_SESSION_JSON: String =
     """{"current_user":{"id":42,"username":"member","name":"Fixture Member"}}"""
+
+@OptIn(ExperimentalEncodingApi::class)
+private fun qrPublicKeyPem(): String =
+    buildString {
+        append("-----BEGIN PUBLIC KEY-----\n")
+        append(Base64.Default.encode(ByteArray(256) { 0x2a }))
+        append("\n-----END PUBLIC KEY-----")
+    }

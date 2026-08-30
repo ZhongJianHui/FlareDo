@@ -11,6 +11,7 @@ import dev.dimension.flare.data.network.discourse.auth.DiscourseLoginService
 import dev.dimension.flare.data.network.discourse.auth.DiscourseManualChallengeCoordinator
 import dev.dimension.flare.data.network.discourse.auth.DiscourseManualChallengePresenter
 import dev.dimension.flare.data.network.discourse.auth.DiscourseOtpSessionExchangeTransport
+import dev.dimension.flare.data.network.discourse.auth.DiscourseQrLoginService
 import dev.dimension.flare.data.network.discourse.auth.DiscourseWebSessionLogin
 import dev.dimension.flare.data.network.discourse.auth.DiscourseWebSessionProbe
 import dev.dimension.flare.data.network.discourse.auth.MemoryDiscourseAuthAttemptStore
@@ -251,6 +252,18 @@ public val discourseAuthenticationModule: Module =
                 sessionManager = get(),
                 cookieBridge = get(),
                 api = get(),
+            )
+        }
+        single {
+            DiscourseQrLoginService(
+                client = get(),
+                api = get(),
+                sessionManager = get(),
+                loginService = get(),
+                keyPairGenerator = get(),
+                decryptor = get(),
+                tokenGenerator = get(),
+                credentialStore = get(),
             )
         }
         factory {

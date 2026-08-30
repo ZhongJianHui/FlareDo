@@ -179,6 +179,16 @@ public data class DiscourseUser(
     public val groups: List<DiscourseUserGroup> = emptyList(),
     @SerialName("user_fields")
     public val userFields: JsonObject = JsonObject(emptyMap()),
+    @SerialName("user_api_keys")
+    public val userApiKeys: List<DiscourseUserApiKeySummary>? = null,
+)
+
+/** Private current-user projection used only to observe a short-lived QR login key. */
+@Serializable
+public data class DiscourseUserApiKeySummary(
+    public val id: Long? = null,
+    @SerialName("application_name")
+    public val applicationName: String,
 )
 
 /** A group shown on a profile. Membership and messageability are authorization hints. */

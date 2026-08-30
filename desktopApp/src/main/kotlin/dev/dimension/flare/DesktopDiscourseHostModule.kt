@@ -8,6 +8,8 @@ import dev.dimension.flare.data.network.discourse.auth.DiscourseManualChallengeC
 import dev.dimension.flare.data.network.discourse.auth.DiscourseManualChallengePresenter
 import dev.dimension.flare.data.network.discourse.auth.DiscourseRsaPkcs1Decryptor
 import dev.dimension.flare.data.network.discourse.auth.DiscourseRsaPkcs1KeyPairGenerator
+import dev.dimension.flare.data.network.discourse.auth.DiscourseSavedLoginStore
+import dev.dimension.flare.data.network.discourse.auth.RoomDiscourseSavedLoginStore
 import dev.dimension.flare.data.network.discourse.auth.DiscourseWebSessionCookieBridge
 import dev.dimension.flare.data.network.discourse.auth.JvmDiscourseRsaPkcs1Crypto
 import dev.dimension.flare.data.network.discourse.auth.JvmDiscourseWebSessionCookieBridge
@@ -78,6 +80,12 @@ internal fun createDesktopDiscourseHostModule(
                 dao = get<FlareDoDatabase>().secureVaultReferenceDao(),
                 credentialStore = get(),
                 cookieValidator = get(),
+            )
+        }
+        single<DiscourseSavedLoginStore> {
+            RoomDiscourseSavedLoginStore(
+                dao = get<FlareDoDatabase>().secureVaultReferenceDao(),
+                credentialStore = get(),
             )
         }
         single<CookieManager> { browserCookieManager }
