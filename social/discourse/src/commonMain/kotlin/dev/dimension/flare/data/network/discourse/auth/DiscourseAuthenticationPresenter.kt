@@ -381,7 +381,7 @@ public class DiscourseAuthenticationPresenter private constructor(
         val queued =
             if (
                 action == DiscourseAuthenticationAction.Logout ||
-                    action == DiscourseAuthenticationAction.ClearSession
+                action == DiscourseAuthenticationAction.ClearSession
             ) {
                 val session = backend.sessionState.value
                 val owner =
