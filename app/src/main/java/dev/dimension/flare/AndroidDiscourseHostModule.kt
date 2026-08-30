@@ -14,9 +14,9 @@ import dev.dimension.flare.data.network.discourse.auth.DiscourseManualChallengeP
 import dev.dimension.flare.data.network.discourse.auth.DiscourseRsaPkcs1Decryptor
 import dev.dimension.flare.data.network.discourse.auth.DiscourseRsaPkcs1KeyPairGenerator
 import dev.dimension.flare.data.network.discourse.auth.DiscourseSavedLoginStore
-import dev.dimension.flare.data.network.discourse.auth.RoomDiscourseSavedLoginStore
 import dev.dimension.flare.data.network.discourse.auth.DiscourseWebSessionCookieBridge
 import dev.dimension.flare.data.network.discourse.auth.RoomDiscourseAuthAttemptStore
+import dev.dimension.flare.data.network.discourse.auth.RoomDiscourseSavedLoginStore
 import dev.dimension.flare.data.network.discourse.composer.DiscourseDraftStore
 import dev.dimension.flare.data.network.discourse.composer.roomDiscourseDraftStore
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumCache

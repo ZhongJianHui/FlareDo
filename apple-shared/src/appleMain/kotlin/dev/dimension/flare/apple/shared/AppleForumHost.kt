@@ -17,10 +17,10 @@ import dev.dimension.flare.data.network.discourse.auth.DiscourseManualChallengeC
 import dev.dimension.flare.data.network.discourse.auth.DiscourseRsaPkcs1Decryptor
 import dev.dimension.flare.data.network.discourse.auth.DiscourseRsaPkcs1KeyPairGenerator
 import dev.dimension.flare.data.network.discourse.auth.DiscourseSavedLoginStore
-import dev.dimension.flare.data.network.discourse.auth.RoomDiscourseSavedLoginStore
 import dev.dimension.flare.data.network.discourse.auth.DiscourseWebSessionCookieBridge
 import dev.dimension.flare.data.network.discourse.auth.DiscourseWebSessionLogin
 import dev.dimension.flare.data.network.discourse.auth.RoomDiscourseAuthAttemptStore
+import dev.dimension.flare.data.network.discourse.auth.RoomDiscourseSavedLoginStore
 import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerPresenter
 import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerTarget
 import dev.dimension.flare.data.network.discourse.composer.DiscourseDraftStore
