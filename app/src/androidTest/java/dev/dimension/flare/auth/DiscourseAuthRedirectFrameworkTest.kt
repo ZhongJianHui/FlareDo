@@ -59,12 +59,21 @@ class DiscourseAuthRedirectFrameworkTest {
         assertTrue(redirectInfo.flags and ActivityInfo.FLAG_EXCLUDE_FROM_RECENTS != 0)
         assertTrue(redirectInfo.taskAffinity.isNullOrEmpty())
         assertTrue(packageManager.activityInfo(mainComponent).exported)
-        assertEquals(
-            setOf(mainComponent.className, redirectComponent.className),
+        val installedActivities =
             packageManager
                 .packageInfo(targetContext.packageName)
                 .activities
                 .orEmpty()
+        assertEquals(
+            setOf(mainComponent.className, redirectComponent.className),
+            installedActivities
+                .filter(ActivityInfo::exported)
+                .mapTo(linkedSetOf()) { it.name },
+        )
+        assertEquals(
+            setOf(mainComponent.className, redirectComponent.className),
+            installedActivities
+                .filter { it.name.startsWith("dev.dimension.flare.") }
                 .mapTo(linkedSetOf()) { it.name },
         )
 
