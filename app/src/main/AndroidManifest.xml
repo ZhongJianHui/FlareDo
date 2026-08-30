@@ -15,6 +15,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.FlareDo"
         android:usesCleartextTraffic="false">
+        <!-- Google Play services owns the QR camera surface, so FlareDo requests no camera permission. -->
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="barcode_ui" />
+
         <!--
           The launcher consumes no external payload. Authentication redirects use the dedicated,
           narrowly scoped component below instead of widening this filter.

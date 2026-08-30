@@ -20,6 +20,7 @@ public enum class DiscourseQrLoginFailure {
     InvalidPayload,
     Expired,
     ActiveSession,
+    ScannerUnavailable,
     CreateFailed,
     ExchangeFailed,
 }

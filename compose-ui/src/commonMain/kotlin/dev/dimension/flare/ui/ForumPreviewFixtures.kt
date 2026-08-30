@@ -87,6 +87,7 @@ public object ForumTestTags {
     public const val AUTH_SIGN_OUT: String = "forum_auth_sign_out"
     public const val AUTH_REQUIRED: String = "forum_auth_required"
     public const val AUTH_FAILURE: String = "forum_auth_failure"
+    public const val AUTH_QR: String = "forum_auth_qr"
     public const val SESSION_RECOVERY_BAND: String = "forum_session_recovery_band"
     public const val SESSION_RECOVERY_MESSAGE: String = "forum_session_recovery_message"
     public const val SESSION_RECOVERY_ACTION: String = "forum_session_recovery_action"

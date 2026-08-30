@@ -123,6 +123,7 @@ internal class DesktopForumShellRenderTest {
     fun guestAuthenticationControlsDispatchPrimaryAndFallbackLogin() =
         runDesktopComposeUiTest(width = 500, height = 720) {
             val observedActions = mutableListOf<DiscourseAuthenticationAction>()
+            var qrLaunches = 0
             val guestProfile =
                 ForumPreviewFixtures.loaded(withSelectedTopic = false).copy(
                     destination = DiscourseForumDestination.Profile,
@@ -132,6 +133,8 @@ internal class DesktopForumShellRenderTest {
                     ForumAuthenticationProvider(
                         state = DiscourseAuthenticationState(),
                         onAction = observedActions::add,
+                        qrLoginAvailable = true,
+                        onQrLogin = { qrLaunches += 1 },
                     ) {
                         ForumProfilePane(
                             state = guestProfile,
@@ -142,11 +145,16 @@ internal class DesktopForumShellRenderTest {
             }
 
             onNodeWithTag(ForumTestTags.AUTH_SIGN_OUT).assertDoesNotExist()
+            captureToImage().writeReport("compact-auth-center-light.png")
             onNodeWithTag(ForumTestTags.AUTH_SIGN_IN)
                 .assertIsDisplayed()
                 .assertHasClickAction()
                 .performClick()
             onNodeWithTag(ForumTestTags.AUTH_FALLBACK)
+                .assertIsDisplayed()
+                .assertHasClickAction()
+                .performClick()
+            onNodeWithTag(ForumTestTags.AUTH_QR)
                 .assertIsDisplayed()
                 .assertHasClickAction()
                 .performClick()
@@ -159,6 +167,7 @@ internal class DesktopForumShellRenderTest {
                     ),
                     observedActions,
                 )
+                assertEquals(1, qrLaunches)
             }
         }
 

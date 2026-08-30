@@ -13,6 +13,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationAction
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationState
+import dev.dimension.flare.data.network.discourse.auth.DiscourseQrLoginService
 import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerMode
 import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerPresenter
 import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerState
@@ -30,14 +31,20 @@ public fun DesktopForumShell(
     composerPresenter: DiscourseComposerPresenter,
     authenticationState: DiscourseAuthenticationState,
     onAuthenticationAction: (DiscourseAuthenticationAction) -> Boolean,
+    qrLoginService: DiscourseQrLoginService? = null,
     modifier: Modifier = Modifier,
 ) {
     val state by presenter.models.collectAsState()
     val composerState by composerPresenter.models.collectAsState()
     val attachmentPicker = rememberForumAttachmentPicker()
+    val qrLogin = rememberDesktopQrLoginCapability(qrLoginService, attachmentPicker)
     ForumAuthenticationProvider(
         state = authenticationState,
         onAction = { action -> onAuthenticationAction(action) },
+        qrLoginAvailable = qrLogin.available,
+        qrLoginBusy = qrLogin.busy,
+        qrLoginFailure = qrLogin.failure,
+        onQrLogin = qrLogin.launch,
     ) {
         ForumWorkspaceWithComposer(
             state = state,

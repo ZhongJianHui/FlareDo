@@ -34,6 +34,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -72,6 +73,7 @@ import dev.dimension.flare.compose.ui.forum_auth_browser_unavailable
 import dev.dimension.flare.compose.ui.forum_auth_challenge_title
 import dev.dimension.flare.compose.ui.forum_auth_login_account_unavailable
 import dev.dimension.flare.compose.ui.forum_auth_login_alternate_factor
+import dev.dimension.flare.compose.ui.forum_auth_login_clear_saved
 import dev.dimension.flare.compose.ui.forum_auth_login_cloudflare_body
 import dev.dimension.flare.compose.ui.forum_auth_login_cookie_missing
 import dev.dimension.flare.compose.ui.forum_auth_login_identifier
@@ -80,9 +82,11 @@ import dev.dimension.flare.compose.ui.forum_auth_login_invalid_credentials
 import dev.dimension.flare.compose.ui.forum_auth_login_mini_body
 import dev.dimension.flare.compose.ui.forum_auth_login_mini_title
 import dev.dimension.flare.compose.ui.forum_auth_login_network_error
+import dev.dimension.flare.compose.ui.forum_auth_login_other_methods
 import dev.dimension.flare.compose.ui.forum_auth_login_password
 import dev.dimension.flare.compose.ui.forum_auth_login_password_expired
 import dev.dimension.flare.compose.ui.forum_auth_login_processing
+import dev.dimension.flare.compose.ui.forum_auth_login_remember
 import dev.dimension.flare.compose.ui.forum_auth_login_script_error
 import dev.dimension.flare.compose.ui.forum_auth_login_second_factor
 import dev.dimension.flare.compose.ui.forum_auth_login_second_factor_hint
@@ -108,6 +112,7 @@ import dev.dimension.flare.data.network.discourse.auth.DiscoursePasswordLoginRes
 import dev.dimension.flare.data.network.discourse.auth.DiscourseRestrictedBrowserMode
 import dev.dimension.flare.data.network.discourse.auth.DiscourseRestrictedBrowserRequest
 import dev.dimension.flare.data.network.discourse.auth.DiscourseRestrictedBrowserTerminalAction
+import dev.dimension.flare.data.network.discourse.auth.DiscourseSavedLoginStore
 import dev.dimension.flare.data.network.discourse.sanitizeAndroidDiscourseBrowserUserAgent
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
@@ -127,6 +132,7 @@ import kotlin.coroutines.resume
 internal fun AndroidAuthenticationBrowserEffects(
     state: DiscourseAuthenticationState,
     onAction: (DiscourseAuthenticationAction) -> Boolean,
+    savedLoginStore: DiscourseSavedLoginStore? = null,
 ) {
     val context = LocalContext.current
     val externalAuthorization = state.externalAuthorization
@@ -147,6 +153,7 @@ internal fun AndroidAuthenticationBrowserEffects(
                 request = request,
                 sharedHandoffInProgress = state.restrictedBrowserHandoffInProgress,
                 onAction = onAction,
+                savedLoginStore = savedLoginStore,
             )
         }
     }
@@ -191,6 +198,7 @@ private fun AndroidRestrictedBrowserDialog(
     request: DiscourseRestrictedBrowserRequest,
     sharedHandoffInProgress: Boolean,
     onAction: (DiscourseAuthenticationAction) -> Boolean,
+    savedLoginStore: DiscourseSavedLoginStore?,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -208,10 +216,28 @@ private fun AndroidRestrictedBrowserDialog(
     val localHandoffStartedState = processRequestState.localHandoffStarted
     var localHandoffStarted by localHandoffStartedState
     var webView by remember(request.requestId) { mutableStateOf<WebView?>(null) }
+    var useFullWebLogin by remember(request.requestId) { mutableStateOf(false) }
     val miniLoginState =
         remember(request.requestId, request.mode) {
             AndroidMiniLoginUiState()
         }
+
+    LaunchedEffect(request.requestId, savedLoginStore) {
+        val saved =
+            try {
+                savedLoginStore?.load()
+            } catch (_: Throwable) {
+                null
+            } ?: return@LaunchedEffect
+        try {
+            miniLoginState.identifier = saved.identifier
+            miniLoginState.password = saved.copyPassword()
+            miniLoginState.rememberCredentials = true
+            miniLoginState.hasSavedCredentials = true
+        } finally {
+            saved.close()
+        }
+    }
     val miniLoginVerificationHint =
         stringResource(Res.string.forum_auth_login_verification_hint)
     val handoffInProgress =
@@ -591,6 +617,17 @@ private fun AndroidRestrictedBrowserDialog(
                                 miniLoginState.error = null
                                 scope.launch {
                                     if (awaitMiniLoginCookie()) {
+                                        if (miniLoginState.rememberCredentials) {
+                                            try {
+                                                savedLoginStore?.save(
+                                                    identifier = miniLoginState.identifier.trim(),
+                                                    password = miniLoginState.password,
+                                                )
+                                                miniLoginState.hasSavedCredentials = savedLoginStore != null
+                                            } catch (_: Throwable) {
+                                                // Login success is authoritative; vault availability is optional.
+                                            }
+                                        }
                                         miniLoginState.clearSensitive()
                                         submitTerminalAction(
                                             DiscourseAuthenticationAction.CompleteRestrictedBrowser(
@@ -712,7 +749,10 @@ private fun AndroidRestrictedBrowserDialog(
                     TextButton(onClick = ::cancel, enabled = !handoffInProgress) {
                         Text(stringResource(Res.string.forum_auth_browser_cancel))
                     }
-                    if (request.mode == DiscourseRestrictedBrowserMode.ManualChallenge) {
+                    if (
+                        request.mode == DiscourseRestrictedBrowserMode.ManualChallenge ||
+                        useFullWebLogin
+                    ) {
                         Button(
                             enabled =
                                 isPrepared &&
@@ -770,7 +810,7 @@ private fun AndroidRestrictedBrowserDialog(
                         CircularProgressIndicator()
                     }
                 } else if (!preparationFailed) {
-                    if (request.mode == DiscourseRestrictedBrowserMode.FallbackLogin) {
+                    if (request.mode == DiscourseRestrictedBrowserMode.FallbackLogin && !useFullWebLogin) {
                         AndroidMiniLoginSurface(
                             state = miniLoginState,
                             modifier = Modifier.fillMaxSize(),
@@ -780,6 +820,23 @@ private fun AndroidRestrictedBrowserDialog(
                                     resetMiniCaptcha()
                                     webView?.let { view -> startMiniLoginBootstrap(view, miniLoginState) }
                                 }
+                            },
+                            onClearSavedCredentials = {
+                                scope.launch {
+                                    try {
+                                        savedLoginStore?.clear()
+                                    } catch (_: Throwable) {
+                                        // The short-lived form can still be cleared when vault cleanup fails.
+                                    }
+                                    miniLoginState.identifier = ""
+                                    miniLoginState.password = ""
+                                    miniLoginState.rememberCredentials = false
+                                    miniLoginState.hasSavedCredentials = false
+                                }
+                            },
+                            onOtherMethods = {
+                                miniLoginState.clearSensitive()
+                                useFullWebLogin = true
                             },
                             onCreateWebView = { hostContext ->
                                 createMiniRestrictedAndroidWebView(
@@ -995,6 +1052,8 @@ private fun AndroidMiniLoginSurface(
     modifier: Modifier,
     onSubmit: () -> Unit,
     onRetryCaptcha: () -> Unit,
+    onClearSavedCredentials: () -> Unit,
+    onOtherMethods: () -> Unit,
     onCreateWebView: (Context) -> WebView,
     onWebViewReleased: (WebView) -> Unit,
 ) {
@@ -1062,6 +1121,29 @@ private fun AndroidMiniLoginSurface(
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Checkbox(
+                checked = state.rememberCredentials,
+                onCheckedChange = { state.rememberCredentials = it },
+                enabled = !state.processing,
+            )
+            Text(
+                text = stringResource(Res.string.forum_auth_login_remember),
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            if (state.hasSavedCredentials) {
+                TextButton(
+                    onClick = onClearSavedCredentials,
+                    enabled = !state.processing,
+                ) {
+                    Text(stringResource(Res.string.forum_auth_login_clear_saved))
+                }
+            }
+        }
         if (state.secondFactorRequired) {
             Text(
                 text = stringResource(Res.string.forum_auth_login_second_factor),
@@ -1158,6 +1240,13 @@ private fun AndroidMiniLoginSurface(
                     },
                 ),
             )
+        }
+        TextButton(
+            onClick = onOtherMethods,
+            enabled = !state.processing && !state.completionStarted,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(Res.string.forum_auth_login_other_methods))
         }
         Spacer(Modifier.height(4.dp))
     }
@@ -1595,6 +1684,8 @@ private class AndroidMiniLoginUiState {
     var pageReady by mutableStateOf(false)
     var challengeVisible by mutableStateOf(false)
     var error by mutableStateOf<AndroidMiniLoginError?>(null)
+    var rememberCredentials by mutableStateOf(false)
+    var hasSavedCredentials by mutableStateOf(false)
 
     // These fields never enter saved state or shared presenter state.
     var captchaToken: String? = null

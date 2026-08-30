@@ -45,6 +45,7 @@ kotlin {
             implementation(libs.compose.material3.adaptive.navigation3)
             implementation(libs.lifecycle.runtime.compose)
             implementation(libs.navigation3.ui)
+            implementation(libs.play.services.code.scanner)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
@@ -59,6 +60,8 @@ kotlin {
         jvmMain.dependencies {
             implementation(libs.composewebview)
             implementation(libs.nucleus.application)
+            implementation(libs.zxing.core)
+            implementation(libs.zxing.javase)
         }
     }
 }

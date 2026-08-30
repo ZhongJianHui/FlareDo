@@ -6,12 +6,25 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationAction
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationState
+import dev.dimension.flare.data.network.discourse.auth.DiscourseQrLoginFailure
 
 /** Authentication capability injected by a native host without coupling preview UI to Koin. */
 @Immutable
 internal data class ForumAuthenticationUi(
     val state: DiscourseAuthenticationState = DiscourseAuthenticationState(),
     val onAction: (DiscourseAuthenticationAction) -> Unit = {},
+    val qrLoginAvailable: Boolean = false,
+    val qrLoginBusy: Boolean = false,
+    val qrLoginFailure: DiscourseQrLoginFailure? = null,
+    val onQrLogin: () -> Unit = {},
+)
+
+@Immutable
+internal data class ForumQrLoginCapability(
+    val available: Boolean = false,
+    val busy: Boolean = false,
+    val failure: DiscourseQrLoginFailure? = null,
+    val launch: () -> Unit = {},
 )
 
 /**
@@ -24,10 +37,22 @@ internal val LocalForumAuthentication = staticCompositionLocalOf { ForumAuthenti
 internal fun ForumAuthenticationProvider(
     state: DiscourseAuthenticationState,
     onAction: (DiscourseAuthenticationAction) -> Unit,
+    qrLoginAvailable: Boolean = false,
+    qrLoginBusy: Boolean = false,
+    qrLoginFailure: DiscourseQrLoginFailure? = null,
+    onQrLogin: () -> Unit = {},
     content: @Composable () -> Unit,
 ) {
     CompositionLocalProvider(
-        LocalForumAuthentication provides ForumAuthenticationUi(state, onAction),
+        LocalForumAuthentication provides
+            ForumAuthenticationUi(
+                state = state,
+                onAction = onAction,
+                qrLoginAvailable = qrLoginAvailable,
+                qrLoginBusy = qrLoginBusy,
+                qrLoginFailure = qrLoginFailure,
+                onQrLogin = onQrLogin,
+            ),
         content = content,
     )
 }

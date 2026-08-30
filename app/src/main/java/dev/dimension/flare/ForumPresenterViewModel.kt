@@ -3,6 +3,8 @@ package dev.dimension.flare
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationPresenter
+import dev.dimension.flare.data.network.discourse.auth.DiscourseQrLoginService
+import dev.dimension.flare.data.network.discourse.auth.DiscourseSavedLoginStore
 import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerPresenter
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumPresenter
 
@@ -15,6 +17,8 @@ internal class ForumPresenterViewModel(
     val composerPresenter: DiscourseComposerPresenter = app.createComposerPresenter()
     val authenticationPresenter: DiscourseAuthenticationPresenter =
         app.createAuthenticationPresenter()
+    val qrLoginService: DiscourseQrLoginService = app.qrLoginService()
+    val savedLoginStore: DiscourseSavedLoginStore = app.savedLoginStore()
 
     /** Keeps long polling bound to the visible Activity lifecycle across configuration changes. */
     fun setForeground(isForeground: Boolean) {

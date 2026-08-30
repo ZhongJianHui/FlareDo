@@ -12,6 +12,7 @@ import androidx.compose.ui.window.rememberWindowState
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthRedirectParser
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationPresenter
 import dev.dimension.flare.data.network.discourse.auth.DiscourseLoginService
+import dev.dimension.flare.data.network.discourse.auth.DiscourseQrLoginService
 import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerPresenter
 import dev.dimension.flare.data.network.discourse.discourseAuthenticationModule
 import dev.dimension.flare.data.network.discourse.discourseModule
@@ -108,6 +109,7 @@ private fun runPrimaryDesktopApplication(
     val presenter = dependencies.koin.get<DiscourseForumPresenter>()
     val composerPresenter = dependencies.koin.get<DiscourseComposerPresenter>()
     val authenticationPresenter = dependencies.koin.get<DiscourseAuthenticationPresenter>()
+    val qrLoginService = dependencies.koin.get<DiscourseQrLoginService>()
     val browserCookieManager = dependencies.koin.get<CookieManager>()
     // Start the lazy Molecule actor before installing any callback transport. A queue receipt is
     // useful only when a live consumer can dequeue it within the broker's bounded ACK window.
@@ -168,6 +170,7 @@ private fun runPrimaryDesktopApplication(
                         composerPresenter = composerPresenter,
                         authenticationState = authenticationState,
                         onAuthenticationAction = { authenticationPresenter.dispatch(it) },
+                        qrLoginService = qrLoginService,
                     )
                 }
             }

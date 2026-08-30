@@ -32,7 +32,13 @@ class MainActivity : ComponentActivity() {
         val authenticationPresenter = forumViewModel.authenticationPresenter
         setContent {
             FlareDoTheme {
-                AndroidForumShell(presenter, composerPresenter, authenticationPresenter)
+                AndroidForumShell(
+                    presenter = presenter,
+                    composerPresenter = composerPresenter,
+                    authenticationPresenter = authenticationPresenter,
+                    qrLoginService = forumViewModel.qrLoginService,
+                    savedLoginStore = forumViewModel.savedLoginStore,
+                )
             }
         }
     }

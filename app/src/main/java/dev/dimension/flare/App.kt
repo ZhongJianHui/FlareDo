@@ -7,6 +7,8 @@ import dev.dimension.flare.auth.DiscourseAuthRedirectSink
 import dev.dimension.flare.auth.DiscourseAuthRedirectSinkOwner
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationPresenter
 import dev.dimension.flare.data.network.discourse.auth.DiscourseLoginService
+import dev.dimension.flare.data.network.discourse.auth.DiscourseQrLoginService
+import dev.dimension.flare.data.network.discourse.auth.DiscourseSavedLoginStore
 import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerPresenter
 import dev.dimension.flare.data.network.discourse.discourseAuthenticationModule
 import dev.dimension.flare.data.network.discourse.discourseModule
@@ -69,6 +71,10 @@ class App :
 
     /** Authentication UI work is retained across configuration changes but never process-global. */
     internal fun createAuthenticationPresenter(): DiscourseAuthenticationPresenter = koin.get()
+
+    internal fun qrLoginService(): DiscourseQrLoginService = koin.get()
+
+    internal fun savedLoginStore(): DiscourseSavedLoginStore = koin.get()
 
     /** Moves one callback from process memory into the visible Activity's retained presenter. */
     internal fun deliverPendingAuthenticationRedirect(consumer: (String) -> Boolean): DiscourseAuthRedirectDeliveryResult =

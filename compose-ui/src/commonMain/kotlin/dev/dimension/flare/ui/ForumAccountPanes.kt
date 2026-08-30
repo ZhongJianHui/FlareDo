@@ -30,6 +30,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -63,6 +64,7 @@ import compose.icons.fontawesomeicons.solid.Heart
 import compose.icons.fontawesomeicons.solid.Lock
 import compose.icons.fontawesomeicons.solid.MagnifyingGlass
 import compose.icons.fontawesomeicons.solid.Medal
+import compose.icons.fontawesomeicons.solid.Qrcode
 import compose.icons.fontawesomeicons.solid.RightFromBracket
 import compose.icons.fontawesomeicons.solid.TriangleExclamation
 import compose.icons.fontawesomeicons.solid.User
@@ -71,6 +73,10 @@ import dev.dimension.flare.compose.ui.forum_activity_hidden
 import dev.dimension.flare.compose.ui.forum_auth_browser_unavailable
 import dev.dimension.flare.compose.ui.forum_auth_busy
 import dev.dimension.flare.compose.ui.forum_auth_fallback
+import dev.dimension.flare.compose.ui.forum_auth_qr
+import dev.dimension.flare.compose.ui.forum_auth_qr_expired
+import dev.dimension.flare.compose.ui.forum_auth_qr_invalid
+import dev.dimension.flare.compose.ui.forum_auth_qr_unavailable
 import dev.dimension.flare.compose.ui.forum_auth_required_body
 import dev.dimension.flare.compose.ui.forum_auth_required_title
 import dev.dimension.flare.compose.ui.forum_auth_sign_in
@@ -118,6 +124,7 @@ import dev.dimension.flare.compose.ui.forum_session_recovery_title
 import dev.dimension.flare.compose.ui.forum_unread_count
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationAction
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationFailureKind
+import dev.dimension.flare.data.network.discourse.auth.DiscourseQrLoginFailure
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumAction
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumActivity
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumFailureKind
@@ -996,7 +1003,16 @@ private fun ForumAuthenticationRequiredState(recoveryReason: DiscourseSessionRec
                     modifier = Modifier.testTag(ForumTestTags.AUTH_FAILURE),
                 )
             }
-            if (state.isBusy) {
+            authentication.qrLoginFailure?.let { failure ->
+                Text(
+                    qrLoginFailureMessage(failure),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.testTag(ForumTestTags.AUTH_FAILURE),
+                )
+            }
+            if (state.isBusy || authentication.qrLoginBusy) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -1011,20 +1027,38 @@ private fun ForumAuthenticationRequiredState(recoveryReason: DiscourseSessionRec
             } else {
                 Button(
                     onClick = {
-                        authentication.onAction(DiscourseAuthenticationAction.BeginAuthorization)
-                    },
-                    modifier = Modifier.testTag(ForumTestTags.AUTH_SIGN_IN),
-                    shape = RoundedCornerShape(6.dp),
-                ) {
-                    Text(stringResource(Res.string.forum_auth_sign_in))
-                }
-                TextButton(
-                    onClick = {
                         authentication.onAction(DiscourseAuthenticationAction.BeginFallbackLogin)
                     },
-                    modifier = Modifier.testTag(ForumTestTags.AUTH_FALLBACK),
+                    modifier = Modifier.fillMaxWidth().testTag(ForumTestTags.AUTH_FALLBACK),
+                    shape = RoundedCornerShape(6.dp),
                 ) {
+                    Icon(FontAwesomeIcons.Solid.Lock, contentDescription = null, modifier = Modifier.size(17.dp))
+                    Spacer(Modifier.width(8.dp))
                     Text(stringResource(Res.string.forum_auth_fallback))
+                }
+                OutlinedButton(
+                    onClick = {
+                        authentication.onAction(DiscourseAuthenticationAction.BeginAuthorization)
+                    },
+                    modifier = Modifier.fillMaxWidth().testTag(ForumTestTags.AUTH_SIGN_IN),
+                ) {
+                    Icon(FontAwesomeIcons.Solid.User, contentDescription = null, modifier = Modifier.size(17.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(Res.string.forum_auth_sign_in))
+                }
+                if (authentication.qrLoginAvailable) {
+                    OutlinedButton(
+                        onClick = authentication.onQrLogin,
+                        modifier = Modifier.fillMaxWidth().testTag(ForumTestTags.AUTH_QR),
+                    ) {
+                        Icon(
+                            FontAwesomeIcons.Solid.Qrcode,
+                            contentDescription = null,
+                            modifier = Modifier.size(17.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(Res.string.forum_auth_qr))
+                    }
                 }
             }
         }
@@ -1066,6 +1100,22 @@ private fun authenticationFailureMessage(failure: DiscourseAuthenticationFailure
             stringResource(Res.string.forum_auth_browser_unavailable)
         }
     }
+
+@Composable
+private fun qrLoginFailureMessage(failure: DiscourseQrLoginFailure): String =
+    stringResource(
+        when (failure) {
+            DiscourseQrLoginFailure.InvalidPayload -> Res.string.forum_auth_qr_invalid
+
+            DiscourseQrLoginFailure.Expired -> Res.string.forum_auth_qr_expired
+
+            DiscourseQrLoginFailure.ActiveSession,
+            DiscourseQrLoginFailure.ScannerUnavailable,
+            DiscourseQrLoginFailure.CreateFailed,
+            DiscourseQrLoginFailure.ExchangeFailed,
+            -> Res.string.forum_auth_qr_unavailable
+        },
+    )
 
 @Composable
 private fun ForumAccountCenteredState(
