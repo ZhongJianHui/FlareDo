@@ -184,6 +184,20 @@ public class DiscourseLoginService(
         return true
     }
 
+    /** Clears a guest or stale session slot without requiring an authenticated account owner. */
+    public suspend fun clearSession(expectedGeneration: Long): Boolean {
+        require(expectedGeneration >= 0L) { "Expected session generation cannot be negative" }
+        return withContext(NonCancellable) {
+            val cleared = sessionLifecycle.logoutIfGeneration(expectedGeneration)
+            if (cleared) {
+                // A recovery action may be the only cleanup path after the in-memory owner was
+                // already lost. Never clear a newer generation's browser profile.
+                cookieBridge.clearLinuxDoCookiesBestEffort()
+            }
+            cleared
+        }
+    }
+
     private suspend fun completeAcceptedRedirect(
         redirect: DiscourseAuthRedirectResult.Accepted,
         expectedGeneration: Long,

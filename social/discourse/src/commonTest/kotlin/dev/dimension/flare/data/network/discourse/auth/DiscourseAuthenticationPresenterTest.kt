@@ -352,6 +352,54 @@ internal class DiscourseAuthenticationPresenterTest {
         }
 
     @Test
+    fun logoutClearsAStaleGuestSessionWhenTheUiHasNoAuthenticatedOwner() =
+        runTest {
+            val backend = RecordingAuthenticationBackend()
+            backend.session.value = DiscourseSessionState.Guest(generation = 12L)
+            val presenter = presenter(backend)
+            val models = presenter.models
+
+            try {
+                runCurrent()
+                assertTrue(presenter.dispatch(DiscourseAuthenticationAction.Logout))
+                advanceUntilIdle()
+
+                assertEquals(listOf(12L), backend.clearedSessionGenerations)
+                assertEquals(DiscourseAuthenticationState(), models.value)
+            } finally {
+                presenter.close()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun clearSessionSkipsRemoteLogoutAndUsesTheCapturedGeneration() =
+        runTest {
+            val backend = RecordingAuthenticationBackend()
+            backend.session.value =
+                DiscourseSessionState.Authenticated(
+                    generation = 13L,
+                    accountId = "42",
+                    username = "member",
+                )
+            val presenter = presenter(backend)
+            val models = presenter.models
+
+            try {
+                runCurrent()
+                assertTrue(presenter.dispatch(DiscourseAuthenticationAction.ClearSession))
+                advanceUntilIdle()
+
+                assertEquals(listOf(13L), backend.clearedSessionGenerations)
+                assertTrue(backend.logoutOwners.isEmpty())
+                assertEquals(DiscourseAuthenticationState(), models.value)
+            } finally {
+                presenter.close()
+                runCurrent()
+            }
+        }
+
+    @Test
     fun generationChangeCancelsAStaleAuthorizationResult() =
         runTest {
             val pendingAuthorization = CompletableDeferred<DiscoursePendingAuthorization>()
@@ -1289,6 +1337,7 @@ private class RecordingAuthenticationBackend : DiscourseAuthenticationBackend {
     val challenge = MutableStateFlow<DiscourseManualChallengeRequest?>(null)
     val calls = mutableListOf<String>()
     val logoutOwners = mutableListOf<Pair<Long, String>>()
+    val clearedSessionGenerations = mutableListOf<Long>()
     val completedChallenges = mutableListOf<Long>()
     val redirects = mutableListOf<String>()
     var cancelAuthorizationCalls = 0
@@ -1341,6 +1390,11 @@ private class RecordingAuthenticationBackend : DiscourseAuthenticationBackend {
         expectedAccountId: String,
     ): Boolean {
         logoutOwners += expectedGeneration to expectedAccountId
+        return true
+    }
+
+    override suspend fun clearSession(expectedGeneration: Long): Boolean {
+        clearedSessionGenerations += expectedGeneration
         return true
     }
 

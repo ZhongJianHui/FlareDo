@@ -430,8 +430,9 @@ internal fun ForumNavigationFrame(
  *
  * The compact layout gives translated text the full width before placing the action at the end of a
  * second row. Wider workspaces keep the same information in one scan line without changing pane
- * widths. The action deliberately reuses normal logout so persistence and vault cleanup remain owned
- * by the session lifecycle instead of presentation code.
+ * widths. The action deliberately stays available while authentication work is busy: local recovery
+ * cancels those jobs before performing generation-bound persistence and vault cleanup, without
+ * calling the remote logout endpoint that triggered the recovery state.
  */
 @Composable
 private fun ForumSessionRecoveryBand(
@@ -465,8 +466,7 @@ private fun ForumSessionRecoveryBand(
                 )
                 ForumSessionRecoveryAction(
                     label = actionLabel,
-                    enabled = !authentication.state.isBusy,
-                    onClick = { authentication.onAction(DiscourseAuthenticationAction.Logout) },
+                    onClick = { authentication.onAction(DiscourseAuthenticationAction.ClearSession) },
                     modifier = Modifier.align(Alignment.End),
                 )
             }
@@ -483,8 +483,7 @@ private fun ForumSessionRecoveryBand(
                 )
                 ForumSessionRecoveryAction(
                     label = actionLabel,
-                    enabled = !authentication.state.isBusy,
-                    onClick = { authentication.onAction(DiscourseAuthenticationAction.Logout) },
+                    onClick = { authentication.onAction(DiscourseAuthenticationAction.ClearSession) },
                 )
             }
         }
@@ -527,19 +526,16 @@ private fun ForumSessionRecoveryMessage(
 @Composable
 private fun ForumSessionRecoveryAction(
     label: String,
-    enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val contentColor = MaterialTheme.colorScheme.onErrorContainer
     TextButton(
         onClick = onClick,
-        enabled = enabled,
         modifier = modifier.testTag(ForumTestTags.SESSION_RECOVERY_ACTION),
         colors =
             ButtonDefaults.textButtonColors(
                 contentColor = contentColor,
-                disabledContentColor = contentColor.copy(alpha = 0.38f),
             ),
     ) {
         Icon(

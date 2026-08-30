@@ -893,29 +893,33 @@ private fun createRestrictedAndroidWebView(
                     view: WebView,
                     navigation: WebResourceRequest,
                 ): Boolean =
-                    shouldBlockRestrictedMainFrameRequest(
-                        isForMainFrame = navigation.isForMainFrame,
-                        rawUrl = navigation.url.toString(),
-                    )
+                    !isAllowedRestrictedMainFrameUrl(view, navigation.url.toString()) &&
+                        shouldBlockRestrictedMainFrameRequest(
+                            isForMainFrame = navigation.isForMainFrame,
+                            rawUrl = navigation.url.toString(),
+                        )
 
                 @Deprecated("Covers legacy WebView navigation before WebResourceRequest")
                 override fun shouldOverrideUrlLoading(
                     view: WebView,
                     url: String,
-                ): Boolean = !DiscourseBrowserUrlPolicy.isAllowedTopLevelUrl(url)
+                ): Boolean = !isAllowedRestrictedMainFrameUrl(view, url)
 
                 override fun onPageStarted(
                     view: WebView,
                     url: String,
                     favicon: Bitmap?,
                 ) {
-                    if (!DiscourseBrowserUrlPolicy.isAllowedTopLevelUrl(url)) view.stopLoading()
+                    if (!isAllowedRestrictedMainFrameUrl(view, url)) view.stopLoading()
                 }
 
                 override fun onPageFinished(
                     view: WebView,
                     url: String,
                 ) {
+                    if (isSyntheticRestrictedMainFrameUrl(url)) {
+                        (view as? RestrictedAndroidWebView)?.allowSyntheticMainFrame = false
+                    }
                     if (!view.hasLostRenderer) onMainFramePageFinished?.invoke(view, url)
                 }
 
@@ -924,10 +928,8 @@ private fun createRestrictedAndroidWebView(
                     request: WebResourceRequest,
                 ): WebResourceResponse? {
                     if (
-                        !shouldBlockRestrictedMainFrameRequest(
-                            isForMainFrame = request.isForMainFrame,
-                            rawUrl = request.url.toString(),
-                        )
+                        !request.isForMainFrame ||
+                        isAllowedRestrictedMainFrameUrl(view, request.url.toString())
                     ) {
                         return null
                     }
@@ -936,7 +938,7 @@ private fun createRestrictedAndroidWebView(
                     // the process; UI state is changed back on the main WebView thread.
                     view.post {
                         if (!view.hasLostRenderer) view.stopLoading()
-                        failureGate.report()
+                        failureGate.report(AndroidBrowserFailureReason.BlockedMainFrame)
                     }
                     return blockedAndroidWebResponse()
                 }
@@ -947,7 +949,13 @@ private fun createRestrictedAndroidWebView(
                     error: SslError,
                 ) {
                     handler.cancel()
-                    failureGate.report()
+                    // Cloudflare and hCaptcha use HTTPS subresources on different hosts. A
+                    // certificate failure in one of those resources must not tear down an
+                    // otherwise usable fixed-origin login surface; only the main document can
+                    // invalidate this restricted browser request.
+                    if (shouldReportRestrictedMainFrameSslError(view.url, error.url)) {
+                        failureGate.report(AndroidBrowserFailureReason.MainFrameSsl)
+                    }
                 }
 
                 override fun onSafeBrowsingHit(
@@ -958,7 +966,9 @@ private fun createRestrictedAndroidWebView(
                 ) {
                     callback.backToSafety(true)
                     view.stopLoading()
-                    failureGate.report()
+                    if (request.isForMainFrame) {
+                        failureGate.report(AndroidBrowserFailureReason.MainFrameSafeBrowsing)
+                    }
                 }
 
                 override fun onRenderProcessGone(
@@ -966,7 +976,7 @@ private fun createRestrictedAndroidWebView(
                     detail: RenderProcessGoneDetail,
                 ): Boolean {
                     (view as? RestrictedAndroidWebView)?.rendererGone = true
-                    failureGate.report()
+                    failureGate.report(AndroidBrowserFailureReason.RendererGone)
                     // No WebView method is safe after renderer loss. AndroidView.onRelease removes
                     // the attached view and takes the direct destroy-only branch below.
                     return true
@@ -1224,6 +1234,7 @@ private fun handleMiniLoginPageFinished(
             }
             state.challengeVisible = false
             state.htmlInjected = true
+            (view as? RestrictedAndroidWebView)?.allowSyntheticMainFrame = true
             runCatching {
                 view.loadDataWithBaseURL(
                     "$DISCOURSE_ORIGIN/",
@@ -1249,6 +1260,7 @@ private fun startMiniLoginBootstrap(
     if (view.hasLostRenderer || state.activeWebView !== view) return
     state.bootstrapGeneration += 1
     state.htmlInjected = false
+    (view as? RestrictedAndroidWebView)?.allowSyntheticMainFrame = false
     state.pageReady = false
     state.challengeVisible = true
     state.challengeProbeAttempts = 0
@@ -1645,6 +1657,7 @@ private class RestrictedAndroidWebView(
     context: Context,
 ) : WebView(context) {
     var rendererGone: Boolean = false
+    var allowSyntheticMainFrame: Boolean = false
 }
 
 internal class AndroidBrowserFailureGate(
@@ -1652,9 +1665,20 @@ internal class AndroidBrowserFailureGate(
 ) {
     private val reported = AtomicBoolean(false)
 
-    fun report() {
-        if (reported.compareAndSet(false, true)) onFirstFailure()
+    fun report(reason: AndroidBrowserFailureReason = AndroidBrowserFailureReason.Unspecified) {
+        if (reported.compareAndSet(false, true)) {
+            runCatching { android.util.Log.w("FlareDoAuth", "Restricted browser failed: ${reason.name}") }
+            onFirstFailure()
+        }
     }
+}
+
+internal enum class AndroidBrowserFailureReason {
+    Unspecified,
+    BlockedMainFrame,
+    MainFrameSsl,
+    MainFrameSafeBrowsing,
+    RendererGone,
 }
 
 private val WebView.hasLostRenderer: Boolean
@@ -1664,6 +1688,29 @@ internal fun shouldBlockRestrictedMainFrameRequest(
     isForMainFrame: Boolean,
     rawUrl: String,
 ): Boolean = isForMainFrame && !DiscourseBrowserUrlPolicy.isAllowedTopLevelUrl(rawUrl)
+
+private fun isAllowedRestrictedMainFrameUrl(
+    view: WebView,
+    rawUrl: String,
+): Boolean {
+    if (DiscourseBrowserUrlPolicy.isAllowedTopLevelUrl(rawUrl)) return true
+    return (view as? RestrictedAndroidWebView)?.allowSyntheticMainFrame == true &&
+        isSyntheticRestrictedMainFrameUrl(rawUrl)
+}
+
+internal fun isSyntheticRestrictedMainFrameUrl(rawUrl: String): Boolean =
+    rawUrl.equals("about:blank", ignoreCase = true) ||
+        rawUrl.startsWith("about:blank#", ignoreCase = true)
+
+/** Reports certificate failures only when the current fixed-origin main document is affected. */
+internal fun shouldReportRestrictedMainFrameSslError(
+    currentUrl: String?,
+    errorUrl: String?,
+): Boolean =
+    currentUrl != null &&
+        errorUrl != null &&
+        currentUrl == errorUrl &&
+        DiscourseBrowserUrlPolicy.isAllowedTopLevelUrl(errorUrl)
 
 /** Combines the retained actor lock with the process-memory click-to-actor publication guard. */
 internal fun isAndroidRestrictedBrowserHandoffLocked(

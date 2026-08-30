@@ -192,6 +192,9 @@ public sealed interface DiscourseAuthenticationAction {
 
     public data object Logout : DiscourseAuthenticationAction
 
+    /** Clears the current session locally without making a remote logout request. */
+    public data object ClearSession : DiscourseAuthenticationAction
+
     public data object DismissFailure : DiscourseAuthenticationAction
 }
 
@@ -373,14 +376,19 @@ public class DiscourseAuthenticationPresenter private constructor(
         }
     }
 
-    /** Returns false after close, on queue saturation, or when logout has no exact session owner. */
+    /** Returns false after close or when the bounded action queue is full. */
     public fun dispatch(action: DiscourseAuthenticationAction): Boolean {
         val queued =
-            if (action == DiscourseAuthenticationAction.Logout) {
+            if (
+                action == DiscourseAuthenticationAction.Logout ||
+                    action == DiscourseAuthenticationAction.ClearSession
+            ) {
+                val session = backend.sessionState.value
                 val owner =
-                    (backend.sessionState.value as? DiscourseSessionState.Authenticated)
-                        ?.let { AuthenticationOwner(it.generation, it.accountId) }
-                        ?: return false
+                    AuthenticationLogoutTarget(
+                        generation = session.generation,
+                        accountId = (session as? DiscourseSessionState.Authenticated)?.accountId,
+                    )
                 QueuedAuthenticationCommand.Ui(action, owner)
             } else {
                 QueuedAuthenticationCommand.Ui(action)
@@ -892,8 +900,37 @@ public class DiscourseAuthenticationPresenter private constructor(
                                             activeOperationKind = null
                                             activeRestrictedBrowserOperation = null
                                             launchOperation(AuthenticationOperationKind.Logout) {
-                                                backend.logout(owner.generation, owner.accountId)
-                                                AuthenticationSuccess.LoggedOut
+                                                if (owner.accountId != null) {
+                                                    backend.logout(owner.generation, owner.accountId)
+                                                    AuthenticationSuccess.LoggedOut
+                                                } else if (backend.clearSession(owner.generation)) {
+                                                    AuthenticationSuccess.LoggedOut
+                                                } else {
+                                                    AuthenticationSuccess.LogoutIgnored
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    DiscourseAuthenticationAction.ClearSession -> {
+                                        val owner = queued.owner
+                                        if (owner != null) {
+                                            // Recovery must not trigger another Cloudflare challenge
+                                            // through the remote logout endpoint. The local lifecycle
+                                            // still performs generation-CAS persistence cleanup.
+                                            operationJob?.cancelAndJoin()
+                                            challengeJob?.cancelAndJoin()
+                                            operationJob = null
+                                            challengeJob = null
+                                            activeOperationId = null
+                                            activeOperationKind = null
+                                            activeRestrictedBrowserOperation = null
+                                            launchOperation(AuthenticationOperationKind.Logout) {
+                                                if (backend.clearSession(owner.generation)) {
+                                                    AuthenticationSuccess.LoggedOut
+                                                } else {
+                                                    AuthenticationSuccess.LogoutIgnored
+                                                }
                                             }
                                         }
                                     }
@@ -954,6 +991,10 @@ public class DiscourseAuthenticationPresenter private constructor(
                                                 isBusy = challengeJob?.isActive == true,
                                             )
                                         }
+                                    }
+
+                                    AuthenticationSuccess.LogoutIgnored -> {
+                                        update { it.copy(isBusy = challengeJob?.isActive == true) }
                                     }
 
                                     AuthenticationSuccess.AuthorizationCancelled -> {
@@ -1147,6 +1188,8 @@ internal interface DiscourseAuthenticationBackend {
         expectedAccountId: String,
     ): Boolean
 
+    suspend fun clearSession(expectedGeneration: Long): Boolean
+
     suspend fun completeManualChallengeAfterCookieConsumption(requestId: Long): Boolean
 
     suspend fun cancelManualChallenge(requestId: Long): Boolean
@@ -1179,15 +1222,17 @@ private class DefaultDiscourseAuthenticationBackend(
         expectedAccountId: String,
     ): Boolean = loginService.logout(expectedGeneration, expectedAccountId)
 
+    override suspend fun clearSession(expectedGeneration: Long): Boolean = loginService.clearSession(expectedGeneration)
+
     override suspend fun completeManualChallengeAfterCookieConsumption(requestId: Long): Boolean =
         challengeCoordinator.completeAfterCookieConsumption(requestId)
 
     override suspend fun cancelManualChallenge(requestId: Long): Boolean = challengeCoordinator.cancel(requestId)
 }
 
-private data class AuthenticationOwner(
+private data class AuthenticationLogoutTarget(
     val generation: Long,
-    val accountId: String,
+    val accountId: String?,
 )
 
 private data class RestrictedBrowserOperation(
@@ -1229,7 +1274,7 @@ private enum class TerminalReceiptState {
 private sealed interface QueuedAuthenticationCommand {
     data class Ui(
         val action: DiscourseAuthenticationAction,
-        val owner: AuthenticationOwner? = null,
+        val owner: AuthenticationLogoutTarget? = null,
     ) : QueuedAuthenticationCommand
 
     class RawRedirect(
@@ -1299,6 +1344,8 @@ private sealed interface AuthenticationSuccess {
 
     data object LoggedOut : AuthenticationSuccess
 
+    data object LogoutIgnored : AuthenticationSuccess
+
     data object AuthorizationCancelled : AuthenticationSuccess
 
     data object RedirectRejected : AuthenticationSuccess
@@ -1316,6 +1363,7 @@ private val AuthenticationSuccess.requiresOriginalGeneration: Boolean
             is AuthenticationSuccess.FallbackReady,
             AuthenticationSuccess.AuthorizationCancelled,
             AuthenticationSuccess.RedirectRejected,
+            AuthenticationSuccess.LogoutIgnored,
             -> true
         }
 

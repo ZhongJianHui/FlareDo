@@ -676,4 +676,41 @@ internal class AndroidAuthenticationBrowserTest {
         )
         assertIs<AndroidMiniLoginEvent.CaptchaUnavailable>(events[3])
     }
+
+    @Test
+    fun restrictedBrowserIgnoresCertificateFailuresFromCrossOriginResources() {
+        assertTrue(
+            shouldReportRestrictedMainFrameSslError(
+                currentUrl = "https://linux.do/session/csrf",
+                errorUrl = "https://linux.do/session/csrf",
+            ),
+        )
+        assertFalse(
+            shouldReportRestrictedMainFrameSslError(
+                currentUrl = "https://linux.do/session/csrf",
+                errorUrl = "https://challenges.cloudflare.com/turnstile/v0/api.js",
+            ),
+        )
+        assertFalse(
+            shouldReportRestrictedMainFrameSslError(
+                currentUrl = "https://linux.do/session/csrf",
+                errorUrl = "https://cdn3.ldstatic.com/assets/discourse.js",
+            ),
+        )
+        assertFalse(
+            shouldReportRestrictedMainFrameSslError(
+                currentUrl = "https://linux.do/session/csrf",
+                errorUrl = null,
+            ),
+        )
+    }
+
+    @Test
+    fun syntheticMiniLoginMainFrameUrlsAreNarrowlyAllowlisted() {
+        assertTrue(isSyntheticRestrictedMainFrameUrl("about:blank"))
+        assertTrue(isSyntheticRestrictedMainFrameUrl("about:blank#flaredo"))
+        assertFalse(isSyntheticRestrictedMainFrameUrl("data:text/html,<main></main>"))
+        assertFalse(isSyntheticRestrictedMainFrameUrl("https://linux.do/"))
+        assertFalse(isSyntheticRestrictedMainFrameUrl("javascript:alert(1)"))
+    }
 }

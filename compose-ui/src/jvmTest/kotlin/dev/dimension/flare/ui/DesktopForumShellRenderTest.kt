@@ -10,6 +10,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.onNodeWithTag
@@ -291,7 +292,7 @@ internal class DesktopForumShellRenderTest {
                 ) {
                     FlareDoTheme(darkTheme = false) {
                         ForumAuthenticationProvider(
-                            state = DiscourseAuthenticationState(),
+                            state = DiscourseAuthenticationState(isBusy = true),
                             onAction = observedActions::add,
                         ) {
                             ForumWorkspace(
@@ -315,6 +316,7 @@ internal class DesktopForumShellRenderTest {
             val action =
                 onNodeWithTag(ForumTestTags.SESSION_RECOVERY_ACTION)
                     .assertIsDisplayed()
+                    .assertIsEnabled()
                     .assertHasClickAction()
             val actionBounds = action.getUnclippedBoundsInRoot()
             val notificationsTop =
@@ -333,7 +335,7 @@ internal class DesktopForumShellRenderTest {
             action.performClick()
             runOnIdle {
                 assertEquals(
-                    listOf<DiscourseAuthenticationAction>(DiscourseAuthenticationAction.Logout),
+                    listOf<DiscourseAuthenticationAction>(DiscourseAuthenticationAction.ClearSession),
                     observedActions,
                 )
             }
