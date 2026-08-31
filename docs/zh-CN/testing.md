@@ -20,6 +20,8 @@ Kotlin common 测试覆盖：
 - 访客/认证权限边界、公开缓存回退、搜索/资料/活动、通知和标记已读行为；
 - 编辑器草稿、创建/回复/编辑、上传进度/取消/重试、乐观回滚、点赞和 bookmark 身份；
 - 会话代际取消、Cookie revision 隔离、CSRF 单次刷新、旧所有者 CAS 和失败关闭清理；
+- 严格二维码 route 解析、过期与活动会话拒绝、OTP 消费、临时 key 撤销、Presenter teardown
+  清理，以及 vault-backed 已保存登录的替换/删除；
 - MessageBus 普通/chunked frame、截断和大小限制、每 channel 单调游标、重复事件、订阅变更、
   同源/跨源传输、共享 key 擦除、429 退避、180 秒重试上限、前后台切换和 401/403 恢复。
 
@@ -43,8 +45,8 @@ payload 已脱敏，在生产环境中没有价值。
 
 ### 平台安全测试
 
-- Android host 测试覆盖 RSA、Keystore wrapper、WebView Cookie 策略、浏览器移交所有权、取消窗口
-  和宿主 Koin graph。
+- Android host 测试覆盖 RSA、Keystore wrapper、WebView Cookie 策略、浏览器移交所有权、
+  密码/hCaptcha/TOTP bridge 边界、已保存登录清理、取消窗口和宿主 Koin graph。
 - Android managed-device 测试使用已安装的 manifest 和真实 framework，验证唯一导出的认证 Activity、
   冷/热启动回调、`IntentSanitizer`、嵌套 Intent 不透明性、URI grant、`ClipData`、selector、不支持的
   flag、重放行为以及真实 Android Keystore。
@@ -55,7 +57,8 @@ payload 已脱敏，在生产环境中没有价值。
   生命周期测试会分开运行。
 - Kotlin/Native 测试覆盖 RSA/Keychain 边界和 Swift 桥接快照；macOS CI 还会执行真实 Keychain
   round trip。
-- Apple XCTest 检查精确源站 `WKWebView` 导航/Cookie 策略和 Cookie 移交所有权。
+- Apple XCTest 检查精确源站 `WKWebView` 导航/Cookie 策略、Cookie 移交所有权，以及二维码扫码页的
+  显式展示/取消。
 
 这些测试只使用本地操作系统设施，不向 Linux.do 发送凭据或变更操作。
 
@@ -67,11 +70,11 @@ Android 使用 Compose Preview Screenshot Testing `0.0.1-alpha15`。Golden 覆�
 - 高度：400、500 和 1000 dp。
 
 其他 golden 覆盖 compact/medium/expanded 的浅色与深色布局、1.5 字体缩放、缓存和错误状态、主题详情、
-搜索、通知和个人资料。截图 fixture 不包含实时网络或账号数据。
+搜索、通知以及已认证个人资料的二维码分享操作。截图 fixture 不包含实时网络或账号数据。
 
 Compose common 测试验证 window class 和 pane budget 边界、导航、分页触发、权限策略、换行/滚动和
 语义。桌面端将 Compose hierarchy 渲染到离屏 Skiko surface，并断言 pane 顺序、语义 action、认证
-控件、实时恢复和大字体可达性。
+控件、二维码分享的确认/展示/撤销、实时恢复和大字体可达性。
 
 Apple XCTest 使用 `ImageRenderer` 渲染紧凑型 iPhone 和 regular iPad SwiftUI，并用 `NSHostingView`
 渲染 macOS。测试会检查尺寸、非透明像素变化、分栏区域、辅助功能文本尺寸、深色模式、中文本地化和

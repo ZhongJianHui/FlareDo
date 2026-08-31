@@ -116,6 +116,20 @@ the callback, exchanges its OTP for a normal `_t` web session, and immediately r
 User API Key. A restricted fixed-origin WebView cookie handoff is the fallback. Cloudflare handling
 is user-mediated and may replay the failed phase at most once.
 
+Android also provides a native password surface backed by a short-lived restricted WebView for
+hCaptcha and same-origin session requests. It supports TOTP retry and an explicit remember-password
+choice backed by the platform vault; the complete restricted browser remains available for passkeys,
+OAuth, registration, recovery, and unsupported second factors. The other hosts use their complete
+restricted browser for those web-managed flows.
+
+Cross-device sign-in uses a strict, FlareDo-owned `flaredo://qr-login` format. An authenticated
+device can create one ten-minute User API Key/OTP bearer capability and display it after confirmation.
+Android and Apple hosts can scan with the camera; Apple and desktop hosts can import an image. The
+receiving guest validates the complete route and bounds, exchanges the OTP, revokes the temporary
+key before identity lookup, and activates the resulting session through the normal vault path. The
+display owner revokes the current key on close, regeneration, presenter teardown, or application
+shutdown.
+
 ## Persistence
 
 Room schema version 5 contains five entities arranged into four storage groups:

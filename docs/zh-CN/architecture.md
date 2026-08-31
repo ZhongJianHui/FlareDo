@@ -104,6 +104,16 @@ UiTimelineV2 / UiArticle / Swift snapshots
 User API Key。受限、固定源站的 WebView Cookie 移交是备用路径。Cloudflare 处理需要用户参与，并且
 最多只会重放失败阶段一次。
 
+Android 还提供原生密码界面，并使用短生命周期的受限 WebView 完成 hCaptcha 与同源会话请求；它
+支持 TOTP 重试，也可由用户明确选择通过平台 vault 记住密码。完整的受限浏览器仍用于 passkey、
+OAuth、注册、找回账号和不支持的第二验证方式。其他宿主通过完整受限浏览器处理这些由网页管理的流程。
+
+跨设备登录使用严格的 FlareDo 自有 `flaredo://qr-login` 格式。已登录设备经确认后可以创建一个有效期
+十分钟的 User API Key/OTP bearer capability 并展示。Android 与 Apple 宿主可通过相机扫描，Apple
+与桌面宿主可导入图片。接收端访客会校验完整 route 与大小边界、交换 OTP，在身份查询前撤销临时
+key，并通过常规 vault 路径激活新会话。展示端在关闭、重新生成、Presenter teardown 或应用退出时
+撤销当前 key。
+
 ## 持久化
 
 Room schema 版本 5 包含五个实体，分为四组存储用途：

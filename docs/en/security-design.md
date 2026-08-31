@@ -172,6 +172,35 @@ then uses the existing isolated session probe and actor-owned
 re-sending the hCaptcha token, while a single CSRF challenge retry may reuse an
 unconsumed token only after the browser bootstrap completes again.
 
+The remember-password option uses the same fail-closed platform vault boundary
+as session credentials. Room stores a public identifier and opaque reference;
+the bounded identifier/password envelope remains in the vault. Replacement first
+publishes the new reference and then removes the previous value. Missing, corrupt,
+or mismatched vault material compare-deletes the stale reference. The UI clears
+its short-lived password state when the login surface is disposed.
+
+### Cross-device QR sign-in
+
+The QR route is FlareDo-owned and intentionally does not accept another client's
+private application URI. Parsing requires exactly `flaredo://qr-login`, version
+1, the complete allowlisted query set, no user information, port, path, fragment,
+duplicate values, unknown fields, control characters, or oversized secrets.
+
+An authenticated owner creates a fresh RSA attempt and asks Linux.do for the
+fixed `one_time_password` scope. The resulting temporary API Key and OTP form a
+ten-minute bearer capability. The private key exists only in the platform vault
+during creation and is removed before the QR reaches presentation state. The UI
+uses a redacted state model, confirms before generation, renders the code locally,
+shows its countdown, and retains only one active capability.
+
+On scan, an active session is rejected. The receiver validates expiry before the
+normal OTP session exchange, revokes the temporary API Key before identity lookup,
+and activates only an authoritative root `_t` Cookie snapshot. Closing,
+regenerating, presenter teardown, and desktop application shutdown cancel any
+creation work and run revocation in bounded non-cancellable cleanup. Because
+remote revocation can fail offline, the code remains security-sensitive until it
+expires or Linux.do confirms consumption/revocation.
+
 ### Cloudflare challenge handling
 
 A 403 or 429 alone never opens a browser. FlareDo requires the official

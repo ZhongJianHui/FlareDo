@@ -47,8 +47,23 @@ Linux.do 控制，并适用 Linux.do 自身的条款和隐私实践。
 备用登录和需要用户处理的 Cloudflare challenge 使用受限的内嵌浏览器。当前实现只允许
 无显式端口的 `https://linux.do` 作为顶层源，不提供原生 JavaScript bridge，并在平台
 能力允许时阻止混合内容及不安全跳转；其中 Cookie 仅作为一次性交接数据。用户在网页中
-输入的凭据由 Linux.do 页面处理，FlareDo 没有原生密码输入字段。Linux.do 和
-Cloudflare 仍会收到加载该网页所需的常规 Web 流量。
+输入的凭据由 Linux.do 页面处理。Linux.do 和 Cloudflare 仍会收到加载该网页所需的常规
+Web 流量。
+
+Android 还提供原生账号、密码和 TOTP 输入框。短生命周期的受限 WebView 会渲染 hCaptcha，
+并提交 Linux.do 同源会话请求；密码不会进入日志或 Room。记住密码必须由用户明确选择：账号与
+密码 envelope 存入选定的平台 vault，Room 只保存公开账号和不透明 vault 引用。清除已保存登录
+会移除该引用，并尝试删除 vault 值。平台 vault 不可用时，已保存登录 store 绝不会回退到明文。
+
+跨设备二维码登录会编码一个有效期十分钟的 bearer capability，其中包含临时 User API Key、
+一次性密码、账号名称和过期时间。任何能读取尚未过期且未消费二维码的人，都可能登录该账号。
+FlareDo 不会持久化或记录二维码值。关闭或重新生成展示中的二维码会尝试立即远程撤销；扫描端会
+交换 OTP，并在身份查询前撤销临时 key。撤销需要网络连接，因此用户应对二维码保密，并在离开前
+等待操作确认。
+
+Android 把实时扫描委托给 Google Code Scanner，应用本身不申请 `CAMERA` 权限。iOS 与 macOS
+在常规系统相机权限提示后使用 AVFoundation。Apple 与桌面端的图片导入由用户主动选择，二维码
+在应用本地解码；FlareDo 不会上传所选图片。
 
 ### 前台实时轮询
 
@@ -103,6 +118,10 @@ Cookie jar 交给富文本图片加载器，但第三方主机仍可能通过唯
   或过期处理时才被清理。
 - 临时 API Key 和 OTP 的字节数组会在完成或失败时尽力覆写；不可变字符串以及加密提供方
   或运行时产生的副本无法保证立即从进程内存擦除。
+- Android 记住的登录信息是独立、有界的 vault envelope，包含账号与密码；它不属于活动会话的
+  Cookie envelope，并可单独清除。
+- 展示中的二维码值会作为可读取的 bearer capability 保留在 UI 内存，直到关闭、重新生成、
+  消费、过期或其 Presenter teardown。
 
 ### 各平台 vault
 

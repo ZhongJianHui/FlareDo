@@ -24,8 +24,9 @@ they are not releases.
 - Guest browsing for latest and popular topics, categories, tags, and complete
   Discourse topic streams.
 - Search, profiles and activity, notifications, unread state, and mark-as-read.
-- One active Linux.do account with system-browser authorization and a restricted
-  browser fallback.
+- One active Linux.do account with Android password/hCaptcha/TOTP login,
+  system-browser authorization, a restricted full-browser fallback, and
+  cross-device QR sign-in on all five targets.
 - New topics, replies, edits, local drafts, uploads with progress/retry/cancel,
   likes, and bookmarks.
 - Foreground MessageBus updates for topic lists, user notifications, topics,

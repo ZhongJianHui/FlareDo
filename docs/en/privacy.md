@@ -59,8 +59,30 @@ embedded browser. The current implementation allows only a portless
 `https://linux.do` top-level origin, provides no native JavaScript bridge, rejects
 mixed-content or unsafe navigation where the platform permits, and treats its
 cookies as a one-use handoff. Credentials typed into that page are processed by
-the Linux.do web page; FlareDo has no native password field. Linux.do and
-Cloudflare can still receive the normal web traffic required to serve that page.
+the Linux.do web page. Linux.do and Cloudflare can still receive the normal web
+traffic required to serve that page.
+
+Android additionally offers native identifier, password, and TOTP fields. A
+short-lived restricted WebView renders hCaptcha and submits the same-origin
+Linux.do session requests; the password is not added to logs or Room. Remembering
+it is opt-in: the identifier and password envelope is stored in the selected
+platform vault, while Room contains only the public identifier and opaque vault
+reference. Clearing the saved login removes that reference and attempts to delete
+the vault value. The saved-login store never falls back to plaintext if its
+platform vault is unavailable.
+
+Cross-device QR sign-in encodes a ten-minute bearer capability containing a
+temporary User API Key, one-time password, account name, and expiry. Anyone who
+can read an unexpired, unconsumed code may sign in as that account. FlareDo does
+not persist or log the QR value. Closing or regenerating a displayed code attempts
+immediate remote revocation; scanning exchanges the OTP and revokes the temporary
+key before identity lookup. Revocation needs network access, so users should keep
+the code private and wait for confirmation before leaving it unattended.
+
+Android delegates live scanning to Google Code Scanner without requesting the
+app's `CAMERA` permission. iOS and macOS use AVFoundation after the normal system
+camera permission prompt. Apple and desktop image import is user-selected and QR
+decoding is local to the app; the selected image is not uploaded by FlareDo.
 
 ### Foreground realtime polling
 
@@ -130,6 +152,11 @@ The database can contain:
 - Temporary API key and OTP byte arrays are cleared on completion or failure on
   a best-effort basis. Immutable strings and provider/runtime copies cannot be
   guaranteed to be erased from process memory immediately.
+- A remembered Android login is a separate bounded vault envelope containing the
+  identifier and password. It is never part of the active session Cookie envelope
+  and can be cleared independently.
+- A displayed QR value remains a readable bearer capability in UI memory until
+  it is closed, regenerated, consumed, expired, or its presenter is torn down.
 
 ### Platform vault behavior
 

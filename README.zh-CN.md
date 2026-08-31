@@ -20,7 +20,8 @@ Android、Windows、Linux 使用 Compose，iOS 和 macOS 使用 SwiftUI。
 
 - 访客浏览最新、热门、分类、标签，以及严格按 Discourse 主题流加载的完整主题。
 - 搜索、个人资料与活动、通知、未读状态和标记已读。
-- 一个活动中的 Linux.do 账号，支持系统浏览器授权及受限浏览器兜底登录。
+- 一个活动中的 Linux.do 账号，支持 Android 密码/hCaptcha/TOTP 登录、系统浏览器授权、
+  受限的完整浏览器兜底，以及五端跨设备二维码登录。
 - 发帖、回复、编辑、本地草稿、带进度/取消/重试的上传、点赞和书签。
 - 前台 MessageBus 实时更新主题列表、用户通知、主题与 reactions；恢复前台时先用
   REST 补拉。

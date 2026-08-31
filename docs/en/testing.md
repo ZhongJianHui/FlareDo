@@ -28,6 +28,8 @@ Kotlin common tests cover:
   bookmark identity;
 - session-generation cancellation, cookie revision isolation, CSRF single refresh, stale-owner CAS,
   and fail-closed cleanup;
+- strict QR route parsing, expiry and active-session rejection, OTP consumption, temporary-key
+  revocation, presenter teardown cleanup, and vault-backed saved-login replacement/removal;
 - MessageBus normal/chunked frames, truncation and size limits, per-channel monotonic cursors,
   duplicates, subscription changes, same/cross-origin transports, shared-key erasure, 429 backoff,
   the 180-second retry cap, foreground/background transitions, and 401/403 recovery.
@@ -53,7 +55,8 @@ pair. Synthetic credentials and payloads are redacted and have no production val
 ### Platform security tests
 
 - Android host tests exercise RSA, Keystore wrappers, WebView cookie policy, browser handoff
-  ownership, cancellation windows, and the host Koin graph.
+  ownership, password/hCaptcha/TOTP bridge boundaries, saved-login cleanup, cancellation windows,
+  and the host Koin graph.
 - Android managed-device tests use the installed manifest and real framework to verify the sole
   exported auth Activity, cold/warm callbacks, `IntentSanitizer`, nested Intent opacity, URI grants,
   `ClipData`, selectors, unsupported flags, replay behavior, and the real Android Keystore.
@@ -66,7 +69,8 @@ pair. Synthetic credentials and payloads are redacted and have no production val
   from the remaining desktop lifecycle tests for precise diagnostics.
 - Kotlin/Native tests cover RSA/Keychain boundaries and Swift bridge snapshots. macOS CI additionally
   performs a real Keychain round trip.
-- Apple XCTest checks exact-origin `WKWebView` navigation/cookie policy and cookie-handoff ownership.
+- Apple XCTest checks exact-origin `WKWebView` navigation/cookie policy, cookie-handoff ownership,
+  and explicit QR scanner presentation/cancellation.
 
 These tests use local OS facilities only. They do not send credentials or mutations to Linux.do.
 
@@ -79,13 +83,13 @@ geometry grid:
 - heights: 400, 500, and 1000 dp.
 
 Additional goldens cover compact/medium/expanded light and dark layouts, 1.5 font scale, cached and
-error states, topic detail, search, notifications, and profile. Screenshot fixtures contain no live
-network or account data.
+error states, topic detail, search, notifications, and the authenticated profile QR-share action.
+Screenshot fixtures contain no live network or account data.
 
 Compose common tests verify window-class and pane-budget boundaries, navigation, paging triggers,
 permission policies, wrapping/scrolling, and semantics. Desktop renders the Compose hierarchy into
 an offscreen Skiko surface and asserts ordered panes, semantic actions, authentication controls,
-realtime recovery, and large-font reachability.
+QR-share confirmation/display/revocation, realtime recovery, and large-font reachability.
 
 Apple XCTest renders compact iPhone and regular iPad SwiftUI with `ImageRenderer` and macOS with
 `NSHostingView`. It checks dimensions, nontransparent pixel variation, split regions, accessibility

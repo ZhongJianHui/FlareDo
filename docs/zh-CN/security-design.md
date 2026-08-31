@@ -131,6 +131,27 @@ captcha token，并拒绝控制字符；服务端原始响应不会进入共享�
 hCaptcha token；一次 CSRF challenge 重试只有在重新完成浏览器 bootstrap 后，才会复用尚未消费
 的 token。
 
+“记住密码”使用与会话凭据相同的 fail-closed 平台 vault 边界。Room 保存公开账号和不透明引用；
+有界的账号/密码 envelope 保留在 vault 中。替换操作先发布新引用，再删除旧值。vault 材料缺失、
+损坏或账号不匹配时，会通过 compare-delete 清除过期引用。登录界面 dispose 时会清除短生命周期的
+密码状态。
+
+### 跨设备二维码登录
+
+二维码 route 由 FlareDo 自有，并有意不接受其他客户端的私有应用 URI。解析必须精确匹配
+`flaredo://qr-login`、版本 1 和完整 allowlist query 集合；包含用户信息、端口、path、fragment、
+重复值、未知字段、控制字符或超大 secret 时一律拒绝。
+
+已登录 owner 创建新的 RSA attempt，并向 Linux.do 请求固定 `one_time_password` scope。返回的临时
+API Key 与 OTP 组成有效期十分钟的 bearer capability。私钥只在创建期间存在于平台 vault，并在
+二维码进入展示状态前删除。UI 使用脱敏 state model，生成前要求确认，在本地渲染二维码并展示
+倒计时，同时只保留一个活动 capability。
+
+扫描端若已有活动会话则拒绝登录；访客会在常规 OTP session exchange 前检查过期时间，在身份查询前
+撤销临时 API Key，并且只激活经过权威确认的根 `_t` Cookie snapshot。关闭、重新生成、Presenter
+teardown 和桌面应用退出都会取消创建任务，并在有界 `NonCancellable` 清理中执行撤销。远程撤销在
+离线时可能失败，因此在过期或 Linux.do 确认消费/撤销前，二维码始终属于敏感凭据。
+
 ### Cloudflare challenge
 
 仅凭 403 或 429 不会打开浏览器。FlareDo 要求官方 `cf-mitigated: challenge` 信号，或
