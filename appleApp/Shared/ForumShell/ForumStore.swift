@@ -3,6 +3,13 @@ import Foundation
 import KotlinSharedUI
 import UniformTypeIdentifiers
 
+struct ForumQrShare: Identifiable, Equatable {
+    let id: Int64
+    let encodedValue: String
+    let username: String
+    let expiresAt: Date
+}
+
 /// Main-actor adapter between the Kotlin presenters and SwiftUI.
 ///
 /// Kotlin owns network, persistence, session, paging, and mutation state. This store retains only
@@ -14,6 +21,9 @@ final class ForumStore: ObservableObject {
     @Published var pendingAuthorizationURL: URL?
     @Published private(set) var restrictedBrowserRequest: ForumRestrictedBrowserRequest?
     @Published private(set) var isRestoringSession = false
+    @Published var isQrScannerPresented = false
+    @Published private(set) var qrShare: ForumQrShare?
+    @Published private(set) var isQrOperationInProgress = false
 
     let productName: String
 
@@ -107,6 +117,9 @@ final class ForumStore: ObservableObject {
         cookieHandoffs.removeAll()
         RestrictedLinuxDoCookieHandoffCoordinator.clearSharedLinuxDoCookies()
         restrictedBrowserRequest = nil
+        isQrScannerPresented = false
+        qrShare = nil
+        isQrOperationInProgress = false
         pendingAuthorizationURL = nil
         rawForumSnapshot = nil
         rawComposerSnapshot = nil
@@ -341,6 +354,70 @@ final class ForumStore: ObservableObject {
                 self.restrictedBrowserRequest = ForumRestrictedBrowserRequest(kind: .fallbackLogin)
             }
             self.publishStateIfPossible()
+        }
+        retain(observation, for: operationID)
+    }
+
+    func beginQrLogin() {
+        guard canBeginAuthentication, !isQrOperationInProgress else { return }
+        authenticationMessage = nil
+        isQrScannerPresented = true
+        publishStateIfPossible()
+    }
+
+    func cancelQrLogin() {
+        isQrScannerPresented = false
+    }
+
+    func completeQrLogin(rawValue: String) {
+        guard !isFixture, canBeginAuthentication, !isQrOperationInProgress, let host else { return }
+        isQrScannerPresented = false
+        isQrOperationInProgress = true
+        authenticationMessage = nil
+        let operationID = beginOperation()
+        let observation = host.completeQrLogin(rawValue: rawValue) { [weak self] result in
+            guard let self else { return }
+            self.finishOperation(operationID)
+            self.isQrOperationInProgress = false
+            self.authenticationMessage = self.message(for: result)
+            self.publishStateIfPossible()
+        }
+        retain(observation, for: operationID)
+    }
+
+    func createQrShare() {
+        guard !isFixture, state.isAuthenticated, !isQrOperationInProgress, let host else { return }
+        isQrOperationInProgress = true
+        authenticationMessage = nil
+        let operationID = beginOperation()
+        let observation = host.createQrShare { [weak self] result in
+            guard let self else { return }
+            self.finishOperation(operationID)
+            self.isQrOperationInProgress = false
+            if let id = result.shareId?.int64Value,
+               let encodedValue = result.encodedValue,
+               let expires = result.expiresAtEpochMillis?.int64Value {
+                self.qrShare = ForumQrShare(
+                    id: id,
+                    encodedValue: encodedValue,
+                    username: result.username ?? "",
+                    expiresAt: Date(timeIntervalSince1970: TimeInterval(expires) / 1_000)
+                )
+            } else {
+                self.authenticationMessage = self.message(for: result.error)
+            }
+            self.publishStateIfPossible()
+        }
+        retain(observation, for: operationID)
+    }
+
+    func revokeQrShare() {
+        guard let share = qrShare else { return }
+        qrShare = nil
+        guard !isFixture, let host else { return }
+        let operationID = beginOperation()
+        let observation = host.revokeQrShare(shareId: share.id) { [weak self] _ in
+            self?.finishOperation(operationID)
         }
         retain(observation, for: operationID)
     }

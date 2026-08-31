@@ -11,11 +11,15 @@ import AppKit
 private enum ForumPresentedSheet: Identifiable {
     case composer
     case restrictedBrowser(ForumRestrictedBrowserRequest)
+    case qrScanner
+    case qrShare(ForumQrShare)
 
     var id: String {
         switch self {
         case .composer: "composer"
         case .restrictedBrowser(let request): "browser-\(request.id)"
+        case .qrScanner: "qr-scanner"
+        case .qrShare(let share): "qr-share-\(share.id)"
         }
     }
 }
@@ -78,6 +82,21 @@ struct ForumShell: View {
                 #if os(macOS)
                 .frame(minWidth: 620, idealWidth: 760, minHeight: 560, idealHeight: 700)
                 #endif
+            case .qrScanner:
+                ForumQrScanner(
+                    onCode: store.completeQrLogin,
+                    onCancel: store.cancelQrLogin
+                )
+                #if os(macOS)
+                .frame(minWidth: 620, idealWidth: 760, minHeight: 560, idealHeight: 700)
+                #endif
+            case .qrShare(let share):
+                ForumQrShareView(
+                    share: share,
+                    isBusy: store.isQrOperationInProgress,
+                    onRegenerate: store.createQrShare,
+                    onClose: store.revokeQrShare
+                )
             }
         }
         .onChange(of: scenePhase, initial: true) { _, phase in
@@ -117,12 +136,18 @@ struct ForumShell: View {
                 if let request = store.restrictedBrowserRequest {
                     return .restrictedBrowser(request)
                 }
+                if store.isQrScannerPresented { return .qrScanner }
+                if let share = store.qrShare { return .qrShare(share) }
                 return store.state.composer.isPresented ? .composer : nil
             },
             set: { value in
                 guard value == nil else { return }
                 if let request = store.restrictedBrowserRequest {
                     store.cancelRestrictedBrowser(request)
+                } else if store.isQrScannerPresented {
+                    store.cancelQrLogin()
+                } else if store.qrShare != nil {
+                    store.revokeQrShare()
                 } else if store.state.composer.isPresented {
                     store.closeComposer()
                 }
@@ -1092,6 +1117,7 @@ private struct ForumNotificationsView: View {
 
 private struct ForumProfileView: View {
     @ObservedObject var store: ForumStore
+    @State private var isConfirmingQrShare = false
 
     var body: some View {
         Group {
@@ -1160,10 +1186,26 @@ private struct ForumProfileView: View {
         }
         .toolbar {
             if store.state.isAuthenticated {
+                Button {
+                    isConfirmingQrShare = true
+                } label: {
+                    Label("forum.qr.share_action", systemImage: "qrcode")
+                }
+                .disabled(store.isQrOperationInProgress)
                 Button(role: .destructive, action: store.logout) {
                     Label("forum.logout", systemImage: "rectangle.portrait.and.arrow.right")
                 }
             }
+        }
+        .confirmationDialog(
+            "forum.qr.share_confirm_title",
+            isPresented: $isConfirmingQrShare,
+            titleVisibility: .visible
+        ) {
+            Button("forum.qr.share_confirm_action") { store.createQrShare() }
+            Button("forum.cancel", role: .cancel) {}
+        } message: {
+            Text("forum.qr.share_warning")
         }
         .accessibilityIdentifier("forum_profile")
     }
@@ -1233,16 +1275,21 @@ private struct ForumAuthenticationRequired: View {
         } actions: {
             VStack(spacing: 8) {
                 if store.state.realtimeRecoveryReason == nil {
-                    Button(action: store.beginLogin) {
-                        Label("forum.login", systemImage: "safari")
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(!store.canBeginAuthentication)
                     Button(action: store.beginFallbackLogin) {
                         Label("forum.login_fallback", systemImage: "person.badge.key")
                     }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(!store.canBeginAuthentication)
+                    Button(action: store.beginLogin) {
+                        Label("forum.login", systemImage: "safari")
+                    }
                     .buttonStyle(.bordered)
                     .disabled(!store.canBeginAuthentication)
+                    Button(action: store.beginQrLogin) {
+                        Label("forum.qr.scan_action", systemImage: "qrcode.viewfinder")
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(!store.canBeginAuthentication || store.isQrOperationInProgress)
                 }
                 if let message = store.state.authenticationMessage {
                     Text(message)

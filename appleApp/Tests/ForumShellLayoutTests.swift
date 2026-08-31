@@ -48,6 +48,17 @@ nonisolated final class ForumShellLayoutTests: XCTestCase {
         XCTAssertTrue(store.canBeginAuthentication)
     }
 
+    @MainActor
+    func testFixtureQrScannerPresentationIsExplicitlyCancelable() {
+        let store = ForumStore(fixture: ForumViewState())
+
+        XCTAssertTrue(store.canBeginAuthentication)
+        store.beginQrLogin()
+        XCTAssertTrue(store.isQrScannerPresented)
+        store.cancelQrLogin()
+        XCTAssertFalse(store.isQrScannerPresented)
+    }
+
     #if os(iOS)
     @MainActor
     func testIPhoneCompactImageRendererIsNonblank() throws {
@@ -110,6 +121,23 @@ nonisolated final class ForumShellLayoutTests: XCTestCase {
         XCTAssertTrue(cgImage.containsVisibleVariation())
         XCTAssertTrue(cgImage.containsVisibleVariation(in: CGRect(x: 0, y: 0, width: 1, height: 0.2)))
         retain(image, name: "iPhone compact realtime recovery")
+    }
+
+    @MainActor
+    func testIPhoneGuestLoginCenterFitsChineseAccessibilityText() throws {
+        var state = ForumViewState()
+        state.destination = .profile
+        let image = try renderIOS(
+            width: 390,
+            height: 844,
+            sizeClass: .compact,
+            dynamicTypeSize: .accessibility2,
+            locale: Locale(identifier: "zh-Hans"),
+            state: state
+        )
+
+        XCTAssertTrue(try image.cgImageValue().containsVisibleVariation())
+        retain(image, name: "iPhone guest login center Chinese accessibility")
     }
 
     @MainActor
@@ -212,6 +240,15 @@ nonisolated final class ForumShellLayoutTests: XCTestCase {
         let image = try bitmap.cgImageValue()
         XCTAssertTrue(image.containsVisibleVariation())
         XCTAssertTrue(image.containsVisibleVariation(in: CGRect(x: 0, y: 0, width: 1, height: 0.2)))
+    }
+
+    @MainActor
+    func testMacGuestLoginCenterIsNonblank() throws {
+        var state = ForumViewState()
+        state.destination = .profile
+        let bitmap = try renderMac(width: 700, height: 500, colorScheme: .light, state: state)
+
+        XCTAssertTrue(try bitmap.cgImageValue().containsVisibleVariation())
     }
 
     @MainActor

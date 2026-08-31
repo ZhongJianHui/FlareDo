@@ -14,6 +14,11 @@ import dev.dimension.flare.data.network.discourse.auth.DiscourseLoginResult
 import dev.dimension.flare.data.network.discourse.auth.DiscourseLoginService
 import dev.dimension.flare.data.network.discourse.auth.DiscourseManualChallengeCookieHandler
 import dev.dimension.flare.data.network.discourse.auth.DiscourseManualChallengeCoordinator
+import dev.dimension.flare.data.network.discourse.auth.DiscourseQrLoginException
+import dev.dimension.flare.data.network.discourse.auth.DiscourseQrLoginFailure
+import dev.dimension.flare.data.network.discourse.auth.DiscourseQrLoginPayload
+import dev.dimension.flare.data.network.discourse.auth.DiscourseQrLoginProtocol
+import dev.dimension.flare.data.network.discourse.auth.DiscourseQrLoginService
 import dev.dimension.flare.data.network.discourse.auth.DiscourseRsaPkcs1Decryptor
 import dev.dimension.flare.data.network.discourse.auth.DiscourseRsaPkcs1KeyPairGenerator
 import dev.dimension.flare.data.network.discourse.auth.DiscourseSavedLoginStore
@@ -147,6 +152,15 @@ public data class AppleLoginResult(
     public val error: AppleForumOperationError?,
 )
 
+/** QR text is a short-lived bearer capability; [shareId] is the only cleanup handle Swift retains. */
+public data class AppleQrShareResult(
+    public val shareId: Long?,
+    public val encodedValue: String?,
+    public val username: String?,
+    public val expiresAtEpochMillis: Long?,
+    public val error: AppleForumOperationError?,
+)
+
 public data class AppleManualChallengeSnapshot(
     public val requestId: Long,
     public val origin: String,
@@ -183,10 +197,16 @@ public class AppleForumHost internal constructor(
     private val forumPresenter: DiscourseForumPresenter,
     private val composerPresenter: DiscourseComposerPresenter,
     private val loginService: DiscourseLoginService,
+    private val qrLoginService: DiscourseQrLoginService,
     private val webSessionLogin: DiscourseWebSessionLogin,
     private val sessionLifecycle: DiscourseSessionLifecycle,
     private val challengeCoordinator: DiscourseManualChallengeCoordinator,
 ) {
+    private data class ActiveQrShare(
+        val id: Long,
+        val payload: DiscourseQrLoginPayload,
+    )
+
     public companion object {
         /**
          * Opens a production host at a final, absolute database file path inside the app container.
@@ -211,6 +231,8 @@ public class AppleForumHost internal constructor(
     private val operationScope: CoroutineScope = CoroutineScope(operationJob + Dispatchers.Main)
     private val mappingScope: CoroutineScope = CoroutineScope(operationJob + Dispatchers.Default)
     private val shutdownScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var activeQrShare: ActiveQrShare? = null
+    private var nextQrShareId: Long = 1L
 
     init {
         // Starting both lazy Molecule presenters here makes shutdown deterministic even if Swift has
@@ -629,6 +651,71 @@ public class AppleForumHost internal constructor(
     public fun completeWebSession(callback: (AppleLoginResult) -> Unit): AppleForumObservation =
         launchLoginOperation(callback) { webSessionLogin.complete() }
 
+    /** Consumes one scanned FlareDo QR value through the shared one-use OTP exchange. */
+    public fun completeQrLogin(
+        rawValue: String,
+        callback: (AppleLoginResult) -> Unit,
+    ): AppleForumObservation = launchLoginOperation(callback) { qrLoginService.login(rawValue) }
+
+    /** Generates one ten-minute QR value while retaining secret cleanup ownership in Kotlin. */
+    public fun createQrShare(callback: (AppleQrShareResult) -> Unit): AppleForumObservation {
+        if (lifecycle.value != AppleHostLifecycle.OPEN) {
+            return dispatchImmediateAppleCallback(
+                AppleQrShareResult(null, null, null, null, AppleForumOperationError.HOST_CLOSED),
+                callback,
+            )
+        }
+        val job =
+            operationScope.launch {
+                var unownedPayload: DiscourseQrLoginPayload? = null
+                val result =
+                    try {
+                        activeQrShare?.let { previous ->
+                            activeQrShare = null
+                            qrLoginService.revokeAndClose(previous.payload)
+                        }
+                        val payload = qrLoginService.createShare()
+                        unownedPayload = payload
+                        check(nextQrShareId > 0L) { "Apple QR share id space is exhausted" }
+                        val id = nextQrShareId
+                        nextQrShareId = if (id == Long.MAX_VALUE) 0L else id + 1L
+                        val encoded = DiscourseQrLoginProtocol.encode(payload)
+                        activeQrShare = ActiveQrShare(id, payload)
+                        unownedPayload = null
+                        AppleQrShareResult(
+                            shareId = id,
+                            encodedValue = encoded,
+                            username = payload.username,
+                            expiresAtEpochMillis = payload.expiresAtEpochMillis,
+                            error = null,
+                        )
+                    } catch (cancellation: CancellationException) {
+                        if (!currentCoroutineContext().isActive) return@launch
+                        AppleQrShareResult(null, null, null, null, AppleForumOperationError.CANCELLED)
+                    } catch (failure: Throwable) {
+                        AppleQrShareResult(null, null, null, null, failure.toAppleOperationError())
+                    } finally {
+                        unownedPayload?.let { payload ->
+                            withContext(NonCancellable) { qrLoginService.revokeAndClose(payload) }
+                        }
+                    }
+                currentCoroutineContext().ensureActive()
+                if (lifecycle.value == AppleHostLifecycle.OPEN) callback(result)
+            }
+        return AppleForumObservation(job)
+    }
+
+    /** Revokes only the currently retained QR share matching [shareId]. */
+    public fun revokeQrShare(
+        shareId: Long,
+        callback: (AppleBooleanResult) -> Unit,
+    ): AppleForumObservation =
+        launchBooleanOperation(callback) {
+            val share = activeQrShare?.takeIf { it.id == shareId } ?: return@launchBooleanOperation false
+            activeQrShare = null
+            qrLoginService.revokeAndClose(share.payload)
+        }
+
     public fun logout(
         expectedSessionGeneration: Long,
         expectedAccountId: String,
@@ -684,6 +771,12 @@ public class AppleForumHost internal constructor(
                 }
                 try {
                     operationJob.cancelAndJoin()
+                } catch (failure: Throwable) {
+                    recordCleanupFailure(failure)
+                }
+                try {
+                    activeQrShare?.let { qrLoginService.revokeAndClose(it.payload) }
+                    activeQrShare = null
                 } catch (failure: Throwable) {
                     recordCleanupFailure(failure)
                 }
@@ -888,6 +981,7 @@ private fun createAppleForumHost(databasePath: String): AppleForumHost {
     var composerPresenter: DiscourseComposerPresenter? = null
     return try {
         val loginService = dependencies.koin.get<DiscourseLoginService>()
+        val qrLoginService = dependencies.koin.get<DiscourseQrLoginService>()
         val webSessionLogin = dependencies.koin.get<DiscourseWebSessionLogin>()
         val sessionLifecycle = dependencies.koin.get<DiscourseSessionLifecycle>()
         val challengeCoordinator = dependencies.koin.get<DiscourseManualChallengeCoordinator>()
@@ -898,6 +992,7 @@ private fun createAppleForumHost(databasePath: String): AppleForumHost {
             forumPresenter = forumPresenter,
             composerPresenter = composerPresenter,
             loginService = loginService,
+            qrLoginService = qrLoginService,
             webSessionLogin = webSessionLogin,
             sessionLifecycle = sessionLifecycle,
             challengeCoordinator = challengeCoordinator,
@@ -1077,6 +1172,22 @@ private fun Throwable.toAppleOperationError(): AppleForumOperationError =
                 DiscourseAuthExchangeFailure.SessionCookie,
                 DiscourseAuthExchangeFailure.RevokeResponse,
                 DiscourseAuthExchangeFailure.Identity,
+                -> AppleForumOperationError.INVALID_RESPONSE
+            }
+        }
+
+        is DiscourseQrLoginException -> {
+            when (failure) {
+                DiscourseQrLoginFailure.ActiveSession -> AppleForumOperationError.AUTHENTICATION
+
+                DiscourseQrLoginFailure.Expired -> AppleForumOperationError.AUTHENTICATION
+
+                DiscourseQrLoginFailure.InvalidPayload -> AppleForumOperationError.INVALID_INPUT
+
+                DiscourseQrLoginFailure.ScannerUnavailable -> AppleForumOperationError.INVALID_INPUT
+
+                DiscourseQrLoginFailure.CreateFailed,
+                DiscourseQrLoginFailure.ExchangeFailed,
                 -> AppleForumOperationError.INVALID_RESPONSE
             }
         }
