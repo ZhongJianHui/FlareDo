@@ -46,6 +46,7 @@ kotlin {
             implementation(libs.lifecycle.runtime.compose)
             implementation(libs.navigation3.ui)
             implementation(libs.play.services.code.scanner)
+            implementation(libs.zxing.core)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))

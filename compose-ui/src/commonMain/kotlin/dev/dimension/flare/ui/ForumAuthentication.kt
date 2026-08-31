@@ -7,6 +7,8 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationAction
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationState
 import dev.dimension.flare.data.network.discourse.auth.DiscourseQrLoginFailure
+import dev.dimension.flare.data.network.discourse.auth.DiscourseQrShareAction
+import dev.dimension.flare.data.network.discourse.auth.DiscourseQrShareState
 
 /** Authentication capability injected by a native host without coupling preview UI to Koin. */
 @Immutable
@@ -17,6 +19,8 @@ internal data class ForumAuthenticationUi(
     val qrLoginBusy: Boolean = false,
     val qrLoginFailure: DiscourseQrLoginFailure? = null,
     val onQrLogin: () -> Unit = {},
+    val qrShareState: DiscourseQrShareState = DiscourseQrShareState(),
+    val onQrShareAction: (DiscourseQrShareAction) -> Unit = {},
 )
 
 @Immutable
@@ -41,6 +45,8 @@ internal fun ForumAuthenticationProvider(
     qrLoginBusy: Boolean = false,
     qrLoginFailure: DiscourseQrLoginFailure? = null,
     onQrLogin: () -> Unit = {},
+    qrShareState: DiscourseQrShareState = DiscourseQrShareState(),
+    onQrShareAction: (DiscourseQrShareAction) -> Unit = {},
     content: @Composable () -> Unit,
 ) {
     CompositionLocalProvider(
@@ -52,6 +58,8 @@ internal fun ForumAuthenticationProvider(
                 qrLoginBusy = qrLoginBusy,
                 qrLoginFailure = qrLoginFailure,
                 onQrLogin = onQrLogin,
+                qrShareState = qrShareState,
+                onQrShareAction = onQrShareAction,
             ),
         content = content,
     )

@@ -1,6 +1,9 @@
 package dev.dimension.flare.ui
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toAwtImage
 import androidx.compose.ui.graphics.toPixelMap
@@ -24,6 +27,9 @@ import androidx.compose.ui.unit.dp
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationAction
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationFailureKind
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationState
+import dev.dimension.flare.data.network.discourse.auth.DiscourseQrShare
+import dev.dimension.flare.data.network.discourse.auth.DiscourseQrShareAction
+import dev.dimension.flare.data.network.discourse.auth.DiscourseQrShareState
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumAction
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumDestination
 import dev.dimension.flare.data.network.discourse.forum.DiscourseForumFailureKind
@@ -38,6 +44,7 @@ import kotlin.math.roundToInt
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 
 /** Headless semantic and raster checks for the Compose Desktop forum workspace. */
 @OptIn(ExperimentalTestApi::class)
@@ -168,6 +175,56 @@ internal class DesktopForumShellRenderTest {
                     observedActions,
                 )
                 assertEquals(1, qrLaunches)
+            }
+        }
+
+    @Test
+    fun authenticatedProfileConfirmsDisplaysAndRevokesQrShare() =
+        runDesktopComposeUiTest(width = 700, height = 720) {
+            val profile = ForumPreviewFixtures.profile()
+            val actions = mutableListOf<DiscourseQrShareAction>()
+            var qrState by mutableStateOf(DiscourseQrShareState())
+            val expiresAtEpochMillis = Clock.System.now().toEpochMilliseconds() + 600_000L
+            setContent {
+                FlareDoTheme(darkTheme = false) {
+                    ForumAuthenticationProvider(
+                        state = DiscourseAuthenticationState(),
+                        onAction = {},
+                        qrShareState = qrState,
+                        onQrShareAction = { action ->
+                            actions += action
+                            if (action == DiscourseQrShareAction.Generate) {
+                                qrState =
+                                    DiscourseQrShareState(
+                                        share =
+                                            DiscourseQrShare(
+                                                id = 1L,
+                                                encodedValue =
+                                                    "flaredo://qr-login?version=1&credential=a2V5&ticket=YWJjZGVm&account=member&expires=$expiresAtEpochMillis",
+                                                username = "member",
+                                                expiresAtEpochMillis = expiresAtEpochMillis,
+                                            ),
+                                    )
+                            } else {
+                                qrState = DiscourseQrShareState()
+                            }
+                        },
+                    ) {
+                        ForumProfilePane(state = profile, onAction = {})
+                    }
+                }
+            }
+
+            onNodeWithTag(ForumTestTags.AUTH_QR_SHARE).assertIsDisplayed().performClick()
+            onNodeWithTag(ForumTestTags.AUTH_QR_SHARE_CONFIRM).assertIsDisplayed().performClick()
+            captureToImage().writeReport("qr-share-dialog-light.png")
+            onNodeWithTag(ForumTestTags.AUTH_QR_SHARE_IMAGE).assertIsDisplayed()
+            onNodeWithTag(ForumTestTags.AUTH_QR_SHARE_DONE).assertIsDisplayed().performClick()
+            runOnIdle {
+                assertEquals(
+                    listOf(DiscourseQrShareAction.Generate, DiscourseQrShareAction.Revoke),
+                    actions,
+                )
             }
         }
 

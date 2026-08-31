@@ -65,6 +65,15 @@
     <string name="forum_auth_qr_invalid">图片或扫描结果不是有效的 FlareDo 登录码。</string>
     <string name="forum_auth_qr_expired">登录码已过期，请在另一台设备上重新生成。</string>
     <string name="forum_auth_qr_unavailable">无法打开扫码登录，请改用其他方式。</string>
+    <string name="forum_auth_qr_share_action">登录另一台设备</string>
+    <string name="forum_auth_qr_share_confirm_title">要登录另一台设备吗？</string>
+    <string name="forum_auth_qr_share_warning">任何扫描此码的人都能登录你的账号。请勿泄露，并在使用后立即关闭。</string>
+    <string name="forum_auth_qr_share_generate">生成登录码</string>
+    <string name="forum_auth_qr_share_title">FlareDo 登录码</string>
+    <string name="forum_auth_qr_share_regenerate">重新生成</string>
+    <string name="forum_auth_qr_share_expired">已过期</string>
+    <string name="forum_auth_qr_share_done">完成</string>
+    <string name="forum_auth_qr_share_failed">无法生成登录码。</string>
     <string name="forum_auth_sign_out">退出登录</string>
     <string name="forum_auth_busy">正在完成安全登录</string>
     <string name="forum_auth_browser_unavailable">无法打开安全浏览器。</string>

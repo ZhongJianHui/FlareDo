@@ -65,6 +65,15 @@
     <string name="forum_auth_qr_invalid">This image or scan is not a valid FlareDo sign-in code.</string>
     <string name="forum_auth_qr_expired">This sign-in code has expired. Generate a new code on the other device.</string>
     <string name="forum_auth_qr_unavailable">QR sign-in could not be opened. Try another method.</string>
+    <string name="forum_auth_qr_share_action">Sign in another device</string>
+    <string name="forum_auth_qr_share_confirm_title">Sign in another device?</string>
+    <string name="forum_auth_qr_share_warning">Anyone who scans this code can sign in as you. Keep it private and close it when finished.</string>
+    <string name="forum_auth_qr_share_generate">Generate code</string>
+    <string name="forum_auth_qr_share_title">FlareDo sign-in code</string>
+    <string name="forum_auth_qr_share_regenerate">Generate a new code</string>
+    <string name="forum_auth_qr_share_expired">Expired</string>
+    <string name="forum_auth_qr_share_done">Done</string>
+    <string name="forum_auth_qr_share_failed">Unable to generate a sign-in code.</string>
     <string name="forum_auth_sign_out">Sign out</string>
     <string name="forum_auth_busy">Completing secure sign-in</string>
     <string name="forum_auth_browser_unavailable">A secure browser could not be opened.</string>

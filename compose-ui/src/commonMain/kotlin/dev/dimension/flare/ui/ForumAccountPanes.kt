@@ -578,6 +578,12 @@ internal fun ForumProfilePane(
                 }.takeIf { state.isAuthenticated },
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        if (state.isAuthenticated && profileState.value != null) {
+            ForumQrShareControls(
+                Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
+            )
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        }
         when {
             profileState.value == null &&
                 (!state.isAuthenticated || profileFailure == DiscourseForumFailureKind.Authentication) -> {

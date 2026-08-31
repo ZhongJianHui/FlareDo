@@ -14,6 +14,8 @@ import androidx.compose.ui.input.key.type
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationAction
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationState
 import dev.dimension.flare.data.network.discourse.auth.DiscourseQrLoginService
+import dev.dimension.flare.data.network.discourse.auth.DiscourseQrShareAction
+import dev.dimension.flare.data.network.discourse.auth.DiscourseQrShareState
 import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerMode
 import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerPresenter
 import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerState
@@ -32,6 +34,8 @@ public fun DesktopForumShell(
     authenticationState: DiscourseAuthenticationState,
     onAuthenticationAction: (DiscourseAuthenticationAction) -> Boolean,
     qrLoginService: DiscourseQrLoginService? = null,
+    qrShareState: DiscourseQrShareState = DiscourseQrShareState(),
+    onQrShareAction: (DiscourseQrShareAction) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val state by presenter.models.collectAsState()
@@ -45,6 +49,8 @@ public fun DesktopForumShell(
         qrLoginBusy = qrLogin.busy,
         qrLoginFailure = qrLogin.failure,
         onQrLogin = qrLogin.launch,
+        qrShareState = qrShareState,
+        onQrShareAction = onQrShareAction,
     ) {
         ForumWorkspaceWithComposer(
             state = state,

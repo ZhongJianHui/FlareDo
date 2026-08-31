@@ -38,6 +38,7 @@ class MainActivity : ComponentActivity() {
                     authenticationPresenter = authenticationPresenter,
                     qrLoginService = forumViewModel.qrLoginService,
                     savedLoginStore = forumViewModel.savedLoginStore,
+                    qrSharePresenter = forumViewModel.qrSharePresenter,
                 )
             }
         }

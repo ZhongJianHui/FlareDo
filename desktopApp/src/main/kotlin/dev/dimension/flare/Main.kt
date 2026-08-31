@@ -13,6 +13,7 @@ import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthRedirectPars
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationPresenter
 import dev.dimension.flare.data.network.discourse.auth.DiscourseLoginService
 import dev.dimension.flare.data.network.discourse.auth.DiscourseQrLoginService
+import dev.dimension.flare.data.network.discourse.auth.DiscourseQrSharePresenter
 import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerPresenter
 import dev.dimension.flare.data.network.discourse.discourseAuthenticationModule
 import dev.dimension.flare.data.network.discourse.discourseModule
@@ -110,6 +111,8 @@ private fun runPrimaryDesktopApplication(
     val composerPresenter = dependencies.koin.get<DiscourseComposerPresenter>()
     val authenticationPresenter = dependencies.koin.get<DiscourseAuthenticationPresenter>()
     val qrLoginService = dependencies.koin.get<DiscourseQrLoginService>()
+    val qrSharePresenter = dependencies.koin.get<DiscourseQrSharePresenter>()
+    qrSharePresenter.models.value
     val browserCookieManager = dependencies.koin.get<CookieManager>()
     // Start the lazy Molecule actor before installing any callback transport. A queue receipt is
     // useful only when a live consumer can dequeue it within the broker's bounded ACK window.
@@ -159,6 +162,7 @@ private fun runPrimaryDesktopApplication(
                 }
                 FlareDoTheme {
                     val authenticationState by authenticationPresenter.models.collectAsState()
+                    val qrShareState by qrSharePresenter.models.collectAsState()
                     DesktopAuthenticationBrowserEffects(
                         state = authenticationState,
                         browserCookieManager = browserCookieManager,
@@ -171,6 +175,8 @@ private fun runPrimaryDesktopApplication(
                         authenticationState = authenticationState,
                         onAuthenticationAction = { authenticationPresenter.dispatch(it) },
                         qrLoginService = qrLoginService,
+                        qrShareState = qrShareState,
+                        onQrShareAction = { qrSharePresenter.dispatch(it) },
                     )
                 }
             }
@@ -189,6 +195,7 @@ private fun runPrimaryDesktopApplication(
             closeDesktopApplication(
                 closeComposer = composerPresenter::closeAndFlush,
                 closeAuthentication = authenticationPresenter::closeAndJoin,
+                closeQrShare = qrSharePresenter::closeAndJoin,
                 closeForum = presenter::closeAndJoin,
                 closeDependencies = dependencies::close,
             )
@@ -296,6 +303,7 @@ internal suspend fun openDesktopExternalUri(rawUri: String): Boolean =
 internal suspend fun closeDesktopApplication(
     closeComposer: suspend () -> Unit,
     closeAuthentication: suspend () -> Unit,
+    closeQrShare: suspend () -> Unit = {},
     closeForum: suspend () -> Unit,
     closeDependencies: () -> Unit,
 ) {
@@ -306,9 +314,13 @@ internal suspend fun closeDesktopApplication(
             closeAuthentication()
         } finally {
             try {
-                closeForum()
+                closeQrShare()
             } finally {
-                closeDependencies()
+                try {
+                    closeForum()
+                } finally {
+                    closeDependencies()
+                }
             }
         }
     }

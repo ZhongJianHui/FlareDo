@@ -8,6 +8,7 @@ import dev.dimension.flare.auth.DiscourseAuthRedirectSinkOwner
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationPresenter
 import dev.dimension.flare.data.network.discourse.auth.DiscourseLoginService
 import dev.dimension.flare.data.network.discourse.auth.DiscourseQrLoginService
+import dev.dimension.flare.data.network.discourse.auth.DiscourseQrSharePresenter
 import dev.dimension.flare.data.network.discourse.auth.DiscourseSavedLoginStore
 import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerPresenter
 import dev.dimension.flare.data.network.discourse.discourseAuthenticationModule
@@ -75,6 +76,8 @@ class App :
     internal fun qrLoginService(): DiscourseQrLoginService = koin.get()
 
     internal fun savedLoginStore(): DiscourseSavedLoginStore = koin.get()
+
+    internal fun createQrSharePresenter(): DiscourseQrSharePresenter = koin.get()
 
     /** Moves one callback from process memory into the visible Activity's retained presenter. */
     internal fun deliverPendingAuthenticationRedirect(consumer: (String) -> Boolean): DiscourseAuthRedirectDeliveryResult =

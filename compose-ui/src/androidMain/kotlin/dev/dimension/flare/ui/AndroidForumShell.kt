@@ -33,6 +33,7 @@ import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationAc
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationPresenter
 import dev.dimension.flare.data.network.discourse.auth.DiscourseAuthenticationState
 import dev.dimension.flare.data.network.discourse.auth.DiscourseQrLoginService
+import dev.dimension.flare.data.network.discourse.auth.DiscourseQrSharePresenter
 import dev.dimension.flare.data.network.discourse.auth.DiscourseSavedLoginStore
 import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerMode
 import dev.dimension.flare.data.network.discourse.composer.DiscourseComposerPresenter
@@ -80,6 +81,7 @@ public fun AndroidForumShell(
     authenticationPresenter: DiscourseAuthenticationPresenter,
     qrLoginService: DiscourseQrLoginService? = null,
     savedLoginStore: DiscourseSavedLoginStore? = null,
+    qrSharePresenter: DiscourseQrSharePresenter? = null,
     modifier: Modifier = Modifier,
 ) {
     val state by presenter.models.collectAsStateWithLifecycle()
@@ -87,6 +89,14 @@ public fun AndroidForumShell(
     val authenticationState by authenticationPresenter.models.collectAsStateWithLifecycle()
     val attachmentPicker = rememberForumAttachmentPicker()
     val qrLogin = rememberAndroidQrLoginCapability(qrLoginService)
+    val qrShareState by
+        qrSharePresenter?.models?.collectAsStateWithLifecycle()
+            ?: remember {
+                mutableStateOf(
+                    dev.dimension.flare.data.network.discourse.auth
+                        .DiscourseQrShareState(),
+                )
+            }
     AndroidForumShell(
         state = state,
         onAction = { presenter.dispatch(it) },
@@ -97,6 +107,8 @@ public fun AndroidForumShell(
         onAuthenticationAction = { authenticationPresenter.dispatch(it) },
         qrLogin = qrLogin,
         savedLoginStore = savedLoginStore,
+        qrShareState = qrShareState,
+        onQrShareAction = { action -> qrSharePresenter?.dispatch(action) },
         modifier = modifier,
     )
 }
@@ -119,6 +131,10 @@ internal fun AndroidForumShell(
     onAuthenticationAction: (DiscourseAuthenticationAction) -> Boolean = { false },
     qrLogin: ForumQrLoginCapability = ForumQrLoginCapability(),
     savedLoginStore: DiscourseSavedLoginStore? = null,
+    qrShareState: dev.dimension.flare.data.network.discourse.auth.DiscourseQrShareState =
+        dev.dimension.flare.data.network.discourse.auth
+            .DiscourseQrShareState(),
+    onQrShareAction: (dev.dimension.flare.data.network.discourse.auth.DiscourseQrShareAction) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     ForumAuthenticationProvider(
@@ -128,6 +144,8 @@ internal fun AndroidForumShell(
         qrLoginBusy = qrLogin.busy,
         qrLoginFailure = qrLogin.failure,
         onQrLogin = qrLogin.launch,
+        qrShareState = qrShareState,
+        onQrShareAction = onQrShareAction,
     ) {
         AndroidAuthenticationBrowserEffects(
             state = authenticationState,
